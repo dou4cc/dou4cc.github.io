@@ -29,6 +29,7 @@
 			background-color: white;
 			box-shadow: white 0 0 35px 35px;
 			position: relative;
+			will-change: top;
 		}
 		#marquee span{
 			position: relative;
@@ -280,7 +281,7 @@
 						}
 					}
 
-					if(is_clicking && (clientX - x) ** 2 + (clientY - y) ** 2 > 14) is_clicking = false;
+					if(is_clicking && (clientX - x) ** 2 + (clientY - y) ** 2 > 13) is_clicking = false;
 
 					status = [x, y, time, is_playing, k, is_clicking];
 				}
@@ -299,12 +300,11 @@
 			});
 
 			addEventListener("resize", () => {
-				update_time(time);
 				if(is_playing){
-					clearTimeout(animation);
-					animation = setTimeout(onplay, 30);
+					onplay();
 				}else{
 					status = null;
+					update_time(time);
 				}
 			});
 
@@ -321,7 +321,10 @@
 			document.getSelection().removeAllRanges();
 		});
 		addEventListener("mousedown", event => {
-			if(event.button === 0) event.preventDefault();
+			if(event.button === 0){
+				event.target.focus();
+				event.preventDefault();
+			}
 		});
 		addEventListener("scroll", () => {
 			scrollTo(0, 0);

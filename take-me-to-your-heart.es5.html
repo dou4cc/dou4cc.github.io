@@ -1,0 +1,371 @@
+﻿<!DOCTYPE html>
+<html>
+
+<head>
+	<meta charset="utf8">
+	<title>Loading</title>
+	<script src="https://google.github.io/traceur-compiler/bin/BrowserSystem.js"></script>
+	<style>
+		html{
+			overflow: hidden;
+		}
+		body{
+			margin: 0;
+			text-align: center;
+			position: absolute;
+			top: 50%;
+			left: 35px;
+			right: 35px;
+			font: 1.8em sans-serif;
+		}
+		#hr{
+			margin-top: -0.5px;
+			border-bottom: none;
+			border-color: black;
+			left: 0;
+			right: 0;
+			position: fixed;
+		}
+		#marquee{
+			background-color: white;
+			box-shadow: white 0 0 35px 35px;
+			position: relative;
+			will-change: top;
+		}
+		#marquee span{
+			position: relative;
+			z-index: 1;
+			white-space: pre-wrap;
+			word-wrap: break-word;
+		}
+	</style>
+</head>
+
+<body>
+	<hr id="hr">
+	<audio src="./take-me-to-your-heart.mp3" id="song"></audio>
+	<script type="text/plain" id="lrc">
+		[00:00.00]Take Me to Your Heart<br>吻别<br>Michael Learns To Rock «Take Me to Your Heart»<br>张学友《Lpcd45之等你等到我心痛》
+		[00:16.80]
+		[00:17.34]Hiding from the rain and snow.<br>前尘往事成云烟
+		[00:20.47]Trying to forget but I won't let go.<br>消散在彼此眼前
+		[00:25.07]Looking at a crowded street.<br>就连说过了再见
+		[00:28.76]Listening to my own heart beat.<br>也看不见你有些哀怨
+		[00:32.97]So many people<br>给我的一切
+		[00:36.76]all around the world<br>你不过是在敷衍
+		[00:40.87]tell me where do I find<br>你笑的越无邪
+		[00:44.46]someone like you girl.<br>我就会爱你爱得更狂野
+		[00:47.96]Take me to your heart.<br>总在刹那间
+		[00:49.89]Take me to your soul.<br>有一些了解
+		[00:51.87]Give me your hand before I'm old.<br>说过的话不可能会实现
+		[00:55.86]Show me what love is.<br>就在一转眼
+		[00:57.95]Haven't got a clue.<br>发现你的脸
+		[00:59.78]Show me that wonders can be true.<br>已经陌生不会再像从前
+		[01:03.69]They say nothing lasts forever.<br>我的世界开始下雪
+		[01:08.13]We are only here today.<br>冷得让我无法多爱一天
+		[01:12.05]Love is now or never.<br>冷得连隐藏的遗憾
+		[01:16.15]Bring me far away.<br>都那么的明显
+		[01:19.44]Take me to your heart.<br>我和你吻别
+		[01:22.07]Take me to your soul.<br>在无人的街
+		[01:24.32]Give me your hand and hold me.<br>让风痴笑我不能拒绝
+		[01:27.33]Show me what love is.<br>我和你吻别
+		[01:29.70]Be my guiding star.<br>在狂乱的夜
+		[01:32.05]It's easy.<br>我的心
+		[01:33.97]Take me to your heart.<br>等着迎接伤悲
+		[01:39.00]
+		[02:11.42]Standing on a mountain high.<br>想要给你的思念
+		[02:14.66]Looking at the moon through a clear blue sky.<br>就像风筝断了线
+		[02:19.21]I should go and see some friends<br>飞不进你的世界
+		[02:22.56]but they don't really comprehend.<br>也温暖不了你的视线
+		[02:27.11]Don't need too much talking.<br>我已经看见
+		[02:30.77]Without saying anything<br>一出悲剧正上演
+		[02:34.97]all I need is someone<br>剧终没有喜悦
+		[02:38.43]who makes me wanna sing.<br>我仍然躲在你的梦里面
+		[02:41.76]Take me to your heart.<br>总在刹那间
+		[02:43.87]Take me to your soul.<br>有一些了解
+		[02:45.92]Give me your hand before I'm old.<br>说过的话不可能会实现
+		[02:49.96]Show me what love is.<br>就在一转眼
+		[02:52.03]Haven't got a clue.<br>发现你的脸
+		[02:53.91]Show me that wonders can be true.<br>已经陌生不会再像从前
+		[02:57.85]They say nothing lasts forever.<br>我的世界开始下雪
+		[03:02.37]We are only here today.<br>冷得让我无法多爱一天
+		[03:06.66]Love is now or never.<br>冷得连隐藏的遗憾
+		[03:10.35]Bring me far away.<br>都那么的明显
+		[03:13.51]Take me to your heart.<br>我和你吻别
+		[03:15.99]Take me to your soul.<br>在无人的街
+		[03:18.34]Give me your hand and hold me.<br>让风痴笑我不能拒绝
+		[03:21.33]Show me what love is.<br>我和你吻别
+		[03:23.82]Be my guiding star.<br>在狂乱的夜
+		[03:26.19]It's easy.<br>我的心
+		[03:28.14]Take me to your heart.<br>等着迎接伤悲
+		[03:30.91]Take me...<br>我和
+		[03:34.01]to your heart.<br>你吻别
+		[03:35.86]Take me to your soul.<br>在无人的街
+		[03:38.06]Give me your hand and hold me.<br>让风痴笑我不能拒绝
+		[03:40.93]Show me what love is.<br>我和你吻别
+		[03:43.59]Be my guiding star.<br>在狂乱的夜
+		[03:45.96]It's easy.<br>我的心
+		[03:47.77]Take me to your heart.<br>等着迎接伤悲
+	</script>
+	<script>
+  "use strict";
+  var _slicedToArray = function() {
+    function sliceIterator(arr, i) {
+      var _arr = [];
+      var _n = true;
+      var _d = false;
+      var _e = undefined;
+      try {
+        for (var _i = arr[Symbol.iterator](),
+            _s = void 0; !(_n = (_s = _i.next()).done); _n = true) {
+          _arr.push(_s.value);
+          if (i && _arr.length === i)
+            break;
+        }
+      } catch (err) {
+        _d = true;
+        _e = err;
+      } finally {
+        try {
+          if (!_n && _i["return"])
+            _i["return"]();
+        } finally {
+          if (_d)
+            throw _e;
+        }
+      }
+      return _arr;
+    }
+    return function(arr, i) {
+      if (Array.isArray(arr)) {
+        return arr;
+      } else if (Symbol.iterator in Object(arr)) {
+        return sliceIterator(arr, i);
+      } else {
+        throw new TypeError("Invalid attempt to destructure non-iterable instance");
+      }
+    };
+  }();
+  function _toConsumableArray(arr) {
+    if (Array.isArray(arr)) {
+      for (var i = 0,
+          arr2 = Array(arr.length); i < arr.length; i++) {
+        arr2[i] = arr[i];
+      }
+      return arr2;
+    } else {
+      return Array.from(arr);
+    }
+  }
+  function _toArray(arr) {
+    return Array.isArray(arr) ? arr : Array.from(arr);
+  }
+  var $ = function $() {
+    var _document;
+    return (_document = document).querySelector.apply(_document, arguments);
+  };
+  var new_element = function new_element() {
+    var _document2;
+    return (_document2 = document).createElement.apply(_document2, arguments);
+  };
+  var timeline = function(offset, source) {
+    var $1 = arguments.length <= 2 || arguments[2] === undefined ? function(_ref, flags, content) {
+      var _ref2 = _toArray(_ref);
+      var stat = _ref2[0];
+      var rest = _ref2.slice(1);
+      return [].concat(_toConsumableArray((flags = stat.match(/\[((?:[\0-\\\^-\uD7FF\uE000-\uFFFF]|[\uD800-\uDBFF][\uDC00-\uDFFF]|[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?:[^\uD800-\uDBFF]|^)[\uDC00-\uDFFF])+)\]/g), flags ? flags.map((content = stat.match(/^(?:\[(?:[\0-\\\^-\uD7FF\uE000-\uFFFF]|[\uD800-\uDBFF][\uDC00-\uDFFF]|[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?:[^\uD800-\uDBFF]|^)[\uDC00-\uDFFF])+\][\t-\r \xA0\u1680\u180E\u2000-\u200A\u2028\u2029\u202F\u205F\u3000\uFEFF]*)+((?:[\0-\t\x0B\f\x0E-\u2027\u202A-\uD7FF\uE000-\uFFFF]|[\uD800-\uDBFF][\uDC00-\uDFFF]|[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?:[^\uD800-\uDBFF]|^)[\uDC00-\uDFFF])*)$/)[1], function(flag) {
+        return [flag, content];
+      })) : [])), _toConsumableArray(rest.length > 0 ? $1(rest) : []));
+    } : arguments[2];
+    var $2 = arguments.length <= 3 || arguments[3] === undefined ? function(map) {
+      var $ = arguments.length <= 1 || arguments[1] === undefined ? function(_ref3, match) {
+        var _ref4 = _toArray(_ref3);
+        var _ref4$ = _slicedToArray(_ref4[0], 2);
+        var key = _ref4$[0];
+        var value = _ref4$[1];
+        var rest = _ref4.slice(1);
+        return [].concat(_toConsumableArray((match = key.match(/^\[([0-9]+):([0-9]+)(?:\.([0-9]+))?\]$/), match ? [[Math.max(0, offset + match[1] * 6e4 + match[2] * 1e3 + (match[3] * 10 || 0)), value]] : [])), _toConsumableArray(rest.length > 0 ? $(rest) : []));
+      } : arguments[1];
+      return [].concat(_toConsumableArray(new Map([[0, ""]].concat(_toConsumableArray($([].concat(_toConsumableArray(map)))))))).sort(function(_ref5, _ref6) {
+        var _ref8 = _slicedToArray(_ref5, 1);
+        var a = _ref8[0];
+        var _ref7 = _slicedToArray(_ref6, 1);
+        var b = _ref7[0];
+        return a - b;
+      });
+    } : arguments[3];
+    return $2(new Map($1(source.replace(/\r?\n/g, "\r").trim().split(/(?:[\t-\r \xA0\u1680\u180E\u2000-\u200A\u2028\u2029\u202F\u205F\u3000\uFEFF]*\r)+[\t-\r \xA0\u1680\u180E\u2000-\u200A\u2028\u2029\u202F\u205F\u3000\uFEFF]*/g))));
+  }(0, $("#lrc").textContent);
+  var n$span = function(lrcs) {
+    var span = arguments.length <= 1 || arguments[1] === undefined ? new_element("span") : arguments[1];
+    var $ = arguments.length <= 2 || arguments[2] === undefined ? function(_ref9, span) {
+      var _ref10 = _toArray(_ref9);
+      var _ref10$ = _slicedToArray(_ref10[0], 2);
+      var _ = _ref10$[0];
+      var content = _ref10$[1];
+      var rest = _ref10.slice(1);
+      var result = arguments.length <= 2 || arguments[2] === undefined ? new_element("span") : arguments[2];
+      return result.innerHTML = content ? content : " ", span.childElementCount ? result.innerHTML = "<br>" + result.innerHTML : span.hidden = true, result.insertBefore(span, result.firstChild), [result].concat(_toConsumableArray(rest.length > 0 ? $(rest, result) : []));
+    } : arguments[2];
+    return [span].concat(_toConsumableArray($(lrcs, span)));
+  }(timeline);
+  var marquee = function(marquee) {
+    return marquee.appendChild(n$span[n$span.length - 1]), marquee;
+  }(new_element("span"));
+  document.body.appendChild(marquee).id = "marquee";
+  var span$n = function(map) {
+    return function(span) {
+      return map.get(span);
+    };
+  }(new Map(n$span.map(function(span, n) {
+    return [span, n];
+  })));
+  var $time = function(list, last, bottom, top) {
+    var $ = arguments.length <= 4 || arguments[4] === undefined ? function(query, n1, n2) {
+      var n = arguments.length <= 3 || arguments[3] === undefined ? Math.floor((n2 + n1) / 2) : arguments[3];
+      return query < list[n][0] ? $(query, n1, n) : query < list[n + 1][0] ? n : $(query, n + 1, n2);
+    } : arguments[4];
+    return function(query) {
+      return last = query < list[bottom][0] ? bottom : query < list[top][0] ? list[last][0] <= query && query < list[last + 1][0] ? last : list[last + 1][0] <= query && query < list[last + 2][0] ? last + 1 : $(query, bottom, top) : top - 1;
+    };
+  }(timeline, 0, 0, timeline.length);
+  var song = $("#song");
+  var oncanplay = function oncanplay() {
+    song.removeEventListener("canplay", oncanplay);
+    var duration = song.duration * 1e3;
+    timeline.push([duration]);
+    var time = 0;
+    var offset = void 0;
+    var play = function play() {
+      return void(song.currentTime = time < duration ? time / 1e3 : 0, song.play());
+    };
+    var set_time = function set_time(t) {
+      return void(time = t, document.title = function(time) {
+        var min = arguments.length <= 1 || arguments[1] === undefined ? Math.floor(time / 6e4) : arguments[1];
+        var sec = arguments.length <= 2 || arguments[2] === undefined ? Math.floor(time % 6e4 / 1e3) : arguments[2];
+        return min + ":" + (sec >= 10 ? "" : "0") + sec;
+      }(duration - time));
+    };
+    var set_offset = function set_offset(h) {
+      return void(offset = h, marquee.style.top = -offset + "px");
+    };
+    var update_time = function update_time(time) {
+      return void(set_time(time), set_offset(function(timeline, spans, n, time) {
+        var t = arguments.length <= 4 || arguments[4] === undefined ? timeline[n][0] : arguments[4];
+        var h1 = arguments.length <= 5 || arguments[5] === undefined ? spans[n].offsetHeight : arguments[5];
+        var h2 = arguments.length <= 6 || arguments[6] === undefined ? spans[n + 1].offsetHeight - h1 : arguments[6];
+        return h1 + h2 * (time - t) / (timeline[n + 1][0] - t);
+      }(timeline, n$span, $time(time), time)));
+    };
+    var update_offset = function update_offset(offset) {
+      return void(set_offset(offset), set_time(function(n) {
+        var t1 = arguments.length <= 1 || arguments[1] === undefined ? timeline[n - 1][0] : arguments[1];
+        var t2 = arguments.length <= 2 || arguments[2] === undefined ? timeline[n][0] : arguments[2];
+        var h1 = arguments.length <= 3 || arguments[3] === undefined ? n$span[n - 1].offsetHeight : arguments[3];
+        var h2 = arguments.length <= 4 || arguments[4] === undefined ? n$span[n].offsetHeight : arguments[4];
+        return t1 + (offset - h1) * (t2 - t1) / (h2 - h1);
+      }(span$n(document.elementFromPoint(document.documentElement.clientWidth / 2, document.documentElement.clientHeight / 2)) || timeline.length - 1)));
+    };
+    var animation = void 0;
+    var is_playing = false;
+    var onplay = function onplay() {
+      update_time(song.currentTime * 1e3);
+      clearTimeout(animation);
+      animation = setTimeout(onplay, 30);
+    };
+    song.addEventListener("play", function() {
+      is_playing = true;
+      onplay();
+    });
+    song.addEventListener("pause", function() {
+      is_playing = false;
+      update_time(song.currentTime * 1e3);
+      clearTimeout(animation);
+    });
+    var status = void 0;
+    addEventListener("mousedown", function(event) {
+      if (event.button === 0) {
+        status = [event.clientX, event.clientY, time, is_playing, offset + event.clientY, true];
+        song.pause();
+      }
+    });
+    addEventListener("mousemove", function(_ref11) {
+      var clientX = _ref11.clientX;
+      var clientY = _ref11.clientY;
+      if (status) {
+        var _status = status;
+        var _status2 = _slicedToArray(_status, 6);
+        var x = _status2[0];
+        var y = _status2[1];
+        var _time = _status2[2];
+        var _is_playing = _status2[3];
+        var k = _status2[4];
+        var is_clicking = _status2[5];
+        var _offset = k - clientY;
+        if (_offset < 0) {
+          update_offset(0);
+          k = clientY;
+        } else {
+          var height = marquee.offsetHeight;
+          if (_offset > height) {
+            update_offset(height);
+            k = height + clientY;
+          } else {
+            update_offset(_offset);
+          }
+        }
+        if (is_clicking && Math.pow(clientX - x, 2) + Math.pow(clientY - y, 2) > 14)
+          is_clicking = false;
+        status = [x, y, _time, _is_playing, k, is_clicking];
+      }
+    });
+    addEventListener("mouseup", function(event) {
+      if (status && event.button === 0) {
+        var _status3 = status;
+        var _status4 = _slicedToArray(_status3, 6);
+        var x = _status4[0];
+        var y = _status4[1];
+        var _time2 = _status4[2];
+        var _is_playing2 = _status4[3];
+        var k = _status4[4];
+        var is_clicking = _status4[5];
+        if (is_clicking) {
+          update_time(_time2);
+          if (!_is_playing2)
+            play();
+        } else if (_is_playing2) {
+          play();
+        }
+        status = null;
+      }
+    });
+    addEventListener("resize", function() {
+
+      if (is_playing) {
+        onplay();
+      } else {
+      update_time(time);
+        status = null;
+      }
+    });
+    play();
+  };
+  song.addEventListener("canplay", oncanplay);
+  addEventListener("dragstart", function(event) {
+    event.preventDefault();
+  });
+  addEventListener("contextmenu", function() {
+    document.getSelection().removeAllRanges();
+  });
+  addEventListener("mousedown", function(event) {
+    if (event.button === 0)
+      event.preventDefault();
+event.target.focus();
+  });
+  addEventListener("scroll", function() {
+    scrollTo(0, 0);
+  });</script>
+	
+</body>
+
+</html>
