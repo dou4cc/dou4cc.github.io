@@ -3,6 +3,7 @@
 
 <head>
 	<meta charset="utf8">
+	<title>Loading</title>
 	<style>
 		html{
 			overflow: hidden;
@@ -12,15 +13,17 @@
 			text-align: center;
 			position: absolute;
 			top: 50%;
-			width: 100%;
+			left: 35px;
+			right: 35px;
 			font: 1.8em sans-serif;
 		}
 		#hr{
 			margin-top: -0.5px;
 			border-bottom: none;
 			border-color: black;
-			width: 100%;
-			position: absolute;
+			left: 0;
+			right: 0;
+			position: fixed;
 		}
 		#marquee{
 			background-color: white;
@@ -237,12 +240,12 @@
 
 			let animation;
 			let is_playing = false;
+			const onplay = () => {
+				update_time(song.currentTime * 1e3);
+				clearTimeout(animation);
+				animation = setTimeout(onplay, 30);
+			};
 			song.addEventListener("play", () => {
-				const onplay = () => {
-					update_time(song.currentTime * 1e3);
-					clearTimeout(animation);
-					animation = setTimeout(onplay, 30);
-				};
 				is_playing = true;
 				onplay();
 			});
@@ -297,6 +300,12 @@
 
 			addEventListener("resize", () => {
 				update_time(time);
+				if(is_playing){
+					clearTimeout(animation);
+					animation = setTimeout(onplay, 30);
+				}else{
+					status = null;
+				}
 			});
 
 			play();
