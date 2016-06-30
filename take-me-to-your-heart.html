@@ -43,9 +43,8 @@
 <body>
 	<hr id="hr">
 	<audio src="./take-me-to-your-heart.mp3" id="song"></audio>
-	<script type="text/plain" id="lrc">
-		[00:00.00]Take Me to Your Heart<br>吻别<br>Michael Learns To Rock «Take Me to Your Heart»<br>张学友《Lpcd45之等你等到我心痛》
-		[00:16.80]
+	<script type="application/lrc" id="lrc">
+		[00:00.00]Take Me to Your Heart<br>吻别<br>Michael Learns To Rock «Take Me to Your Heart»<br>张学友《Lpcd45之等你等到我心痛》<br>
 		[00:17.34]Hiding from the rain and snow.<br>前尘往事成云烟
 		[00:20.47]Trying to forget but I won't let go.<br>消散在彼此眼前
 		[00:25.07]Looking at a crowded street.<br>就连说过了再见
@@ -105,6 +104,7 @@
 		[03:43.59]Be my guiding star.<br>在狂乱的夜
 		[03:45.96]It's easy.<br>我的心
 		[03:47.77]Take me to your heart.<br>等着迎接伤悲
+		[03:52.17]
 	</script>
 	<script>
 		"use strict";
@@ -207,7 +207,7 @@
 					min = Math.floor(time / 6e4),
 					sec = Math.floor(time % 6e4 / 1e3)
 				) => min + ":" + (sec >= 10 ? "" : "0") + sec)
-				(Math.max(0, duration - time))
+				(Math.min(duration, Math.max(0, duration - time)))
 			);
 			const set_offset = h => void (
 				offset = h,
@@ -268,17 +268,7 @@
 					let [x, y, time, is_playing, k, pr2, is_clicking] = status;
 
 					const _offset = offset + (k - screenY) / devicePixelRatio;
-					if(_offset < 0){
-						update_offset(0);
-					}else{
-						const height = marquee.offsetHeight;
-						if(_offset > height){
-							update_offset(height);
-						}else{
-							update_offset(_offset);
-						}
-					}
-
+					update_offset(_offset < 0 ? 0 : Math.min(_offset, marquee.offsetHeight));
 					if(is_clicking && (screenX - x) ** 2 + (screenY - y) ** 2 > 13 * pr2) is_clicking = false;
 
 					status = [x, y, time, is_playing, screenY, pr2, is_clicking];
@@ -326,8 +316,7 @@
 		addEventListener("scroll", () => {
 			scrollTo(0, 0);
 		});
-</script>
-	
+	</script>
 </body>
 
 </html>
