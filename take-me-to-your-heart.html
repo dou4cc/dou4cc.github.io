@@ -207,7 +207,7 @@
 					min = Math.floor(time / 6e4),
 					sec = Math.floor(time % 6e4 / 1e3)
 				) => min + ":" + (sec >= 10 ? "" : "0") + sec)
-				(duration - time)
+				(Math.max(0, duration - time))
 			);
 			const set_offset = h => void (
 				offset = h,

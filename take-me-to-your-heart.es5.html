@@ -224,7 +224,7 @@ var oncanplay = function oncanplay() {
 			var min = arguments.length <= 1 || arguments[1] === undefined ? Math.floor(time / 6e4) : arguments[1];
 			var sec = arguments.length <= 2 || arguments[2] === undefined ? Math.floor(time % 6e4 / 1e3) : arguments[2];
 			return min + ":" + (sec >= 10 ? "" : "0") + sec;
-		}(duration - time));
+		}(Math.max(0, duration - time)));
 	};
 	var set_offset = function set_offset(h) {
 		return void (offset = h, marquee.style.top = -offset + "px");
