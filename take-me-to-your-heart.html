@@ -257,38 +257,36 @@
 			});
 
 			let status;
-			addEventListener("mousedown", event => {
-				if(event.button === 0){
-					status = [event.clientX, event.clientY, time, is_playing, offset + event.clientY, true];
+			addEventListener("mousedown", ({button, screenX, screenY}) => {
+				if(button === 0){
+					status = [screenX, screenY, time, is_playing, screenY, devicePixelRatio ** 2, true];
 					song.pause();
 				}
 			});
-			addEventListener("mousemove", ({clientX, clientY}) => {
+			addEventListener("mousemove", ({screenX, screenY}) => {
 				if(status){
-					let [x, y, time, is_playing, k, is_clicking] = status;
+					let [x, y, time, is_playing, k, pr2, is_clicking] = status;
 
-					const offset = k - clientY;
-					if(offset < 0){
+					const _offset = offset + (k - screenY) / devicePixelRatio;
+					if(_offset < 0){
 						update_offset(0);
-						k = clientY;
 					}else{
 						const height = marquee.offsetHeight;
-						if(offset > height){
+						if(_offset > height){
 							update_offset(height);
-							k = height + clientY;
 						}else{
-							update_offset(offset);
+							update_offset(_offset);
 						}
 					}
 
-					if(is_clicking && (clientX - x) ** 2 + (clientY - y) ** 2 > 13) is_clicking = false;
+					if(is_clicking && (screenX - x) ** 2 + (screenY - y) ** 2 > 13 * pr2) is_clicking = false;
 
-					status = [x, y, time, is_playing, k, is_clicking];
+					status = [x, y, time, is_playing, screenY, pr2, is_clicking];
 				}
 			});
-			addEventListener("mouseup", event => {
-				if(status && event.button === 0){
-					const [x, y, time, is_playing, k, is_clicking] = status;
+			addEventListener("mouseup", ({button}) => {
+				if(status && button === 0){
+					const [x, y, time, is_playing, k, pr2, is_clicking] = status;
 					if(is_clicking){
 						update_time(time);
 						if(!is_playing) play();
@@ -303,7 +301,6 @@
 				if(is_playing){
 					onplay();
 				}else{
-					status = null;
 					update_time(time);
 				}
 			});
