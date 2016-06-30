@@ -259,19 +259,19 @@
 			let status;
 			addEventListener("mousedown", ({button, screenX, screenY}) => {
 				if(button === 0){
-					status = [screenX, screenY, time, is_playing, screenY, devicePixelRatio ** 2, true];
+					status = [screenX, screenY, time, is_playing, screenY, 13 * devicePixelRatio ** 2, true];
 					song.pause();
 				}
 			});
 			addEventListener("mousemove", ({screenX, screenY}) => {
 				if(status){
-					let [x, y, time, is_playing, k, pr2, is_clicking] = status;
+					let [x, y, time, is_playing, yy, k, is_clicking] = status;
 
-					const _offset = offset + (k - screenY) / devicePixelRatio;
+					const _offset = offset + (yy - screenY) / devicePixelRatio;
 					update_offset(_offset < 0 ? 0 : Math.min(_offset, marquee.offsetHeight));
-					if(is_clicking && (screenX - x) ** 2 + (screenY - y) ** 2 > 13 * pr2) is_clicking = false;
+					if(is_clicking && (screenX - x) ** 2 + (screenY - y) ** 2 > k) is_clicking = false;
 
-					status = [x, y, time, is_playing, screenY, pr2, is_clicking];
+					status = [x, y, time, is_playing, screenY, k, is_clicking];
 				}
 			});
 			addEventListener("mouseup", ({button}) => {

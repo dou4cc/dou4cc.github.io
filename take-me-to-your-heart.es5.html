@@ -271,7 +271,7 @@
 				var screenY = _ref11.screenY;
 
 				if (button === 0) {
-					status = [screenX, screenY, time, is_playing, screenY, Math.pow(devicePixelRatio, 2), true];
+					status = [screenX, screenY, time, is_playing, screenY, 13 * Math.pow(devicePixelRatio, 2), true];
 					song.pause();
 				}
 			});
@@ -288,16 +288,16 @@
 					var y = _status2[1];
 					var _time = _status2[2];
 					var _is_playing = _status2[3];
-					var k = _status2[4];
-					var pr2 = _status2[5];
+					var yy = _status2[4];
+					var k = _status2[5];
 					var is_clicking = _status2[6];
 
 
-					var _offset = offset + (k - screenY) / devicePixelRatio;
+					var _offset = offset + (yy - screenY) / devicePixelRatio;
 					update_offset(_offset < 0 ? 0 : Math.min(_offset, marquee.offsetHeight));
-					if (is_clicking && Math.pow(screenX - x, 2) + Math.pow(screenY - y, 2) > 13 * pr2) is_clicking = false;
+					if (is_clicking && Math.pow(screenX - x, 2) + Math.pow(screenY - y, 2) > k) is_clicking = false;
 
-					status = [x, y, _time, _is_playing, screenY, pr2, is_clicking];
+					status = [x, y, _time, _is_playing, screenY, k, is_clicking];
 				}
 			});
 			addEventListener("mouseup", function (_ref13) {
