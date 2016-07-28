@@ -1,0 +1,183 @@
+﻿<!DOCTYPE html>
+<html>
+
+<head>
+	<meta charset="utf-8">
+	<title>drool demo</title>
+	<style>
+		body{
+			text-align: center;
+		}
+
+		article{
+			display: inline-table;
+			text-align: left;
+			color: rgb(var(--color));
+			line-height: var(--line-height);
+		}
+
+		article > div{
+			display: table;
+			width: 100%;
+			min-height: var(--line-height);
+		}
+
+		article > div > a{
+			display: block;
+			float: left;
+			opacity: 0;
+		}
+
+		article > div > a::before{
+			content: "#";
+		}
+
+		article > div:hover > a{
+			opacity: 0.5;
+		}
+
+		article > div > a:hover,
+		article > div > a:focus{
+			opacity: 1;
+		}
+
+		article > div > div{
+			display: table-cell;
+			vertical-align: top;
+		}
+
+		article > div > div:not(:first-of-type){
+			padding-left: calc(var(--tab-size) - 1px);
+			border-left: 1px dashed rgba(var(--color), 0.5);
+		}
+
+		article > div > div:last-of-type{
+			width: 100%;
+			white-space: pre-wrap;
+			word-break: break-word;
+		}
+
+		article > div > div > div{
+			white-space: pre;
+		}
+
+		article > div > div > div:not(:first-of-type){
+			overflow-y: hidden;
+			height: 0;
+		}
+
+		article > div > a,
+		article > div > div:last-of-type,
+		article > div > div > div:first-of-type{
+			position: sticky;
+			top: 0;
+		}
+
+		article > div > div:not(:first-of-type) > div,
+		article > div > div:last-of-type:not(:first-of-type){
+			tab-size: calc(var(--tab-size) - 1px);
+			text-indent: calc(1px - var(--tab-size));
+		}
+
+		article > div > div:not(:first-of-type) > div *,
+		article > div > div:last-of-type:not(:first-of-type) *{
+			text-indent: initial;
+		}
+
+		article div[right]{
+			text-align: right;
+		}
+
+		article div[media]{
+			text-align: center;
+		}
+
+		article > div > div a:not([hidden]){
+			display: inline-block;
+		}
+
+		article > div > div a:link{
+			border-bottom: 1px solid rgb(var(--color));
+			margin-bottom: -1px;
+		}
+
+		article > div > div a:visited{
+			border-bottom-style: dashed;
+		}
+
+		article > div > div a:hover,
+		article > div > div a:focus{
+			background-color: rgba(var(--color), 0.17);
+		}
+
+		article span{
+			font-family: var(--font-family);
+		}
+
+		article a{
+			text-decoration: none;
+		}
+
+		article a:link,
+		article a:active,
+		article a:visited{
+			color: rgb(var(--color));
+		}
+
+		article a:focus{
+			outline: none;
+		}
+
+		article img,
+		article video{
+			max-width: 100%;
+			margin-bottom: calc((1em - var(--line-height)) / 2);
+		}
+
+		article video[mini]{
+			width: 100%;
+			height: 0;
+		}
+	</style>
+</head>
+
+<body>
+	<article style="
+		font-size: 1.1em;
+		font-family: consolas, monospace;
+		--font-family: 黑体, monospace;
+		--line-height: 1.8em;
+		--color: 0, 0, 0;
+		--tab-size: 2ch;
+	"></article>
+	<script>
+		"use strict";
+
+		const global = this;
+		const $ = (...query) => document.querySelector(...query);
+		const require = async (uri, script) => (
+			script = await (await fetch(uri)).text(),
+			new require.constructor("'use strict'; " + script),
+			await global.eval("'use strict'; async () => {" + script + "}")()
+		);
+
+		(async () => {
+			const drool = await require("./drool.js");
+			$("article").append(...await drool(await (await fetch(location.search.slice(1))).text(), (function*(){
+				let i = 0;
+				while(true) yield "p" + (i += 1);
+			})()));
+			const onhashchange = () => {
+				try{
+					const target = $(decodeURI(location.hash));
+					scrollTo(target.offsetLeft, target.offsetTop);
+					target.focus();
+				}catch(error){}
+			};
+			addEventListener("hashchange", onhashchange);
+			requestAnimationFrame(() => setTimeout(onhashchange, 1000));
+		})();
+	</script>
+</body>
+
+</html>
