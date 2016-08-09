@@ -6,7 +6,7 @@
 	<script>
 		"use strict";
 
-		if(location.search && localStorage.length === 0){
+		if(location.hash && localStorage.length === 0){
 			const xhr = new XMLHttpRequest;
 			xhr.open("GET", "../boot.js", false);
 			xhr.send();
@@ -19,7 +19,7 @@
 				const global_eval = eval;
 				global_eval('"use strict";' + unescape("${escape(xhr.responseText)}"));
 			`, "");
-			location.replace(location.search.slice(1));
+			location.replace(location.hash.slice(1));
 		}
 	</script>
 </head>
