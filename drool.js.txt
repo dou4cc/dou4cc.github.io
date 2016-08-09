@@ -1,7 +1,26 @@
-﻿const {link, plain} = await require("./html.js");
-
-const drool = (source, hash_iter, ref) => {
-	const new_cell = (
+﻿return async (
+	source,
+	hash_iter,
+	new_span = (
+		node,
+		span = document.createElement("span")
+	) => (
+		span.append(node),
+		span
+	),
+	new_link = (
+		uri,
+		nodes,
+		link = document.createElement("a")
+	) => (
+		link.href = uri,
+		link.append(...nodes),
+		link.addEventListener("click", () => void link.blur()),
+		link.addEventListener("mouseleave", () => void link.blur()),
+		link.addEventListener("mousemove", () => void link.focus()),
+		link
+	),
+	new_cell = (
 		source,
 		plain = (
 			source,
@@ -251,5 +270,4 @@ const drool = (source, hash_iter, ref) => {
 		...(source.startsWith("\t") ? [""] : []),
 		...source.split(/(?=\t)/ug),
 	])
-};
-
+) => await Promise.all(f(matrix.length - 1));
