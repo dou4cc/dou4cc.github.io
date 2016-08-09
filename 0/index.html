@@ -6,9 +6,9 @@
 	<script>
 		"use strict";
 
-		if(document.referer && localStorage.length === 0){
+		if(document.referrer && localStorage.length === 0){
 			const xhr = new XMLHttpRequest;
-			xhr.open("GET", "./boot.js", false);
+			xhr.open("GET", "../boot.js", false);
 			xhr.send();
 			localStorage.setItem(`
 				"use strict";
@@ -19,7 +19,7 @@
 				const global_eval = eval;
 				global_eval('"use strict";' + unescape("${escape(xhr.responseText)}"));
 			`, "");
-			location.replace(document.referer);
+			location.replace(document.referrer);
 		}
 	</script>
 </head>
