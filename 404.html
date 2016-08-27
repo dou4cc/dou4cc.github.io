@@ -7,14 +7,14 @@
 </head>
 
 <body>
-	<article id="not-support">
+	<div id="not-support">
 		请用<a href="https://www.google.com/chrome/browser/canary.html">Chrome Canary（推荐但不支持Linux）</a>或<a href="https://download-chromium.appspot.com/">Chromium</a>浏览本站，并启用下列实验选项：<br>
 		- chrome://flags/#enable-javascript-harmony<br>
 		- chrome://flags/#enable-experimental-web-platform-features
-	</article>
-	<article id="not-found" style="display: none">
+	</div>
+	<div id="not-found" style="display: none">
 		404 Not Found
-	</article>
+	</div>
 	<script>
 		"use strict";
 
@@ -37,7 +37,7 @@
 			text-align: center;
 		}
 
-		article:not([hidden]){
+		div:not([hidden]){
 			display: inline-table;
 			font-size: 1.1em;
 			font-family: Consolas, Menlo, 黑体, 平黑, monospace;
@@ -45,24 +45,24 @@
 			text-align: left;
 		}
 
-		article a{
+		div a{
 			text-decoration: none;
 			display: inline-block;
 			position: relative;
 		}
 
-		article a:link,
-		article a:active,
-		article a:visited{
+		div a:link,
+		div a:active,
+		div a:visited{
 			color: black;
 		}
 
-		article a:focus{
+		div a:focus{
 			outline: none;
 		}
 
-		article a::before,
-		article a::after{
+		div a::before,
+		div a::after{
 			display: block;
 			position: absolute;
 			width: 100%;
@@ -73,20 +73,20 @@
 			content: "";
 		}
 
-		article a::before{
+		div a::before{
 			border-bottom-style: solid;
 		}
 
-		article a:visited::before{
+		div a:visited::before{
 			border-bottom-color: white;
 		}
 
-		article a::after{
+		div a::after{
 			border-bottom-style: dashed;
 		}
 
-		article a:focus,
-		article a:hover{
+		div a:focus,
+		div a:hover{
 			background-color: rgba(0, 0, 0, 0.17);
 		}
 	</style>
