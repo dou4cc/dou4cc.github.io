@@ -22,14 +22,22 @@
 		async () => {};
 		try{
 			if(location.hash.length < 2) throw null;
-			history.pushState(null, null, location.hash.slice(1));
-
+			history.replaceState(null, null, location.hash.slice(1));
+			if(localStorage.length === 0){
+				
+			}
 		}catch(error){
-			document.title = "404 Not Found";
+			document.title = "";
 			document.querySelector("#not-support").style.display = "none";
 			document.querySelector("#not-found").style.display = "";
 			const xhr = new XMLHttpRequest;
-			const start = 0;
+			const start = () => requestAnimationFrame(() => {
+				xhr.open("GET", location);
+				xhr.send();
+			});
+			xhr.addEventListener("load", () => void xhr.status === 404 ? start() : location.reload());
+			xhr.addEventListener("error", start);
+			//start();
 		}
 	</script>
 	<style>
@@ -42,7 +50,7 @@
 		div{
 			display: inline-table;
 			font-size: 1.1em;
-			font-family: Consolas, Menlo, 黑体, 平黑, monospace;
+			font-family: Consolas, Menlo, 黑体, monospace;
 			line-height: 1.8em;
 			text-align: left;
 		}
