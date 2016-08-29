@@ -3,18 +3,25 @@
 
 <head>
 	<meta charset="utf-8">
+	<style>
+		body{
+			display: none;
+		}
+	</style>
 	<title>不支持</title>
 </head>
 
 <body>
-	<div id="not-support">
-		请用<a href="https://www.google.com/chrome/browser/canary.html">Chrome Canary（推荐但不支持Linux）</a>或<a href="https://download-chromium.appspot.com/">Chromium</a>浏览本站，并启用下列实验选项：<br>
-		- chrome://flags/#enable-javascript-harmony<br>
-		- chrome://flags/#enable-experimental-web-platform-features
-	</div>
-	<div id="not-found" style="display: none">
-		404 Not Found
-	</div>
+	<table><tr><td>
+		<div id="not-support">
+		   	请用<a href="https://www.google.com/chrome/browser/canary.html">Chrome Canary（推荐但不支持Linux）</a>或<a href="https://download-chromium.appspot.com/">Chromium</a>浏览本站，并启用下列实验选项：<br>
+		   	- chrome://flags/#enable-javascript-harmony<br>
+		   	- chrome://flags/#enable-experimental-web-platform-features
+		</div>
+		<div id="not-found" style="display: none">
+		   	404 Not Found
+		</div>
+	</td></tr></table>
 	<script>
 		"use strict";
 
@@ -37,7 +44,7 @@
 			});
 			xhr.addEventListener("load", () => void xhr.status === 404 ? start() : location.reload());
 			xhr.addEventListener("error", start);
-			//start();
+			start();
 		}
 	</script>
 	<style>
@@ -45,10 +52,19 @@
 			text-align: center;
 			overflow: auto;
 			border: none;
+			display: block;
+		}
+
+		table{
+			display: inline;
+			border-collapse: collapse;
+		}
+
+		td{
+			padding: 0;
 		}
 
 		div{
-			display: inline-table;
 			font-size: 1.1em;
 			font-family: Consolas, Menlo, 黑体, monospace;
 			line-height: 1.8em;
