@@ -42,7 +42,7 @@
 				xhr.open("GET", location);
 				xhr.send();
 			});
-			xhr.addEventListener("load", () => void xhr.status === 404 ? start() : location.reload());
+			xhr.addEventListener("load", () => void (xhr.status === 404 ? start() : location.reload()));
 			xhr.addEventListener("error", start);
 			start();
 		}
