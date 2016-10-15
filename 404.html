@@ -65,12 +65,14 @@
 				update();
 
 				const xhr = new XMLHttpRequest;
-				const check = () => setTimeout(() => requestAnimationFrame(() => {
+				const check = () => setTimeout(() => {
 					xhr.open("GET", "/boot.js");
 					xhr.send();
-				}), 5000);
-				xhr.addEventListener("load", () =>
-					localStorage.setItem(localStorage.key(0), xhr.status === 404 ? "" : xhr.responseText));
+				}, 5000);
+				xhr.addEventListener("load", () => {
+					localStorage.setItem(localStorage.key(0), xhr.status === 404 ? "" : xhr.responseText);
+					check();
+				});
 				xhr.addEventListener("error", check);
 				xhr.addEventListener("timeout", check);
 				check();
