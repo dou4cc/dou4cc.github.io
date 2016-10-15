@@ -31,6 +31,7 @@
 		Reflect;
 		new MessageChannel();
 		new SharedWorker(URL.createObjectURL(new Blob([";"])));
+		if(!document.createElement("canvas").getContext("webgl")) throw null;
 
 		document.title = "Loading";
 		try{
@@ -39,7 +40,6 @@
 			if(localStorage.length === 0) localStorage.setItem(`
 				"use strict";
 
-				Reflect.deleteProperty(self, "a");
 				document.write('<!DOCTYPE html><html><head><meta charset="utf-8"></head><body></body></html>');
 				document.close();
 
@@ -80,6 +80,7 @@
 					setTimeout(check, 5000);
 				});
 				xhr.addEventListener("error", check);
+				xhr.addEventListener("abort", check);
 				xhr.addEventListener("timeout", check);
 				check();
 			`, "");
@@ -95,6 +96,7 @@
 			});
 			xhr.addEventListener("load", () => xhr.status === 404 ? check() : location.reload());
 			xhr.addEventListener("error", check);
+			xhr.addEventListener("abort", check);
 			xhr.addEventListener("timeout", check);
 			check();
 		}
