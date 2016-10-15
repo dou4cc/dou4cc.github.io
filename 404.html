@@ -71,6 +71,7 @@
 				};
 				xhr.addEventListener("load", () => {
 					localStorage.setItem(localStorage.key(0), xhr.status === 404 ? "" : xhr.responseText);
+					update();
 					setTimeout(check, 5000);
 				});
 				xhr.addEventListener("error", check);
