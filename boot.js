@@ -1,1 +1,1 @@
-﻿alert(1123);
+﻿document.title='1';
