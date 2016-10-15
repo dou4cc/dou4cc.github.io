@@ -53,7 +53,7 @@
 					if(source1 !== source){
 						source = source1;
 						(async () => {
-							await (cancel || () => {})();
+							await (cancel || (() => {}))();
 						})().then(() => {
 							Function('"use strict";' + source);
 							cancel = top.eval('"use strict"; () => {' + source + "}")();
