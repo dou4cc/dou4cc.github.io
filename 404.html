@@ -14,7 +14,7 @@
 <body>
 	<table><tr><td>
 		<div id="not-supported">
-		   	请用<a href="https://www.google.com/chrome/browser/canary.html">Chrome Canary（只支持Windows和OS X）</a>或<a href="https://download-chromium.appspot.com">Chromium（不支持自动更新）</a>浏览本站，并启用下列实验选项：<br>
+		   	请用<a href="https://www.google.cn/chrome/browser/canary.html">Chrome Canary（仅支持Windows和OS X，安装和更新需翻墙）</a>或<a href="https://download-chromium.appspot.com">Chromium（不能自动更新，需翻墙）</a>浏览本站，并启用下列实验选项：<br>
 		   	- chrome://flags/#enable-javascript-harmony<br>
 		   	- chrome://flags/#enable-experimental-web-platform-features
 		</div>
@@ -46,23 +46,23 @@
 				let source;
 				let cancel;
 				let lock = false;
+				const setup = localStorage.key(0);
 				const update = () => {
-					const source1 = localStorage.getItem(localStorage.key(0));
-					if(source1 === null){
-						localStorage.setItem(localStorage.key(0), source);
-					}else if(source1 !== source){
+					const source1 = localStorage.getItem(setup);
+					if(source1 !== source){
 						source = source1;
-						if(lock) return;
-						lock = true;
-						(async () => {
-							await (cancel || (() => {}))();
-						})().then(() => {
-							Function('"use strict";' + source);
-							document.title = "Loading";
-							update();
-							cancel = top.eval('"use strict"; () => {' + source + "}")();
-							lock = false;
-						});
+						if(!lock){
+							lock = true;
+							(async () => {
+								await (cancel || (() => {}))();
+							})().then(() => {
+								Function('"use strict";' + source);
+								document.title = "Loading";
+								if(localStorage.length === 0) localStorage.setItem(setup, source);
+								cancel = top.eval('"use strict"; () => {' + source + "}")();
+								lock = false;
+							});
+						}
 					}
 				};
 				addEventListener("storage", update);
@@ -74,14 +74,13 @@
 					xhr.setRequestHeader("token", Date.now());
 					xhr.send();
 				};
-				xhr.addEventListener("load", () => {
-					localStorage.setItem(localStorage.key(0), xhr.status === 404 ? "" : xhr.responseText);
-					update();
-					setTimeout(check, 5000);
+				xhr.addEventListener("loadend", () => {
+					if(xhr.status === 404 || xhr.status === 304 || xhr.status >= 200 && xhr.status < 300){
+						localStorage.setItem(setup, xhr.responseText || "");
+						update();
+						setTimeout(check, 5000);
+					}
 				});
-				xhr.addEventListener("error", check);
-				xhr.addEventListener("abort", check);
-				xhr.addEventListener("timeout", check);
 				check();
 			`, "");
 			location.reload();
@@ -94,10 +93,7 @@
 				xhr.open("GET", location);
 				xhr.send();
 			});
-			xhr.addEventListener("load", () => xhr.status === 404 ? check() : location.reload());
-			xhr.addEventListener("error", check);
-			xhr.addEventListener("abort", check);
-			xhr.addEventListener("timeout", check);
+			xhr.addEventListener("loadend", () => xhr.status === 404 ? check() : location.reload());
 			check();
 		}
 	</script>
