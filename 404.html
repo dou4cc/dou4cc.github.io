@@ -48,7 +48,9 @@
 				let lock = false;
 				const update = () => {
 					const source1 = localStorage.getItem(localStorage.key(0));
-					if(source1 !== source){
+					if(source1 === null){
+						localStorage.setItem(localStorage.key(0), source);
+					}else if(source1 !== source){
 						source = source1;
 						if(lock) return;
 						lock = true;
@@ -56,6 +58,8 @@
 							await (cancel || (() => {}))();
 						})().then(() => {
 							Function('"use strict";' + source);
+							document.title = "Loading";
+							update();
 							cancel = top.eval('"use strict"; () => {' + source + "}")();
 							lock = false;
 						});
