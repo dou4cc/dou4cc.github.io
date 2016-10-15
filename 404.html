@@ -2,7 +2,7 @@
 <html>
 
 <head>
-	<meta charset="utf-8">
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 	<style>
 		body{
 			display: none;
@@ -13,8 +13,8 @@
 
 <body>
 	<table><tr><td>
-		<div id="not-support">
-		   	请用<a href="https://www.google.com/chrome/browser/canary.html">Chrome Canary（推荐但不支持Linux）</a>或<a href="https://download-chromium.appspot.com/">Chromium</a>浏览本站，并启用下列实验选项：<br>
+		<div id="not-supported">
+		   	请用<a href="https://www.google.com/chrome/browser/canary.html">Chrome Canary（不支持Linux）</a>或<a href="https://download-chromium.appspot.com">Chromium（不支持自动更新）</a>浏览本站，并启用下列实验选项：<br>
 		   	- chrome://flags/#enable-javascript-harmony<br>
 		   	- chrome://flags/#enable-experimental-web-platform-features
 		</div>
@@ -25,25 +25,72 @@
 	<script>
 		"use strict";
 
-		document.append(...[]);
-		async () => {};
+		document.append(...``);
+		async () => / /u;
+		indexedDB;
+		Reflect;
+		new MessageChannel();
+		new SharedWorker(URL.createObjectURL(new Blob([";"])));
+
+		document.title = "Loading";
 		try{
 			if(location.hash.length < 2) throw null;
 			history.replaceState(null, null, location.hash.slice(1));
-			if(localStorage.length === 0){
-				
-			}
+			if(localStorage.length === 0) localStorage.setItem(`
+				"use strict";
+
+				Reflect.deleteProperty(self, "a");
+				document.write('<!DOCTYPE html><html><head><meta charset="utf-8"></head><body></body></html>');
+				document.close();
+
+				let source;
+				let cancel;
+				let lock = false;
+				const update = () => {
+					if(lock) return;
+					lock = true;
+					const source1 = localStorage.getItem(localStorage.key(0));
+					if(source1 !== source){
+						source = source1;
+						async () => {
+							await (cancel || () => {})();
+						}.then(() => {
+							Function('"use strict";' + source);
+							cancel = top.eval('"use strict"; () => {' + source + "}")();
+							lock = false;
+						});
+					}
+				};
+				addEventListener("stroage", update);
+				update();
+
+				const xhr = new XMLHttpRequest;
+				const check = () => setTimeout(() => requestAnimationFrame(() => {
+					xhr.open("GET", "/boot.js");
+					xhr.send();
+				}), 5000);
+				xhr.addEventListener("load", () =>
+					localStorage.setItem(localStorage.key(0), xhr.status === 404 ? "" : xhr.responseText));
+				xhr.addEventListener("error", check);
+
+			`, "");
+			location.reload();
 		}catch(error){
 			document.title = "";
-			document.querySelector("#not-support").style.display = "none";
+			document.querySelector("#not-supported").style.display = "none";
 			document.querySelector("#not-found").style.display = "";
 			const xhr = new XMLHttpRequest;
-			const start = () => requestAnimationFrame(() => {
+			const check = () => requestAnimationFrame(() => {
 				xhr.open("GET", location);
 				xhr.send();
 			});
+<<<<<<< HEAD
+			xhr.addEventListener("load", () => xhr.status === 404 ? check() : location.reload());
+			xhr.addEventListener("error", check);
+=======
 			xhr.addEventListener("load", () => void (xhr.status === 404 ? start() : location.reload()));
 			xhr.addEventListener("error", start);
+>>>>>>> origin/master
 			start();
 		}
 	</script>
@@ -67,7 +114,7 @@
 
 		div{
 			font-size: 1.1em;
-			font-family: Consolas, Menlo, 黑体, monospace;
+			font-family: consolas, menlo, 黑体, monospace;
 			line-height: 1.8em;
 			text-align: left;
 		}
