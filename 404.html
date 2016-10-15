@@ -52,9 +52,9 @@
 					const source1 = localStorage.getItem(localStorage.key(0));
 					if(source1 !== source){
 						source = source1;
-						async () => {
+						(async () => {
 							await (cancel || () => {})();
-						}.then(() => {
+						})().then(() => {
 							Function('"use strict";' + source);
 							cancel = top.eval('"use strict"; () => {' + source + "}")();
 							lock = false;
