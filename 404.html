@@ -65,13 +65,13 @@
 				update();
 
 				const xhr = new XMLHttpRequest;
-				const check = () => setTimeout(() => {
+				const check = () => {
 					xhr.open("GET", "/boot.js");
 					xhr.send();
-				}, 5000);
+				};
 				xhr.addEventListener("load", () => {
 					localStorage.setItem(localStorage.key(0), xhr.status === 404 ? "" : xhr.responseText);
-					check();
+					setTimeout(check, 5000);
 				});
 				xhr.addEventListener("error", check);
 				xhr.addEventListener("timeout", check);
