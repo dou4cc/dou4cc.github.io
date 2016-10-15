@@ -72,7 +72,8 @@
 				xhr.addEventListener("load", () =>
 					localStorage.setItem(localStorage.key(0), xhr.status === 404 ? "" : xhr.responseText));
 				xhr.addEventListener("error", check);
-
+				xhr.addEventListener("timeout", check);
+				check();
 			`, "");
 			location.reload();
 		}catch(error){
@@ -84,14 +85,10 @@
 				xhr.open("GET", location);
 				xhr.send();
 			});
-<<<<<<< HEAD
 			xhr.addEventListener("load", () => xhr.status === 404 ? check() : location.reload());
 			xhr.addEventListener("error", check);
-=======
-			xhr.addEventListener("load", () => void (xhr.status === 404 ? start() : location.reload()));
-			xhr.addEventListener("error", start);
->>>>>>> origin/master
-			start();
+			xhr.addEventListener("timeout", check);
+			check();
 		}
 	</script>
 	<style>
