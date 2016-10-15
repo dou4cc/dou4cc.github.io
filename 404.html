@@ -47,11 +47,11 @@
 				let cancel;
 				let lock = false;
 				const update = () => {
-					if(lock) return;
-					lock = true;
 					const source1 = localStorage.getItem(localStorage.key(0));
 					if(source1 !== source){
 						source = source1;
+						if(lock) return;
+						lock = true;
 						(async () => {
 							await (cancel || (() => {}))();
 						})().then(() => {
