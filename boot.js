@@ -23,7 +23,16 @@ global.prevent_unload = () => {
 }
 addEventListener("beforeunload", event => unload_count > 0 && (event.returnValue = "系统可能不会保存您所做的更改。"));
 
-
+{
+	const span = document.createElement("span");
+	span.textContent = "Loaded";
+	document.body.append(span);
+	const cancel = () => {
+		document.body.remove(span);
+		cancel_set.delete(cancel);
+	};
+	cancel_set.add(cancel);
+}
 
 return async () => {
 	if(unload_count > 0) await new Promise(resolve => {
