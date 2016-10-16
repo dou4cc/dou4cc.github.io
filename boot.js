@@ -25,7 +25,7 @@ addEventListener("beforeunload", event => unload_count > 0 && (event.returnValue
 
 {
 	const span = document.createElement("span");
-	span.textContent = "Loaded";
+	span.textContent = "Loaded :)";
 	document.body.append(span);
 	const cancel = () => {
 		document.body.remove(span);
