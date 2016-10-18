@@ -73,14 +73,14 @@
 				const xhr = new XMLHttpRequest;
 				const check = () => {
 					xhr.open("GET", "/boot.js");
-					xhr.setRequestHeader("token", Date.now());
+					xhr.setRequestHeader("token", Date.now() + Math.random());
 					xhr.send();
 				};
 				xhr.addEventListener("loadend", () => {
 					if(xhr.status === 404 || xhr.status === 304 || xhr.status >= 200 && xhr.status < 300){
 						localStorage.setItem(setup, xhr.responseText || "");
 						update();
-						setTimeout(() => requestAnimationFrame(check), 5000);
+						setTimeout(() => requestAnimationFrame(check), 15e3);
 					}
 				});
 				check();
