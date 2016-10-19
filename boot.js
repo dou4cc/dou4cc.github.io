@@ -31,7 +31,7 @@ set_once(cancel_set, () => Reflect.deleteProperty(global, "prevent_unload"));
 
 {
 	const span = document.createElement("span");
-	span.textContent = "Loaded :)";
+	span.textContent = "Loaded :(";
 	document.body.append(span);
 	set_once(cancel_set, () => document.body.remove(span));
 }
