@@ -37,12 +37,6 @@ set_once(cancel_set, () => Reflect.deleteProperty(global, "prevent_unload"));
 }
 
 return async () => {
-	if(unload_count > 0) await new Promise(resolve => {
-		const unload = () => {
-			resolve();
-			unload_set.delete(unload);
-		};
-		unload_set.add(unload);
-	});
+	if(unload_count > 0) await new Promise(resolve => set_once(unload_set, resolve));
 	await Promise.all([...cancel_set].map(cancel => cancel()));
 };
