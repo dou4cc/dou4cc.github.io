@@ -81,7 +81,7 @@
 					if(xhr.status === 404 || xhr.status === 304 || xhr.status >= 200 && xhr.status < 300){
 						localStorage.setItem(setup, xhr.responseText || "");
 						update();
-						setTimeout(() => requestAnimationFrame(check), 15e3);
+						setTimeout(() => requestAnimationFrame(check), 5e3);
 					}
 				});
 				check();
