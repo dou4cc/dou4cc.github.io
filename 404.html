@@ -56,7 +56,7 @@
 						localStorage.setItem(setup, \`
 							document.title = "Crash";
 							const pre = document.createElement("pre");
-							pre.textContent = unescape("\${escape(event.error || event.message)}");
+							pre.textContent = unescape("\${escape(event.error && event.error.stack || event.message)}");
 							const button = document.createElement("button");
 							button.textContent = "Reload";
 							let lock = true;
