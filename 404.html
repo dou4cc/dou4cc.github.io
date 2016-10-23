@@ -53,8 +53,33 @@
 					if(!event.avoid){
 						event.preventDefault();
 						event.stopImmediatePropagation();
-						localStorage.clear();
-						localStorage.setItem(setup, "");
+						localStorage.setItem(setup, \`
+							document.title = "Crash";
+							const pre = document.createElement("pre");
+							pre.textContent = unescape("\${escape(event.message)}");
+							const button = document.createElement("button");
+							button.textContent = "Reload";
+							let lock = true;
+							const cancel_set = new Set;
+							button.addEventListener("click", () => {
+								lock = false;
+								[...cancel_set].forEach(cancel => cancel());
+								button.disabled = true;
+								button.textContent = "Reloading";
+							});
+							document.body.append(pre, button);
+							return async () => {
+								if(lock) await new Promise(resolve => {
+									const cancel = () => {
+										resolve();
+										cancel_set.delete(cancel);
+									};
+									cancel_set.add(cancel);
+								});
+								pre.remove();
+								button.remove();
+							};
+						\`);
 						crash = true;
 						location.replace(location);
 					}
