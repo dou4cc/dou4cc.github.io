@@ -127,6 +127,8 @@
 						localStorage.setItem(setup, xhr.responseText || "");
 						update();
 						setTimeout(() => requestAnimationFrame(check), 5e3);
+					}else{
+						requestAnimationFrame(check);
 					}
 				});
 				check();
