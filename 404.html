@@ -52,9 +52,7 @@
 					if(crash) event.stopImmediatePropagation();
 				};
 				const oncrash = event => {
-					if(!event.avoid){
-						event.preventDefault();
-						event.stopImmediatePropagation();
+					const timer = setTimeout(() => {
 						localStorage.setItem(setup, \`
 							document.title = "Crash";
 							const pre = document.createElement("pre");
@@ -84,10 +82,11 @@
 						\`);
 						crash = true;
 						location.reload();
-					}
+					}, 0);
+					event.prevent_reload = () => clearTimeout(timer);
 				};
-				addEventListener("unload", blocker, true);
-				addEventListener("beforeunload", blocker, true);
+				addEventListener("unload", blocker);
+				addEventListener("beforeunload", blocker);
 				addEventListener("error", oncrash);
 				addEventListener("unhandledrejection", oncrash);
 
