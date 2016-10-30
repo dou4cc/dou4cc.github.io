@@ -30,10 +30,38 @@ set_once(cancel_set, () => Reflect.deleteProperty(global, "prevent_unload"));
 }
 
 {
-	const span = document.createElement("span");
-	span.textContent = "Loaded :)";
-	document.body.append(span);
-	set_once(cancel_set, () => span.remove());
+	const key = "hub_uri";
+	let hub_uri;
+	let hub;
+	const create = () => localStorage.setItem(key, URL.createObjectURL(new Blob([`
+		"use strict";
+
+		addEventListener("error", event => event.preventDefault());
+
+		const port_set = new Set;
+		addEventListener("connect", ({ports: [port]}) => {
+			port_set.add(port);
+			port.addEventListener("message", ({data}) => [...port_set].forEach(port => port.postMessage(data)));
+		});
+	`], {type: "text/javascript"})));
+	const connect = uri => {
+		hub_uri = uri;
+		try{
+			hub = new SharedWorker(hub_uri);
+		}catch(error){
+			create();
+			connect(uri);
+			return;
+		}
+		const onerror = () => {
+			hub.removeEventListener("error", onerror);
+			const uri = localStorage.getItem(key);
+			if(uri === hub_uri) create();
+			connect(uri);
+		};
+		hub.addEventListener("error", onerror);
+	};
+	connect(localStorage.getItem(key));
 }
 
 return async () => {
