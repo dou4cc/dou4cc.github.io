@@ -129,7 +129,7 @@
 					xhr.send();
 				};
 				let promise; 
-				xhr.addEventListener("loadstart", () => promise = new Promise(resolve => setTimeout(resolve, 6e3));
+				xhr.addEventListener("loadstart", () => promise = new Promise(resolve => setTimeout(resolve, 6e3)));
 				xhr.addEventListener("loadend", () => {
 					if(xhr.status === 404 || xhr.status === 304 || xhr.status >= 200 && xhr.status < 300){
 						localStorage.setItem(setup, xhr.responseText || "");
