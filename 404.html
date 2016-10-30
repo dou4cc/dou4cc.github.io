@@ -63,11 +63,11 @@
 				const oncrash = event => {
 					const timer = setTimeout(() => {
 						localStorage.setItem(setup, \`
+							const pre = document.createElement("pre");
+							const button = document.createElement("button");
 							const promise = new Promise(resolve => {
 								document.title = "Crash";
-								const pre = document.createElement("pre");
 								pre.textContent = unescape("\${escape((event.error || {}).stack || event.message)}");
-								const button = document.createElement("button");
 								button.textContent = "Reload";
 								button.addEventListener("click", () => {
 									resolve();
