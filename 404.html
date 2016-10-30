@@ -48,7 +48,9 @@
 			if(localStorage.length === 0) localStorage.setItem(`
 				"use strict";
 
-				Reflect.deleteProperty(self, "a");
+				try{
+					Reflect.deleteProperty(self, "a");
+				}catch(error){}
 				document.write('<!DOCTYPE html><html><head><meta charset="utf-8"></head><body></body></html>');
 				document.close();
 
@@ -61,28 +63,21 @@
 				const oncrash = event => {
 					const timer = setTimeout(() => {
 						localStorage.setItem(setup, \`
-							document.title = "Crash";
-							const pre = document.createElement("pre");
-							pre.textContent = unescape("\${escape((event.error || {}).stack || event.message)}");
-							const button = document.createElement("button");
-							button.textContent = "Reload";
-							let lock = true;
-							const cancel_set = new Set;
-							button.addEventListener("click", () => {
-								lock = false;
-								[...cancel_set].forEach(cancel => cancel());
-								button.disabled = true;
-								button.textContent = "Reloading";
-							});
-							document.body.append(pre, button);
-							return async () => {
-								if(lock) await new Promise(resolve => {
-									const cancel = () => {
-										resolve();
-										cancel_set.delete(cancel);
-									};
-									cancel_set.add(cancel);
+							const promise = new Promise(resolve => {
+								document.title = "Crash";
+								const pre = document.createElement("pre");
+								pre.textContent = unescape("\${escape((event.error || {}).stack || event.message)}");
+								const button = document.createElement("button");
+								button.textContent = "Reload";
+								button.addEventListener("click", () => {
+									resolve();
+									button.disabled = true;
+									button.textContent = "Reloading";
 								});
+								document.body.append(pre, button);
+							});
+							return async () => {
+								await promise;
 								pre.remove();
 								button.remove();
 							};
@@ -112,7 +107,7 @@
 								Function('"use strict";' + source);
 								document.title = "Loading";
 								if(localStorage.length === 0) localStorage.setItem(setup, source);
-								cancel = top.eval('"use strict"; () => {' + source + "}")();
+								cancel = self.eval('"use strict"; () => {' + source + "}")();
 								lock = false;
 							});
 						}
