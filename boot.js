@@ -32,8 +32,9 @@ set_once(cancel_set, () => Reflect.deleteProperty(global, "prevent_unload"));
 {
 	const key = "hub_uri";
 	let hub_uri;
-	let hub;
-	const create = () => localStorage.setItem(key, URL.createObjectURL(new Blob([`
+	global.hub = null;
+	set_once(cancel_set, () => Reflect.deleteProperty(global, "hub"));
+	const create = () => sessionStorage.setItem(key, URL.createObjectURL(new Blob([`
 		"use strict";
 
 		addEventListener("error", event => event.preventDefault());
@@ -55,16 +56,14 @@ set_once(cancel_set, () => Reflect.deleteProperty(global, "prevent_unload"));
 		}
 		const onerror = () => {
 			hub.removeEventListener("error", onerror);
-			const uri = localStorage.getItem(key);
+			const uri = sessionStorage.getItem(key);
 			if(uri === hub_uri) create();
 			connect(uri);
 		};
 		hub.addEventListener("error", onerror);
 	};
-	connect(localStorage.getItem(key));
+	connect(sessionStorage.getItem(key));
 }
-
-setTimeout(() => new Worker, 8e3);
 
 return async () => {
 	if(unload_count > 0) await new Promise(resolve => set_once(unload_set, resolve));
