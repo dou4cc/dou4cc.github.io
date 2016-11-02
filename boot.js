@@ -30,7 +30,7 @@ set_once(cancel_set, () => Reflect.deleteProperty(global, "prevent_unload"));
 }
 
 {
-	const key = "hub_uri";
+	const key = "hub-uri";
 	let hub_uri;
 	global.hub = null;
 	set_once(cancel_set, () => Reflect.deleteProperty(global, "hub"));
@@ -43,6 +43,7 @@ set_once(cancel_set, () => Reflect.deleteProperty(global, "prevent_unload"));
 		addEventListener("connect", ({ports: [port]}) => {
 			port_set.add(port);
 			port.addEventListener("message", ({data}) => [...port_set].forEach(port => port.postMessage(data)));
+			port.start();
 		});
 	`], {type: "text/javascript"})));
 	const connect = uri => {
