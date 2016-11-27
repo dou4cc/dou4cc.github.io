@@ -65,12 +65,22 @@
 					};
 					const oncrash = event => {
 						const timer = setTimeout(() => {
+						const message =
+							(() => {
+								try{
+									if(!event.error) throw null;
+									const json = JSON.stringify(event.error);
+									return "uncaught exception: " + (typeof event.error === "object" && json < 3 ? event.error.toString() : json);
+								}catch(error){
+									return event.message;
+								}
+							})()) + "\n:" + event.filename + ":" + event.lineno + ":" + event.colno;
 							localStorage.setItem(setup, \`
 								const pre = document.createElement("pre");
 								const button = document.createElement("button");
 								const promise = new Promise(resolve => {
 									document.title = "Crash";
-									pre.textContent = unescape("\${escape((event.error || {}).stack || event.message)}");
+									pre.textContent = unescape("\${escape(message)}");
 									button.textContent = "Reload";
 									button.addEventListener("click", () => {
 										resolve();
