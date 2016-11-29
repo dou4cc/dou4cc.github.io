@@ -70,7 +70,7 @@
 								const button = document.createElement("button");
 								const promise = new Promise(resolve => {
 									document.title = "Crash";
-									pre.textContent = unescape("\${escape(event.message + "\n@" + event.filename + ":" + event.lineno + ":" + event.colno)}");
+									pre.textContent = unescape("\${escape(event.message + "\\n@" + event.filename + ":" + event.lineno + ":" + event.colno)}");
 									button.textContent = "Reload";
 									button.addEventListener("click", () => {
 										resolve();
