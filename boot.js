@@ -18,7 +18,10 @@
 			sessionStorage.setItem(key, uri);
 		};
 		const connect = () => {
-
+			worker.port.addEventListener("message", ({data}) => {
+				if(data === "connected") resolve();
+			});
+			worker.port.start();
 		};
 		try{
 			worker = new SharedWorker(uri);
@@ -47,7 +50,10 @@
 			const onmessage = ({list}) => {
 				if(list instanceof Array) listener(...list);
 			};
-			worker.port.
+			worker.port.addEventListener("message", onmessage);
+			return () => {
+				worker.port.removeEventListener("message", onmessage);
+			};
 		},
 	};
 })();
