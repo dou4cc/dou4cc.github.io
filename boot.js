@@ -17,27 +17,28 @@
 			`], {type: "text/javascript"}));
 			sessionStorage.setItem(key, uri);
 		};
+		const onerror = () => {
+			worker.removeEventListener("error", onerror);
+			if(uri === (uri = sessionStorage.getItem(key))) make();
+			connect();
+		};
 		const connect = () => {
+			worker = new SharedWorker(uri);
 			worker.port.addEventListener("message", ({data}) => {
-				if(data === "connected") resolve();
+				if(data === "connected"){
+					worker.removeEventListener("error", onerror);
+					resolve();
+				}
 			});
 			worker.port.start();
 		};
 		try{
-			worker = new SharedWorker(uri);
+			connect();
+			worker.addEventListener("error", onerror);
 		}catch(error){
 			make();
-			worker = new SharedWorker(uri);
+			connect();
 		}
-			const onerror = () => {
-				hub.removeEventListener("error", onerror);
-				const uri = sessionStorage.getItem(key);
-				if(uri === hub_uri) create();
-				connect(uri);
-			};
-			hub.addEventListener("error", onerror);
-		};
-		connect(sessionStorage.getItem(key));
 	});
 	return {
 		send: (...list) => {
@@ -57,4 +58,4 @@
 		},
 	};
 })();
-
+self.hub = hub;
