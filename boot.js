@@ -43,13 +43,13 @@
 	return {
 		send: (...list) => {
 			promise.then(() => {
-				worker.port.postMessage(...list);
+				worker.port.postMessage(list);
 			});
 		},
 		on: async listener => {
 			await promise;
-			const onmessage = ({list}) => {
-				if(list instanceof Array) listener(...list);
+			const onmessage = ({data}) => {
+				if(data instanceof Array) listener(...data);
 			};
 			worker.port.addEventListener("message", onmessage);
 			return () => {
