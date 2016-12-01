@@ -24,6 +24,18 @@
 	</td></tr></table>
 	<script>
 		"use strict";
+		
+		onerror = function(){
+			if(location.hash.length > 1){
+				var uri0 = location.href;
+				var uri1 = location.hash.slice(1);
+				history.replaceState(null, null, uri1);
+				if(location.href !== uri1) history.replaceState(null, null, uri0);
+			}
+		};
+	</script>
+	<script>
+		"use strict";
 
 		URL;
 		Blob;
@@ -36,6 +48,7 @@
 		document.append(...``);
 
 		document.title = "Loading";
+		onerror = null;
 		if(top === self){
 			try{
 				if(location.hash.length < 2) throw null;
