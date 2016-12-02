@@ -86,9 +86,9 @@
 									pre.textContent = unescape("\${escape(event.message + "\\n@" + event.filename + ":" + event.lineno + ":" + event.colno)}");
 									button.textContent = "Reload";
 									button.addEventListener("click", () => {
-										resolve();
 										button.disabled = true;
 										button.textContent = "Reloading";
+										resolve();
 									});
 									document.body.append(pre, button);
 								});
