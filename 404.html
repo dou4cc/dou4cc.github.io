@@ -99,7 +99,7 @@
 								};
 							\`);
 							crash = true;
-							location.reload();
+							history.go(0);
 						}, 0);
 						event.prevent_reload = () => clearTimeout(timer);
 					};
