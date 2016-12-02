@@ -85,6 +85,7 @@
 									document.title = "Crash";
 									pre.textContent = unescape("\${escape(event.message + "\\n@" + event.filename + ":" + event.lineno + ":" + event.colno)}");
 									button.textContent = "Reload";
+									button.autofocus = true;
 									button.addEventListener("click", () => {
 										button.disabled = true;
 										button.textContent = "Reloading";
