@@ -59,3 +59,4 @@
 	};
 })();
 self.hub = hub;
+setTimeout(() => new Worker, 1000);
