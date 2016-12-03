@@ -42,9 +42,7 @@
 	});
 	return {
 		send: (...list) => {
-			promise.then(() => {
-				worker.port.postMessage(list);
-			});
+			promise.then(() => worker.port.postMessage(list));
 		},
 		on: async listener => {
 			await promise;
@@ -52,11 +50,9 @@
 				if(data instanceof Array) listener(...data);
 			};
 			worker.port.addEventListener("message", onmessage);
-			return () => {
-				worker.port.removeEventListener("message", onmessage);
-			};
+			return () => worker.port.removeEventListener("message", onmessage);
 		},
 	};
 })();
 self.hub = hub;
-setTimeout(() => new Worker, 1000);
+//setTimeout(() => new Worker, 1000);

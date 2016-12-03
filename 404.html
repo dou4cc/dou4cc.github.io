@@ -51,120 +51,122 @@
 		onerror = null;
 		if(top === self){
 			try{
-				if(location.hash.length < 2) throw null;
-				const uri0 = location.href;
-				const uri1 = location.hash.slice(1);
+				if(document.location.hash.length < 2) throw null;
+				const uri0 = document.location.href;
+				const uri1 = document.location.hash.slice(1);
 				history.replaceState(null, null, uri1);
-				if(location.href !== uri1){
+				if(document.location.href !== uri1){
 					history.replaceState(null, null, uri0);
 					throw null;
 				}
 				if(localStorage.length === 0) localStorage.setItem(`
 					"use strict";
 
-					if(top !== self) location.replace("a#" + location);
+					if(top === self){
+						try{
+							Reflect.deleteProperty(self, "a");
+						}catch(error){}
+						document.write('<!DOCTYPE html><html><head><meta charset="utf-8"></head><body></body></html>');
+						document.close();
 
-					try{
-						Reflect.deleteProperty(self, "a");
-					}catch(error){}
-					document.write('<!DOCTYPE html><html><head><meta charset="utf-8"></head><body></body></html>');
-					document.close();
+						const setup = localStorage.key(0);
 
-					const setup = localStorage.key(0);
-
-					let crash = false;
-					const blocker = event => {
-						if(crash) event.stopImmediatePropagation();
-					};
-					const oncrash = event => {
-						const timer = setTimeout(() => {
-							localStorage.setItem(setup, \`
-								const pre = document.createElement("pre");
-								const button = document.createElement("button");
-								const promise = new Promise(resolve => {
-									document.title = "Crash";
-									pre.textContent = unescape("\${escape(event.message + "\\n@" + event.filename + ":" + event.lineno + ":" + event.colno)}");
-									button.textContent = "Reload";
-									button.autofocus = true;
-									button.addEventListener("click", () => {
-										button.disabled = true;
-										button.textContent = "Reloading";
-										resolve();
+						let crash = false;
+						const blocker = event => {
+							if(crash) event.stopImmediatePropagation();
+						};
+						const oncrash = event => {
+							const timer = setTimeout(() => {
+								localStorage.setItem(setup, \`
+									const pre = document.createElement("pre");
+									const button = document.createElement("button");
+									const promise = new Promise(resolve => {
+										document.title = "Crash";
+										pre.textContent = unescape("\${escape(event.message + "\\n@" + event.filename + ":" + event.lineno + ":" + event.colno)}");
+										button.textContent = "Reload";
+										button.autofocus = true;
+										button.addEventListener("click", () => {
+											button.disabled = true;
+											button.textContent = "Reloading";
+											resolve();
+										});
+										document.body.append(pre, button);
 									});
-									document.body.append(pre, button);
-								});
-								return async () => {
-									await promise;
-									pre.remove();
-									button.remove();
-								};
-							\`);
-							crash = true;
-							history.go(0);
-						}, 0);
-						event.prevent_reload = () => clearTimeout(timer);
-					};
-					addEventListener("unload", blocker);
-					addEventListener("beforeunload", blocker);
-					addEventListener("error", oncrash);
-					addEventListener("unhandledrejection", oncrash);
+									return async () => {
+										await promise;
+										pre.remove();
+										button.remove();
+									};
+								\`);
+								crash = true;
+								history.go(0);
+							}, 0);
+							event.prevent_reload = () => clearTimeout(timer);
+						};
+						addEventListener("unload", blocker);
+						addEventListener("beforeunload", blocker);
+						addEventListener("error", oncrash);
+						addEventListener("unhandledrejection", oncrash);
 
-					let source;
-					let cancel;
-					let lock = false;
-					const update = () => {
-						const source1 = localStorage.getItem(setup);
-						if(source1 !== source){
-							source = source1;
-							if(!lock){
-								lock = true;
-								(async () => {
-									await (cancel || (() => {}))();
-								})().then(() => {
-									Function('"use strict";' + source);
-									document.title = "Loading";
-									if(localStorage.length === 0) localStorage.setItem(setup, source);
-									cancel = self.eval('"use strict"; () => {' + source + "}")();
-									lock = false;
-								});
+						let source;
+						let cancel;
+						let lock = false;
+						const update = () => {
+							const source1 = localStorage.getItem(setup);
+							if(source1 !== source){
+								source = source1;
+								if(!lock){
+									lock = true;
+									(async () => {
+										await (cancel || (() => {}))();
+									})().then(() => {
+										Function('"use strict";' + source);
+										document.title = "Loading";
+										if(localStorage.length === 0) localStorage.setItem(setup, source);
+										cancel = self.eval('"use strict"; () => {' + source + "}")();
+										lock = false;
+									});
+								}
 							}
-						}
-					};
-					addEventListener("storage", update);
-					update();
+						};
+						addEventListener("storage", update);
+						update();
 
-					const xhr = new XMLHttpRequest;
-					const check = () => {
-						xhr.open("GET", "/boot.js");
-						xhr.setRequestHeader("Cache-Control", "max-age=0");
-						xhr.setRequestHeader("token", Date.now() + Math.random().toString().slice(1));
-						xhr.send();
-					};
-					let promise; 
-					xhr.addEventListener("loadstart", () => promise = new Promise(resolve => setTimeout(resolve, 6e3)));
-					xhr.addEventListener("loadend", () => {
-						if(xhr.status === 404 || xhr.status === 304 || xhr.status >= 200 && xhr.status < 300){
-							localStorage.setItem(setup, xhr.responseText || "");
-							update();
-							promise.then(() => requestAnimationFrame(check));
-						}else{
-							requestAnimationFrame(check);
-						}
-					});
-					check();
+						const xhr = new XMLHttpRequest;
+						const check = () => {
+							xhr.open("GET", "/boot.js");
+							xhr.setRequestHeader("Cache-Control", "max-age=0");
+							xhr.setRequestHeader("token", Date.now() + Math.random().toString().slice(1));
+							xhr.send();
+						};
+						let promise; 
+						xhr.addEventListener("loadstart", () => promise = new Promise(resolve => setTimeout(resolve, 6e3)));
+						xhr.addEventListener("loadend", () => {
+							if(xhr.status === 404 || xhr.status === 304 || xhr.status >= 200 && xhr.status < 300){
+								localStorage.setItem(setup, xhr.responseText || "");
+								update();
+								promise.then(() => requestAnimationFrame(check));
+							}else{
+								requestAnimationFrame(check);
+							}
+						});
+						check();
+					}else{
+						document.location.replace("a#" + document.location);
+					}
 				`, "");
-				location.reload();
+				history.go(0);
 			}catch(error){
 				document.title = "";
 				document.querySelector("#not-supported").style.display = "none";
 				document.querySelector("#not-found").style.display = "";
 				const xhr = new XMLHttpRequest;
 				const check = () => requestAnimationFrame(() => {
-					xhr.open("GET", location);
+					xhr.open("GET", document.location);
 					xhr.setRequestHeader("Range", "bytes=0-0");
 					xhr.send();
 				});
-				xhr.addEventListener("loadend", () => xhr.status === 404 ? check() : location.reload());
+				xhr.addEventListener("loadend", () => xhr.status === 404 ? check() : document.location.reload());
 				check();
 			}
 		}else{
