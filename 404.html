@@ -26,11 +26,12 @@
 		"use strict";
 		
 		onerror = function(){
-			if(location.hash.length > 1){
-				var uri0 = location.href;
-				var uri1 = location.hash.slice(1);
+			onerror = null;
+			if(document.location.hash.length > 1){
+				var uri0 = document.location.href;
+				var uri1 = document.location.hash.slice(1);
 				history.replaceState(null, null, uri1);
-				if(location.href !== uri1) history.replaceState(null, null, uri0);
+				if(document.location.href !== uri1) history.replaceState(null, null, uri0);
 			}
 		};
 	</script>
