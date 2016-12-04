@@ -54,5 +54,8 @@
 		},
 	};
 })();
-self.hub = hub;
-//setTimeout(() => new Worker, 1000);
+//self.hub = hub;
+
+const tube = (() => {
+	
+})();
