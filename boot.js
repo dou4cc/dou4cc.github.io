@@ -10,7 +10,13 @@
 				const port_set = new Set;
 				addEventListener("connect", ({ports: [...ports]}) => ports.forEach(port => {
 					port_set.add(port);
-					port.addEventListener("message", ({data}) => [...port_set].forEach(port => port.postMessage(data)));
+					port.addEventListener("message", ({data}) => {
+						if(data instanceof Array){
+							[...port_set].forEach(port => port.postMessage(data));
+						}else if (data === "disconnect"){
+							port_set.delete(port);
+						}
+					});
 					port.start();
 					port.postMessage("connected");
 				}));
