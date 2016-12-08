@@ -13,7 +13,7 @@
 					port.addEventListener("message", ({data}) => {
 						if(data instanceof Array){
 							[...port_set].forEach(port => port.postMessage(data));
-						}else if (data === "disconnect"){
+						}else if(data === "disconnect"){
 							port_set.delete(port);
 						}
 					});
@@ -61,6 +61,19 @@
 	};
 })();
 //self.hub = hub;
+
+const list_map = () => {
+	const tree = new Map;
+	const set = (parent, value, ...list) => {
+		if(list.length > 1){
+			if(!parent.has(list[0])) parent.set(list[0], new Map);
+			set(parent.get(list[0]), value, ...list.slice(1));
+		}else{
+			parent.set(list[0], value);
+		}
+	};
+	const has = (parent, ...list) => list.length > 0 ? parent.has(list[0]) && has(parent.get(list[0]), ...list.slice(1)) : true;
+};
 
 const tube = (() => {
 	
