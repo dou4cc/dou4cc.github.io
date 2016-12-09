@@ -62,18 +62,38 @@
 })();
 //self.hub = hub;
 
-const list_map = () => {
+const multi_key_map = () => {
 	const tree = new Map;
-	const set = (parent, value, ...list) => {
-		if(list.length > 1){
-			if(!parent.has(list[0])) parent.set(list[0], new Map);
-			set(parent.get(list[0]), value, ...list.slice(1));
-		}else{
-			parent.set(list[0], value);
-		}
+	const symbol = Symbol();
+	return {
+		set: (...args) => {
+			const keys = [...args.slice(0, -1), symbol];
+			const value = args.slice(-1);
+			const f0 = (parent, ...keys) => {
+				if(keys.length > 1){
+					if(!parent.has(keys[0])) parent.set(keys[0], new Map);
+					f0(parent.get(keys[0]), value, ...keys.slice(1));
+				}else{
+					parent.set(keys[0], value);
+				}
+			};
+			const f1 = (parent, ...keys) => {
+				if(keys.length > 1){
+					if(parent.has(keys[0]) && f1(parent.get(keys[0]), ...keys.slice(1)) === 0) parent.delete(keys[0]);
+				}else{
+					parent.delete(keys[0]);
+				}
+				return parent.size;
+			};
+			(value === undefined ? f1 : f0)(tree, ...keys);
+		},
+		get: (...keys) => {
+			const f = (parent, ...keys) => parent && keys.length > 0 ? f(parent.get(keys[0]), ...keys.slice(1)) : parent;
+			return f(tree, ...keys);
+		},
 	};
-	const has = (parent, ...list) => list.length > 0 ? parent.has(list[0]) && has(parent.get(list[0]), ...list.slice(1)) : true;
 };
+self.multi_key_map = multi_key_map;
 
 const tube = (() => {
 	
