@@ -87,9 +87,9 @@ const multi_key_map = () => {
 			};
 			(value === undefined ? f1 : f0)(tree, ...keys);
 		},
-		get: (...keys) => {
+		get: (...args) => {
 			const f = (parent, ...keys) => parent && keys.length > 0 ? f(parent.get(keys[0]), ...keys.slice(1)) : parent;
-			return f(tree, ...keys);
+			return f(tree, ...args, symbol);
 		},
 	};
 };
