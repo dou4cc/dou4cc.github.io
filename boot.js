@@ -72,7 +72,7 @@ const multi_key_map = () => {
 			const f0 = (parent, ...keys) => {
 				if(keys.length > 1){
 					if(!parent.has(keys[0])) parent.set(keys[0], new Map);
-					f0(parent.get(keys[0]), value, ...keys.slice(1));
+					f0(parent.get(keys[0]), ...keys.slice(1));
 				}else{
 					parent.set(keys[0], value);
 				}
