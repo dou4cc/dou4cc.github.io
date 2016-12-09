@@ -68,7 +68,7 @@ const multi_key_map = () => {
 	return {
 		set: (...args) => {
 			const keys = [...args.slice(0, -1), symbol];
-			const value = args.slice(-1);
+			const [value] = args.slice(-1);
 			const f0 = (parent, ...keys) => {
 				if(keys.length > 1){
 					if(!parent.has(keys[0])) parent.set(keys[0], new Map);
