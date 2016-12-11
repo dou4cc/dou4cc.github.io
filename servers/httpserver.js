@@ -1,5 +1,4 @@
 ﻿'use strict';
-
 const Cluster=require('cluster');
 
 if(Cluster.isMaster){
