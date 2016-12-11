@@ -15,9 +15,7 @@
 <body>
 	<table><tr><td>
 		<div id="not-supported">
-		   	请用<a href="https://www.google.cn/intl/zh-CN/chrome/browser/canary.html">Chrome Canary</a>（仅支持Windows、OSX和Android，安装和更新需翻墙）或<a href="https://download-chromium.appspot.com">Chromium</a>（不能自动更新，需翻墙）浏览本站，并启用下列实验选项：<br>
-		   	- chrome://flags/#enable-javascript-harmony<br>
-		   	- chrome://flags/#enable-experimental-web-platform-features
+		   	请用<a href="https://nightly.mozilla.org/">Firefox Nightly</a>浏览本站。
 		</div>
 		<div id="not-found" style="display: none">
 		   	404 Not Found
@@ -46,7 +44,7 @@
 		SharedWorker;
 		MessageChannel;
 		localStorage.length;
-		async () => /(?<=)/u;
+		async () => / /u;
 		document.append(...``);
 
 		document.title = "Loading";
@@ -68,8 +66,15 @@
 						try{
 							Reflect.deleteProperty(self, "a");
 						}catch(error){}
-						document.write('<!DOCTYPE html><html><head><meta charset="utf-8"></head><body></body></html>');
-						document.close();
+						onload = null;
+						document.documentElement.remove();
+						const meta = document.createElement("meta");
+						meta.setAttribute("charset", "utf-8");
+						const head = document.createElement("head");
+						head.append(meta);
+						const html = document.createElement("html");
+						html.append(head, document.createElement("body"));
+						document.append(html);
 
 						const setup = localStorage.key(0);
 

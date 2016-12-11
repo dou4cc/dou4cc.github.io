@@ -39,6 +39,7 @@
 			worker.port.start();
 		};
 		try{
+			if(!uri) throw null;
 			connect();
 			worker.addEventListener("error", onerror);
 		}catch(error){
