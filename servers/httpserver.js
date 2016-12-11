@@ -1,8 +1,4 @@
-﻿/*
- *arguments: port(8080)
- */
-
-'use strict';
+﻿'use strict';
 
 const Cluster=require('cluster');
 
