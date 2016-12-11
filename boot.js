@@ -61,7 +61,7 @@
 		},
 	};
 })();
-//self.hub = hub;
+self.hub = hub;
 
 const multi_key_map = () => {
 	const tree = new Map;
