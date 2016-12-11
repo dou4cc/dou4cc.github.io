@@ -106,7 +106,7 @@ if(Cluster.isMaster){
 								throw error;
 							if(headers['accept-encoding']&&headers['accept-encoding'].split(/\s*,\s*/g).indexOf('deflate')>=0){
 								let zip=Zlib.deflateSync(buffer, zlibOption);
-								if(zip.length+26<stats.size){
+								if(zip.length+27<stats.size){
 									response.writeHead(200, {'Content-Encoding':'deflate'});
 									response.end(zip);
 									return;
@@ -136,7 +136,7 @@ if(Cluster.isMaster){
 					if(error)
 						throw error;
 					let zip=Zlib.deflateSync(buffer, zlibOption);
-					if(zip.length+26<stats.size){
+					if(zip.length+27<stats.size){
 						response.writeHead(404, {'Content-Encoding':'deflate', 'Content-Type':'text/html'});
 						response.end(zip);
 					}else{
