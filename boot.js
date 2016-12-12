@@ -97,5 +97,14 @@ const multi_key_map = () => {
 self.multi_key_map = multi_key_map;
 
 const tube = (() => {
-	
+	const dp = new WeakMap;
+	return thunk => {
+		if(!dp.has(thunk)){
+			const cache = multi_key_map();
+			dp.set(thunk, (...args) => {
+				
+			});
+		}
+		return dp.get(thunk);
+	};
 })();
