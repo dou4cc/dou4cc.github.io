@@ -98,13 +98,18 @@ self.multi_key_map = multi_key_map;
 
 const tube = (() => {
 	const dp = new WeakMap;
-	return thunk => {
-		if(!dp.has(thunk)){
+	return f => {
+		if(!dp.has(f)){
 			const cache = multi_key_map();
-			dp.set(thunk, (...args) => {
-				
+			dp.set(f, (...args) => {
+				const launch = () => {};
+				launch();
+				return listener => {
+					launch();
+					return cache.get(...args).pop();
+				};
 			});
 		}
-		return dp.get(thunk);
+		return dp.get(f);
 	};
 })();
