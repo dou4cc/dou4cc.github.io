@@ -102,11 +102,11 @@ const tube = (() => {
 		if(!dp.has(f)){
 			const cache = multi_key_map();
 			dp.set(f, (...args) => {
-				const launch = () => {};
-				launch();
+				const start = () => {};
+				start();
 				return listener => {
-					launch();
-					return cache.get(...args).pop();
+					start();
+					return cache.get(...args).pop()(listener);
 				};
 			});
 		}
