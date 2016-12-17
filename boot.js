@@ -102,7 +102,55 @@ const tube = (() => {
 		if(!dp.has(f)){
 			const cache = multi_key_map();
 			dp.set(f, (...args) => {
-				const start = () => {};
+				const start = () => {
+					if(!cache.get(...args)){
+						const thunk0 = f(...args);
+						const thunk1 = listener => {
+							thunks.push(thunk1);
+							const cache1 = multi_key_map();
+							const send = () => {
+								if(!lock){
+									lock = true;
+									(async () => {
+										const cancel1 = cancel0 || () => {};
+										cancel0 = null;
+										await cancel1();
+										cancel0 = listener(...results);
+										lock = false;
+									})();
+								}
+							};
+							let results;
+							let cancel0;
+							let lock = false;
+							const thunk2 = thunk0((...results1) => {
+								if(!results || !cache1.get(...results1)){
+									cache1.set(...results, undefined);
+									results = results1;
+									cache1.set(...results, true);
+									send();
+								}
+							});
+							const cancel1 = () => {
+								listener = () => {};
+								send();
+								lock = false;
+								const index = thunks.push(listener1 => {
+									thunks.splice(index);
+									listener = listener1;
+									cancel0 = listener(...results);
+									return cancel1;
+								}) - 1;
+								setTimeout(() => {
+									thunks.splice(index);
+								}, 0);
+							};
+							return cancel1;
+						};
+						const thunks = [thunk1];
+						cache.set(...args, thunks);
+					}
+				};
 				start();
 				return listener => {
 					start();
