@@ -101,7 +101,7 @@ const tube = (() => {
 	return f => {
 		if(!dp.has(f)){
 			const cache = multi_key_map();
-			dp.set(f, (...args) => {
+			const tube = (...args) => {
 				const start = () => {
 					if(!cache.get(...args)){
 						const thunk0 = f(...args);
@@ -156,7 +156,9 @@ const tube = (() => {
 					start();
 					return cache.get(...args).pop()(listener);
 				};
-			});
+			};
+			dp.set(f, tube);
+			dp.set(tube, tube);
 		}
 		return dp.get(f);
 	};
