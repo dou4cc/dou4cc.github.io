@@ -96,12 +96,12 @@ const multi_key_map = () => {
 };
 self.multi_key_map = multi_key_map;
 
-const tube = (() => {
+const _tube = (() => {
 	const dp = new WeakMap;
 	return f => {
 		if(!dp.has(f)){
 			const cache = multi_key_map();
-			const tube = (...args) => {
+			const thunk = (...args) => {
 				const start = () => {
 					if(!cache.get(...args)){
 						const thunk0 = f(...args);
@@ -157,9 +157,16 @@ const tube = (() => {
 					return cache.get(...args).pop()(listener);
 				};
 			};
-			dp.set(f, tube);
-			dp.set(tube, tube);
+			dp.set(f, thunk);
+			dp.set(thunk, thunk);
 		}
 		return dp.get(f);
+	};
+})();
+
+const tube = (() => {
+	const dp = new WeakMap;
+	return f => {
+		//if(
 	};
 })();
