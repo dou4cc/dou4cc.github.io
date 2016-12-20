@@ -69,7 +69,7 @@
 						}catch(error){}
 						onload = null;
 						[...document.childNodes].forEach(node => {
-							if(!node instanceof DocumentType) node.remove();
+							if(!(node instanceof DocumentType)) node.remove();
 						});
 						const meta = document.createElement("meta");
 						meta.setAttribute("charset", "utf-8");
