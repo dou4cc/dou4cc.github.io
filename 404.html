@@ -26,11 +26,12 @@
 		
 		onerror = function(){
 			onerror = null;
-			if(document.location.hash.length > 1){
-				var uri0 = document.location.href;
-				var uri1 = document.location.hash.slice(1);
-				history.replaceState(null, null, uri1);
-				if(document.location.href !== uri1) history.replaceState(null, null, uri0);
+			var hash = document.location.hash.slice(1);
+			var uri0 = document.location.href;
+			var reg = /^[^:]+:\/+[^/]+\//;
+			if((uri0.match(reg) || [0])[0] === (hash.match(reg) || [1])[0]){
+				history.replaceState(null, null, hash);
+				if(document.location.href !== hash) history.replaceState(null, null, uri0);
 			}
 		};
 	</script>
@@ -54,9 +55,8 @@
 				const hash = document.location.hash.slice(1);
 				if(!hash.startsWith(document.location.origin)) throw null;
 				const uri0 = document.location.href;
-				const uri1 = document.location.hash.slice(1);
-				history.replaceState(null, null, uri1);
-				if(document.location.href !== uri1){
+				history.replaceState(null, null, hash);
+				if(document.location.href !== hash){
 					history.replaceState(null, null, uri0);
 					throw null;
 				}
@@ -90,11 +90,14 @@
 								localStorage.setItem(setup, \`
 									const pre = document.createElement("pre");
 									const button = document.createElement("button");
+									const onload = () => {
+										button.focus();
+									};
 									const promise = new Promise(resolve => {
 										document.title = "Crash";
 										pre.textContent = unescape("\${escape(event.message + "\\n@" + event.filename + ":" + event.lineno + ":" + event.colno)}");
 										button.textContent = "Reload";
-										button.autofocus = true;
+										addEventListener("load", onload);
 										button.addEventListener("click", () => {
 											button.disabled = true;
 											button.textContent = "Reloading";
@@ -104,6 +107,7 @@
 									});
 									return async () => {
 										await promise;
+										removeEventListener("load", onload);
 										pre.remove();
 										button.remove();
 									};
