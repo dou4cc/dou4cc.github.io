@@ -15,7 +15,9 @@
 <body>
 	<table><tr><td>
 		<div id="not-supported">
-		   	请用<a href="https://www.mozilla.org/zh-CN/firefox/channel/desktop/#nightly">Firefox Nightly</a>浏览本站。
+			请用<a href="https://www.google.cn/intl/zh-CN/chrome/browser/canary.html">Chrome Canary</a>（仅支持Windows、OSX和Android，安装和更新需翻墙）或<a href="https://download-chromium.appspot.com">Chromium</a>（不能自动更新，需翻墙）浏览本站，并启用下列实验选项：<br>
+			- chrome://flags/#enable-javascript-harmony<br>
+			- chrome://flags/#enable-experimental-web-platform-features
 		</div>
 		<div id="not-found" style="display: none">
 		   	404 Not Found
@@ -45,7 +47,8 @@
 		SharedWorker;
 		MessageChannel;
 		localStorage.length;
-		async () => / /u;
+		onunhandledrejection;
+		async () => /(?<=)/u;
 		document.append(...``);
 
 		document.title = "Loading";
@@ -90,14 +93,11 @@
 								localStorage.setItem(setup, \`
 									const pre = document.createElement("pre");
 									const button = document.createElement("button");
-									const onload = () => {
-										button.focus();
-									};
 									const promise = new Promise(resolve => {
 										document.title = "Crash";
 										pre.textContent = unescape("\${escape(event.message + "\\n@" + event.filename + ":" + event.lineno + ":" + event.colno)}");
 										button.textContent = "Reload";
-										addEventListener("load", onload);
+										button.autofocus = true;
 										button.addEventListener("click", () => {
 											button.disabled = true;
 											button.textContent = "Reloading";
@@ -107,7 +107,6 @@
 									});
 									return async () => {
 										await promise;
-										removeEventListener("load", onload);
 										pre.remove();
 										button.remove();
 									};
