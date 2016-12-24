@@ -96,7 +96,7 @@ const multi_key_map = () => {
 };
 self.multi_key_map = multi_key_map;
 
-const _tube = (() => {
+const tube = (() => {
 	const dp = new WeakMap;
 	return f => {
 		if(!dp.has(f)){
@@ -107,42 +107,43 @@ const _tube = (() => {
 						const thunk0 = f(...args);
 						const thunk1 = listener => {
 							thunks.push(thunk1);
-							const cache1 = multi_key_map();
-							const send = () => {
-								if(!lock){
-									lock = true;
-									(async () => {
-										const cancel1 = cancel0 || () => {};
-										cancel0 = null;
-										await cancel1();
-										cancel0 = listener(...results);
-										lock = false;
-									})();
-								}
+							const on = listener => {
+								const f = (a, b) => a.length === 0 || a[0] === b[0] && f(a.slice(1), b.slice(1));
+								let results;
+								let cancel;
+								let lock = false;
+								const send = (...results1) => {
+									if(!results || results.length !== results1.length || !f(results, results1)){
+										results = results1;
+										if(!lock){
+											lock = true;
+											(async () => {
+												await (cancel || () => {})();
+												cancel = listener(....results);
+												lock = false;
+											})();
+										}
+									}
+								};
+								return [
+									() => {
+										listener = () => {};
+										send();
+									},
+									send,
+								];
 							};
-							let results;
 							let cancel0;
-							let lock = false;
-							const thunk2 = thunk0((...results1) => {
-								if(!results || !cache1.get(...results1)){
-									cache1.set(...results, undefined);
-									results = results1;
-									cache1.set(...results, true);
-									send();
-								}
-							});
+							[cancel0, listener] = on(listener);
+							const thunk3 = thunk0((...results) => listener(...results));
 							const cancel1 = () => {
-								listener = () => {};
-								send();
-								lock = false;
+								cancel0();
 								const index = thunks.push(listener1 => {
-									thunks.splice(index);
-									listener = listener1;
-									cancel0 = listener(...results);
+									[cancel0, listener] = on(listener1);
 									return cancel1;
-								}) - 1;
+								});
 								setTimeout(() => {
-									thunks.splice(index);
+									thunks.splice(index - 1);
 								}, 0);
 							};
 							return cancel1;
@@ -157,16 +158,9 @@ const _tube = (() => {
 					return cache.get(...args).pop()(listener);
 				};
 			};
-			dp.set(f, thunk);
+			dp.get(f, thunk);
 			dp.set(thunk, thunk);
 		}
 		return dp.get(f);
-	};
-})();
-
-const tube = (() => {
-	const dp = new WeakMap;
-	return f => {
-		//if(
 	};
 })();
