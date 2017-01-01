@@ -15,13 +15,11 @@
 <body>
 	<table><tr><td>
 		<div id="not-supported">
-			请用<a href="https://www.google.cn/intl/zh-CN/chrome/browser/canary.html">Chrome Canary</a>（仅支持Windows、OSX和Android，安装和更新需<a href="https://github.com/getlantern/forum#蓝灯lantern最新版本下载">翻墙</a>）或<a href="https://download-chromium.appspot.com">Chromium</a>（不能自动更新，需翻墙）浏览本站，并启用下列实验选项：<br>
+			请用<a href="https://www.google.cn/intl/zh-CN/chrome/browser/canary.html">Chrome Canary</a>（仅支持Windows、OSX和Android，安装和更新需<a href="https://github.com/getlantern/forum#%E8%93%9D%E7%81%AFlantern%E6%9C%80%E6%96%B0%E7%89%88%E6%9C%AC%E4%B8%8B%E8%BD%BD">翻墙</a>）或<a href="https://download-chromium.appspot.com">Chromium</a>（不能自动更新，需翻墙）浏览本站，并启用下列实验选项：<br>
 			- chrome://flags/#enable-javascript-harmony<br>
-			- chrome://flags/#enable-experimental-web-platform-features
-		</div>
+			- chrome://flags/#enable-experimental-web-platform-features</div>
 		<div id="not-found" style="display: none">
-		   	404 Not Found
-		</div>
+		   	404 Not Found</div>
 	</td></tr></table>
 	<script>
 		"use strict";
@@ -40,10 +38,10 @@
 	<script>
 		"use strict";
 
-		Reflect;
 		async () => {};
-		document.append();
+		Reflect;
 		onunhandledrejection;
+		document.append();
 
 		document.title = "Loading";
 		onerror = null;
@@ -82,14 +80,14 @@
 						const blocker = event => {
 							if(crash) event.stopImmediatePropagation();
 						};
-						const oncrash = event => {
+						const oncrash = (event, description) => {
 							const timer = setTimeout(() => {
 								localStorage.setItem(setup, \`
 									const pre = document.createElement("pre");
 									const button = document.createElement("button");
 									const promise = new Promise(resolve => {
 										document.title = "Crash";
-										pre.textContent = unescape("\${escape(event.message + "\\n@" + event.filename + ":" + event.lineno + ":" + event.colno)}");
+										pre.textContent = unescape("\${escape(description)}");
 										button.textContent = "Reload";
 										button.autofocus = true;
 										button.addEventListener("click", () => {
@@ -112,8 +110,8 @@
 						};
 						addEventListener("unload", blocker);
 						addEventListener("beforeunload", blocker);
-						addEventListener("error", oncrash);
-						addEventListener("unhandledrejection", oncrash);
+						addEventListener("error", event => oncrash(event, event.message + "\\n@" + event.filename + ":" + event.lineno + ":" + event.colno));
+						addEventListener("unhandledrejection", event => oncrash(event, event.reason instanceof Error ? event.reason.stack : event.reason));
 
 						let source;
 						let cancel;
