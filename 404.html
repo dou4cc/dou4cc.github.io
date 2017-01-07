@@ -15,37 +15,33 @@
 <body>
 	<table><tr><td>
 		<div id="not-supported">
-		   	请用<a href="https://www.mozilla.org/zh-CN/firefox/channel/desktop/#nightly">Firefox Nightly</a>浏览本站。
-		</div>
+			请用<a href="https://www.google.cn/intl/zh-CN/chrome/browser/canary.html">Chrome Canary</a>（仅支持Windows、OSX和Android，安装和更新需<a href="https://github.com/getlantern/forum#%E8%93%9D%E7%81%AFlantern%E6%9C%80%E6%96%B0%E7%89%88%E6%9C%AC%E4%B8%8B%E8%BD%BD">翻墙</a>）或<a href="https://download-chromium.appspot.com">Chromium</a>（不能自动更新，需翻墙）浏览本站，并启用下列实验选项：<br>
+			- chrome://flags/#enable-javascript-harmony<br>
+			- chrome://flags/#enable-experimental-web-platform-features</div>
 		<div id="not-found" style="display: none">
-		   	404 Not Found
-		</div>
+		   	404 Not Found</div>
 	</td></tr></table>
 	<script>
 		"use strict";
 		
 		onerror = function(){
 			onerror = null;
-			if(document.location.hash.length > 1){
-				var uri0 = document.location.href;
-				var uri1 = document.location.hash.slice(1);
-				history.replaceState(null, null, uri1);
-				if(document.location.href !== uri1) history.replaceState(null, null, uri0);
+			var hash = document.location.hash.slice(1);
+			var uri0 = document.location.href;
+			var reg = /^[^:]+:\/+[^/]+\//;
+			if((uri0.match(reg) || [0])[0] === (hash.match(reg) || [1])[0]){
+				history.replaceState(null, null, hash);
+				if(document.location.href !== hash) history.replaceState(null, null, uri0);
 			}
 		};
 	</script>
 	<script>
 		"use strict";
 
-		URL;
-		Blob;
+		async () => {};
 		Reflect;
-		indexedDB;
-		SharedWorker;
-		MessageChannel;
-		localStorage.length;
-		async () => / /u;
-		document.append(...``);
+		onunhandledrejection;
+		document.append();
 
 		document.title = "Loading";
 		onerror = null;
@@ -54,9 +50,8 @@
 				const hash = document.location.hash.slice(1);
 				if(!hash.startsWith(document.location.origin)) throw null;
 				const uri0 = document.location.href;
-				const uri1 = document.location.hash.slice(1);
-				history.replaceState(null, null, uri1);
-				if(document.location.href !== uri1){
+				history.replaceState(null, null, hash);
+				if(document.location.href !== hash){
 					history.replaceState(null, null, uri0);
 					throw null;
 				}
@@ -69,7 +64,7 @@
 						}catch(error){}
 						onload = null;
 						[...document.childNodes].forEach(node => {
-							if(!node instanceof DocumentType) node.remove();
+							if(!(node instanceof DocumentType)) node.remove();
 						});
 						const meta = document.createElement("meta");
 						meta.setAttribute("charset", "utf-8");
@@ -85,14 +80,14 @@
 						const blocker = event => {
 							if(crash) event.stopImmediatePropagation();
 						};
-						const oncrash = event => {
+						const oncrash = (event, description) => {
 							const timer = setTimeout(() => {
 								localStorage.setItem(setup, \`
 									const pre = document.createElement("pre");
 									const button = document.createElement("button");
 									const promise = new Promise(resolve => {
 										document.title = "Crash";
-										pre.textContent = unescape("\${escape(event.message + "\\n@" + event.filename + ":" + event.lineno + ":" + event.colno)}");
+										pre.textContent = unescape("\${escape(description)}");
 										button.textContent = "Reload";
 										button.autofocus = true;
 										button.addEventListener("click", () => {
@@ -115,8 +110,8 @@
 						};
 						addEventListener("unload", blocker);
 						addEventListener("beforeunload", blocker);
-						addEventListener("error", oncrash);
-						addEventListener("unhandledrejection", oncrash);
+						addEventListener("error", event => oncrash(event, event.message + "\\n@" + event.filename + ":" + event.lineno + ":" + event.colno));
+						addEventListener("unhandledrejection", event => oncrash(event, event.reason instanceof Error ? event.reason.stack : event.reason));
 
 						let source;
 						let cancel;

@@ -61,7 +61,6 @@
 		},
 	};
 })();
-self.hub = hub;
 
 const multi_key_map = () => {
 	const tree = new Map;
@@ -72,21 +71,21 @@ const multi_key_map = () => {
 			const [value] = args.slice(-1);
 			const f0 = (parent, ...keys) => {
 				if(keys.length > 1){
-					if(!parent.has(keys[0])) parent.set(keys[0], new Map);
-					f0(parent.get(keys[0]), ...keys.slice(1));
-				}else{
-					parent.set(keys[0], value);
-				}
-			};
-			const f1 = (parent, ...keys) => {
-				if(keys.length > 1){
-					if(parent.has(keys[0]) && f1(parent.get(keys[0]), ...keys.slice(1)) === 0) parent.delete(keys[0]);
+					if(parent.has(keys[0]) && f0(parent.get(keys[0]), ...keys.slice(1)) === 0) parent.delete(keys[0]);
 				}else{
 					parent.delete(keys[0]);
 				}
 				return parent.size;
 			};
-			(value === undefined ? f1 : f0)(tree, ...keys);
+			const f1 = (parent, ...keys) => {
+				if(keys.length > 1){
+					if(!parent.has(keys[0])) parent.set(keys[0], new Map);
+					f1(parent.get(keys[0]), ...keys.slice(1));
+				}else{
+					parent.set(keys[0], value);
+				}
+			};
+			(value === undefined ? f0 : f1)(tree, ...keys);
 		},
 		get: (...args) => {
 			const f = (parent, ...keys) => parent && keys.length > 0 ? f(parent.get(keys[0]), ...keys.slice(1)) : parent;
@@ -94,70 +93,212 @@ const multi_key_map = () => {
 		},
 	};
 };
-self.multi_key_map = multi_key_map;
 
 const tube = (() => {
 	const dp = new WeakMap;
-	return f => {
-		if(!dp.has(f)){
-			const cache = multi_key_map();
-			dp.set(f, (...args) => {
-				const start = () => {
-					if(!cache.get(...args)){
-						const thunk0 = f(...args);
-						const thunk1 = listener => {
-							thunks.push(thunk1);
-							const cache1 = multi_key_map();
-							const send = () => {
-								if(!lock){
-									lock = true;
-									(async () => {
-										const cancel1 = cancel0 || () => {};
-										cancel0 = null;
-										await cancel1();
-										cancel0 = listener(...results);
-										lock = false;
-									})();
-								}
-							};
-							let results;
-							let cancel0;
-							let lock = false;
-							const thunk2 = thunk0((...results1) => {
-								if(!results || !cache1.get(...results1)){
-									cache1.set(...results, undefined);
-									results = results1;
-									cache1.set(...results, true);
-									send();
-								}
-							});
-							const cancel1 = () => {
-								listener = () => {};
-								send();
-								lock = false;
-								const index = thunks.push(listener1 => {
-									thunks.splice(index);
-									listener = listener1;
-									cancel0 = listener(...results);
-									return cancel1;
-								}) - 1;
-								setTimeout(() => {
-									thunks.splice(index);
-								}, 0);
-							};
-							return cancel1;
-						};
-						const thunks = [thunk1];
-						cache.set(...args, thunks);
-					}
+	return source => dp.get(source) || (() => {
+		const storage = multi_key_map();
+		const tube0 = (...condition) => {
+			const sync = () => {
+				state = storage.get(...condition);
+				if(state){
+					state.handle_num += 1;
+				}else{
+					let resolve;
+					const thunk = new Promise(resolve1 => resolve = resolve1);
+					state = {
+						alive: true,
+						thunk: async (...args) => {
+							if(await thunk || args.length > 0) (await thunk)(...args);
+						},
+						handle_num: 1,
+						listener_num: 0,
+						cache: new Set,
+					};
+					storage.set(...condition, state);
+					resolve(source(...condition));
+				}
+			};
+			const unsync = () => {
+				state.handle_num -= 1;
+				if(state.handle_num === 0){
+					state.alive = false;
+					storage.set(...condition, undefined);
+					state.thunk();
+				}
+			};
+			const listen = listener => {
+				const f0 = listener => {
+					const update = () => {
+						const f = (a, b) => a.length === 0 || a[0] === b[0] && f(a.slice(1), b.slice(1));
+						if(!solution1 || solution.length !== solution1.length || !f(solution, solution1)){
+							lock = true;
+							(async () => {
+								const promise = (cancel || (() => {}))();
+								solution1 = solution;
+								await promise;
+								cancel = listener(...solution);
+								update();
+							})();
+						}else{
+							lock = false;
+						}
+					};
+					let lock = false;
+					let cancel;
+					let solution1;
+					return [
+						(...solution1) => {
+							solution = solution1;
+							if(!lock) update();
+						},
+						() => {
+							listener = () => {};
+							if(solution){
+								solution1 = null;
+								if(!lock) update();
+							}
+						},
+					];
 				};
-				start();
+				const f1 = () => {
+					let used = false;
+					return () => {
+						if(!used){
+							used = true;
+							cancel();
+							const listen = listener1 => {
+								clearTimeout(timer);
+								state.cache.delete(listen);
+								[listener, cancel] = f0(listener1);
+								if(solution) listener(...solution);
+								return f1();
+							};
+							state.cache.add(listen);
+							const timer = setTimeout(() => {
+								state.cache.delete(listen);
+								listener_num -= 1;
+								state.listener_num -= 1;
+								if(listener_num === 0) unsync();
+								thunk.then(thunk => (thunk || (() => {}))());
+							}, 0);
+						}
+					};
+				};
+				used = true;
+				listener_num += 1;
+				state.listener_num += 1;
+				let solution;
+				let cancel;
+				[listener, cancel] = f0(listener);
+				const thunk = state.thunk((...solution) => listener(...solution));
+				return f1();
+			};
+			let state;
+			let used = false;
+			let listener_num = 0;
+			sync();
+			return listener => {
+				if(listener){
+					if(!state || !state.alive) sync();
+					if(state.listener_num > 0){
+						for(let thunk of state.cache) return thunk(listener);
+						let timer;
+						const promise = new Promise(resolve => {
+							timer = setTimeout(() => {
+								timer = null;
+								for(let thunk of state.cache) return resolve(thunk(listener));
+								resolve(listen(listener));
+							}, 0);
+						});
+						return () => {
+							if(timer){
+								clearTimeout(timer);
+							}else{
+								promise.then(thunk => thunk());
+							}
+						};
+					}
+					return listen(listener);
+				}
+				if(!used) setTimeout(() => {
+					if(!used){
+						used = true;
+						unsync();
+					}
+				}, 0);
+			};
+		};
+		dp.set(tube0, tube0);
+		dp.set(source, tube0);
+		return tube0;
+	})();
+})();
+
+const cascade = (() => {
+	const dp = new WeakMap;
+	return (...tubes) => {
+		switch(tubes.length){
+		case 0:
+			return tube((...args) => listener => {
+				if(listener) listener(...args);
+			});
+		case 1:
+			return dp.get(tubes[0]) || (() => {
+				let conditions = [];
+				const tube0 = tube(tubes[0]);
+				const cascade0 = tube((...condition) => {
+					const thunk = tube0(...condition);
+					return listener => {
+						//if
+					};
+				});
+				dp.set(tube0, tube0);
+				return tube0;
+			})();
+		case 2:
+			tubes = tubes.map(tube0 => cascade(tube0));
+			return cascade((...condition) => {
+				const listen = listener => {
+					cancel_map(listener, () => {
+						cancel_map.delete(listener);
+						try{
+							thunk;
+						}catch(error){
+							setTimeout(thunk, 0);
+							return;
+						}
+						thunk();
+					});
+					const thunk = thunk1(listener);
+				};
+				const listener_set = new Set;
+				const cancel_map = new Map;
+				const thunk0 = tubes[0](...condition)((...args) => {
+					thunk1 = tubes[1](...args);
+					[...listener_set].forEach(listener => listen(listener));
+					return () => [...cancel_map].forEach(cancel => cancel());
+				});
+				let thunk1;
 				return listener => {
-					start();
-					return cache.get(...args).pop()(listener);
+					if(listener){
+						listener_set.add(listener);
+						listen(listener);
+						return () => {
+							listener_set.delete(listener);
+							cancel_map.get(listener)();
+						};
+					}
+					thunk0();
 				};
 			});
+		default:
+			return cascade(tubes[0], cascade(...tubes.slice(1)));
 		}
-		return dp.get(f);
 	};
 })();
+self.cascade = cascade;
+
+return () => {
+	throw "请点击：";
+};
