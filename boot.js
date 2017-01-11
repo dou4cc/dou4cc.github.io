@@ -134,10 +134,9 @@ const tube = (() => {
 						if(!solution1 || solution.length !== solution1.length || !f(solution, solution1)){
 							lock = true;
 							(async () => {
-								const promise = (cancel || (() => {}))();
+								await (cancel || (() => {}))();
 								solution1 = solution;
-								await promise;
-								cancel = listener(...solution);
+								cancel = listener(...solution1);
 								update();
 							})();
 						}else{
@@ -245,22 +244,43 @@ const cascade = (() => {
 			});
 		case 1:
 			return dp.get(tubes[0]) || (() => {
-				let conditions = [];
-				const tube0 = tube(tubes[0]);
-				const cascade0 = tube((...condition) => {
-					const thunk = tube0(...condition);
+				const solutions = [];
+				const tube0 = tube((...condition) => {
+					const thunk = tube(tubes[0])(...condition);
 					return listener => {
-						//if
+						if(listener){
+							let used = false;
+							const thunk1 = thunk((...solution) => {
+								used = true;
+								listener(performance.now(), ...solution);
+							});
+							if(!used) listener(...solutions.pop());
+							return thunk1;
+						}
+						thunk();
 					};
 				});
-				dp.set(tube0, tube0);
-				return tube0;
+				const tube1 = tube((...condition) => {
+					const thunk = tube0(...condition);
+					return listener => {
+						if(listener) return thunk((stamp, ...solution) => {
+							listener(...solution);
+							return () => {
+								solutions.push([stamp, ...solution]);
+								solutions.sort(([a], [b]) => a - b);
+							};
+						});
+						thunk();
+					};
+				});
+				dp.set(tube1, tube1);
+				return tube1;
 			})();
 		case 2:
 			tubes = tubes.map(tube0 => cascade(tube0));
-			return cascade((...condition) => {
+			return tube((...condition) => {
 				const listen = listener => {
-					cancel_map(listener, () => {
+					cancel_map.set(listener, () => {
 						cancel_map.delete(listener);
 						try{
 							thunk;
@@ -277,7 +297,7 @@ const cascade = (() => {
 				const thunk0 = tubes[0](...condition)((...args) => {
 					thunk1 = tubes[1](...args);
 					[...listener_set].forEach(listener => listen(listener));
-					return () => [...cancel_map].forEach(cancel => cancel());
+					return () => [...cancel_map].forEach(([listener, cancel]) => cancel());
 				});
 				let thunk1;
 				return listener => {
