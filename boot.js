@@ -237,84 +237,87 @@ const tube = (() => {
 const cascade = (() => {
 	const dp = new WeakMap;
 	return (...tubes) => {
-		switch(tubes.length){
-		case 0:
-			return tube((...args) => listener => {
-				if(listener) listener(...args);
-			});
-		case 1:
-			return dp.get(tubes[0]) || (() => {
-				const solutions = [];
-				const tube0 = tube((...condition) => {
-					const thunk = tube(tubes[0])(...condition);
+		const cascade0 = (() => {
+			switch(tubes.length){
+			case 0:
+				return tube((...args) => listener => {
+					if(listener) listener(...args);
+				});
+			case 1:
+				return dp.get(tubes[0]) || (() => {
+					const solutions = [];
+					const tube0 = tube((...condition) => {
+						const thunk = tube(tubes[0])(...condition);
+						return listener => {
+							if(listener){
+								let used = false;
+								const thunk1 = thunk((...solution) => {
+									used = true;
+									listener(performance.now(), ...solution);
+								});
+								if(!used) listener(...solutions.pop());
+								return thunk1;
+							}
+							thunk();
+						};
+					});
+					const tube1 = tube((...condition) => {
+						const thunk = tube0(...condition);
+						return listener => {
+							if(listener) return thunk((stamp, ...solution) => {
+								listener(...solution);
+								return () => {
+									solutions.push([stamp, ...solution]);
+									solutions.sort(([a], [b]) => a - b);
+								};
+							});
+							thunk();
+						};
+					});
+					return tube1;
+				})();
+			case 2:
+				tubes = tubes.map(tube0 => cascade(tube0));
+				return tube((...condition) => {
+					const listen = listener => {
+						cancel_map.set(listener, () => {
+							cancel_map.delete(listener);
+							try{
+								thunk;
+							}catch(error){
+								setTimeout(thunk, 0);
+								return;
+							}
+							thunk();
+						});
+						const thunk = thunk1(listener);
+					};
+					const listener_set = new Set;
+					const cancel_map = new Map;
+					const thunk0 = tubes[0](...condition)((...args) => {
+						thunk1 = tubes[1](...args);
+						[...listener_set].forEach(listener => listen(listener));
+						return () => [...cancel_map].forEach(([listener, cancel]) => cancel());
+					});
+					let thunk1;
 					return listener => {
 						if(listener){
-							let used = false;
-							const thunk1 = thunk((...solution) => {
-								used = true;
-								listener(performance.now(), ...solution);
-							});
-							if(!used) listener(...solutions.pop());
-							return thunk1;
-						}
-						thunk();
-					};
-				});
-				const tube1 = tube((...condition) => {
-					const thunk = tube0(...condition);
-					return listener => {
-						if(listener) return thunk((stamp, ...solution) => {
-							listener(...solution);
+							listener_set.add(listener);
+							listen(listener);
 							return () => {
-								solutions.push([stamp, ...solution]);
-								solutions.sort(([a], [b]) => a - b);
+								listener_set.delete(listener);
+								cancel_map.get(listener)();
 							};
-						});
-						thunk();
+						}
+						thunk0();
 					};
 				});
-				dp.set(tube1, tube1);
-				return tube1;
-			})();
-		case 2:
-			tubes = tubes.map(tube0 => cascade(tube0));
-			return tube((...condition) => {
-				const listen = listener => {
-					cancel_map.set(listener, () => {
-						cancel_map.delete(listener);
-						try{
-							thunk;
-						}catch(error){
-							setTimeout(thunk, 0);
-							return;
-						}
-						thunk();
-					});
-					const thunk = thunk1(listener);
-				};
-				const listener_set = new Set;
-				const cancel_map = new Map;
-				const thunk0 = tubes[0](...condition)((...args) => {
-					thunk1 = tubes[1](...args);
-					[...listener_set].forEach(listener => listen(listener));
-					return () => [...cancel_map].forEach(([listener, cancel]) => cancel());
-				});
-				let thunk1;
-				return listener => {
-					if(listener){
-						listener_set.add(listener);
-						listen(listener);
-						return () => {
-							listener_set.delete(listener);
-							cancel_map.get(listener)();
-						};
-					}
-					thunk0();
-				};
-			});
-		default:
-			return cascade(tubes[0], cascade(...tubes.slice(1)));
-		}
+			default:
+				return cascade(tubes[0], cascade(...tubes.slice(1)));
+			}
+		})();
+		dp.set(cascade0, cascade0);
+		return cascade0;
 	};
 })();
 self.cascade = cascade;
