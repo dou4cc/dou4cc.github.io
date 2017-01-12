@@ -303,7 +303,7 @@ const cascade = (() => {
 					return listener => {
 						if(listener){
 							listener_set.add(listener);
-							listen(listener);
+							if(thunk1) listen(listener);
 							return () => {
 								listener_set.delete(listener);
 								cancel_map.get(listener)();
@@ -321,6 +321,26 @@ const cascade = (() => {
 	};
 })();
 self.cascade = cascade;
+
+self.a = cascade(
+	() => listener => {
+		if(listener){
+			const onmousemove = ({screenX, screenY}) => listener(screenX, screenY);
+			addEventListener("mousemove", onmousemove);
+			return () => removeEventListener("mousemove", onmousemove);
+		}
+	},
+	(x, y) => listener => {
+		if(listener) listener(x + ", " + y);
+	},
+	content => listener => {
+		if(listener) listener(document.createTextNode(content));
+	}
+);
+self.b = text => {
+	document.body.append(text);
+	return () => text.remove();
+};
 
 return () => {
 	throw "请点击：";
