@@ -49,9 +49,16 @@ const hub = (() => {
 			connect();
 		}
 	});
+	const onunload = () => {
+		try{
+			worker.port.postMessage("disconnect");
+		}catch(error){}
+	};
+	addEventListener("unload", onunload);
 	cancels.push(async () => {
 		await promise;
 		worker.port.postMessage("disconnect");
+		removeEventListener("unload", onunload);
 	});
 	return {
 		send: (...list) => {
