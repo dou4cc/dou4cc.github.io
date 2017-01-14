@@ -133,12 +133,11 @@ const tube = (() => {
 						const f = (a, b) => a.length === 0 || a[0] === b[0] && f(a.slice(1), b.slice(1));
 						if(!solution1 || solution.length !== solution1.length || !f(solution, solution1)){
 							lock = true;
-							(async () => {
+							Promise.all([(async () => {
 								await (cancel || (() => {}))();
 								solution1 = solution;
 								cancel = listener(...solution1);
-								update();
-							})();
+							})(), new Promise(resolve => setTimeout(resolve, 0))]).then(update);
 						}else{
 							lock = false;
 						}
@@ -246,6 +245,7 @@ const cascade = (() => {
 			case 1:
 				return dp.get(tubes[0]) || (() => {
 					const solutions = [];
+					const comparer = ([a], [b]) => a - b;
 					const tube0 = tube((...condition) => {
 						const thunk = tube(tubes[0])(...condition);
 						return listener => {
@@ -255,7 +255,7 @@ const cascade = (() => {
 									used = true;
 									listener(performance.now(), ...solution);
 								});
-								if(!used) listener(...solutions.pop());
+								if(!used && solutions.length > 0) listener(...solutions.pop());
 								return thunk1;
 							}
 							thunk();
@@ -268,7 +268,7 @@ const cascade = (() => {
 								listener(...solution);
 								return () => {
 									solutions.push([stamp, ...solution]);
-									solutions.sort(([a], [b]) => a - b);
+									solutions.sort(comparer);
 								};
 							});
 							thunk();
@@ -297,7 +297,10 @@ const cascade = (() => {
 					const thunk0 = tubes[0](...condition)((...args) => {
 						thunk1 = tubes[1](...args);
 						[...listener_set].forEach(listener => listen(listener));
-						return () => [...cancel_map].forEach(([listener, cancel]) => cancel());
+						return () => {
+							thunk1 = null;
+							cancel_map.forEach(cancel => cancel());
+						};
 					});
 					let thunk1;
 					return listener => {
