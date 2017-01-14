@@ -1,4 +1,6 @@
-﻿const hub = (() => {
+﻿const cancels = [];
+
+const hub = (() => {
 	const key = "hub-uri";
 	let worker;
 	const promise = new Promise(resolve => {
@@ -46,6 +48,10 @@
 			make();
 			connect();
 		}
+	});
+	cancels.push(async () => {
+		await promise;
+		worker.port.postMessage("disconnect");
 	});
 	return {
 		send: (...list) => {
@@ -323,28 +329,7 @@ const cascade = (() => {
 		return cascade0;
 	};
 })();
-self.cascade = cascade;
 
-self.a = cascade(
-	() => listener => {
-		if(listener){
-			const onmousemove = ({screenX, screenY}) => listener(screenX, screenY);
-			addEventListener("mousemove", onmousemove);
-			return () => removeEventListener("mousemove", onmousemove);
-		}
-	},
-	(x, y) => listener => {
-		if(listener) listener(x + ", " + y);
-	},
-	content => listener => {
-		if(listener) listener(document.createTextNode(content));
-	}
-);
-self.b = text => {
-	document.body.append(text);
-	return () => text.remove();
-};
-
-return () => {
-	throw "请点击：";
+return async () => {
+	for(let cancel of cancels) await cancel();
 };
