@@ -338,5 +338,5 @@ const cascade = (() => {
 })();
 
 return async () => {
-	for(let cancel of cancels) await cancel();
+	for(let cancel of cancels.reverse()) await cancel();
 };
