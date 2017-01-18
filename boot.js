@@ -88,21 +88,21 @@ const tube = (() => {
 							solution = solution1;
 							if(!lock) update();
 						},
-						() => {
-							listener = () => {};
+						() => new Promise(resolve => {
+							listener = () => resolve();
 							if(solution){
 								solution1 = null;
 								if(!lock) update();
 							}
-						},
+						}),
 					];
 				};
 				const f1 = () => {
 					let used = false;
-					return () => {
+					return async () => {
 						if(!used){
 							used = true;
-							cancel();
+							const promise = cancel();
 							const listen = listener1 => {
 								clearTimeout(timer);
 								state.cache.delete(listen);
@@ -118,6 +118,7 @@ const tube = (() => {
 								if(listener_num === 0) unsync();
 								thunk.then(thunk => (thunk || (() => {}))());
 							}, 0);
+							await promise;
 						}
 					};
 				};
