@@ -87,7 +87,8 @@
 									const button = document.createElement("button");
 									const promise = new Promise(resolve => {
 										document.title = "Crash";
-										pre.textContent = unescape("\${escape(description)}");
+										const code = document.createElement("code");
+										code.textContent = unescape("\${escape(description)}");
 										button.textContent = "Reload";
 										button.autofocus = true;
 										button.addEventListener("click", () => {
@@ -95,6 +96,7 @@
 											button.textContent = "Reloading";
 											resolve();
 										});
+										pre.append(code);
 										document.body.append(pre, button);
 									});
 									return async () => {
