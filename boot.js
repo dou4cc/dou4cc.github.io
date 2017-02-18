@@ -1,4 +1,5 @@
-﻿const cancels = [];
+﻿const {hell, is_hell, tickline, gen2tick, genfn2tick, prom2hell} = library;
+const cancels = new Set;
 
 const multi_key_map = () => {
 	const tree = new Map;
@@ -43,12 +44,12 @@ const tube = (() => {
 					state.handle_num += 1;
 				}else{
 					let resolve;
-					const thunk = new Promise(resolve1 => resolve = resolve1);
+					const [hell0, resolve] = hell();
 					state = {
 						alive: true,
-						thunk: async (...args) => {
-							if(await thunk || args.length > 0) (await thunk)(...args);
-						},
+						thunk: genfn2tick(function*(...args){
+							if(yield hell0 || args.length > 0) (yield hell0)(...args);
+						}),
 						handle_num: 1,
 						listener_num: 0,
 						cache: new Set,
@@ -71,11 +72,15 @@ const tube = (() => {
 						const f = (a, b) => a.length === 0 || a[0] === b[0] && f(a.slice(1), b.slice(1));
 						if(!solution1 || solution.length !== solution1.length || !f(solution, solution1)){
 							lock = true;
-							Promise.all([(async () => {
-								await (cancel || (() => {}))();
-								solution1 = solution;
+							genfn2tick(function*(){
+								const [hell0, resolve] = hell();
+								setTimeout(resolve, 0);
+								yield (cancel || (() => {}))();
+								solution1 = solution;	
 								cancel = listener(...solution1);
-							})(), new Promise(resolve => setTimeout(resolve, 0))]).then(update);
+								yield hell0;
+								update();
+							})();
 						}else{
 							lock = false;
 						}
@@ -88,21 +93,23 @@ const tube = (() => {
 							solution = solution1;
 							if(!lock) update();
 						},
-						() => new Promise(resolve => {
+						() => {
+							const [hell0, resolve] = hell();
 							listener = () => resolve();
 							if(solution){
 								solution1 = null;
 								if(!lock) update();
 							}
-						}),
+							return hell0;
+						},
 					];
 				};
 				const f1 = () => {
 					let used = false;
-					return async () => {
+					return genfn2tick(function*(){
 						if(!used){
 							used = true;
-							const promise = cancel();
+							const hell0 = cancel();
 							const listen = listener1 => {
 								clearTimeout(timer);
 								state.cache.delete(listen);
@@ -111,16 +118,16 @@ const tube = (() => {
 								return f1();
 							};
 							state.cache.add(listen);
-							const timer = setTimeout(() => {
+							const timer = setTimeout(genfn2tick(function*(){
 								state.cache.delete(listen);
-								listener_num -= 1;
 								state.listener_num -= 1;
+								yield (yield thunk || (() => {}))();
+								listener_num -= 1;
 								if(listener_num === 0) unsync();
-								thunk.then(thunk => (thunk || (() => {}))());
-							}, 0);
-							await promise;
+							}), 0);
+							yield hell0;
 						}
-					};
+					});
 				};
 				used = true;
 				listener_num += 1;
@@ -140,25 +147,23 @@ const tube = (() => {
 					if(!state || !state.alive) sync();
 					if(state.listener_num > 0){
 						for(let thunk of state.cache) return thunk(listener);
-						let timer;
-						const promise = new Promise(resolve => {
-							timer = setTimeout(() => {
-								timer = null;
-								for(let thunk of state.cache) return resolve(thunk(listener));
-								resolve(listen(listener));
-							}, 0);
-						});
+						const [hell0, resolve] = hell();
+						let timer = setTimeout(() => {
+							timer = null;
+							for(let thunk of state.cache) return resolve(thunk(listener));
+							resolve(listen(listener));
+						}, 0);
 						return () => {
 							if(timer){
 								clearTimeout(timer);
 							}else{
-								promise.then(thunk => thunk());
+								hell0(thunk => thunk());
 							}
 						};
 					}
 					return listen(listener);
 				}
-				if(!used) setTimeout(() => {
+				setTimeout(() => {
 					if(!used){
 						used = true;
 						unsync();
@@ -172,10 +177,10 @@ const tube = (() => {
 	})();
 })();
 
-const cascade = (() => {
+const tubeline = (() => {
 	const dp = new WeakMap;
 	return (...tubes) => {
-		const cascade0 = (() => {
+		const tubeline0 = (() => {
 			switch(tubes.length){
 			case 0:
 				return tube((...args) => listener => {
@@ -216,7 +221,7 @@ const cascade = (() => {
 					return tube1;
 				})();
 			case 2:
-				tubes = tubes.map(tube0 => cascade(tube0));
+				tubes = tubes.map(tube0 => tubeline(tube0));
 				return tube((...condition) => {
 					const listen = listener => {
 						cancel_map.set(listener, () => {
@@ -224,7 +229,7 @@ const cascade = (() => {
 							try{
 								thunk;
 							}catch(error){
-								setTimeout(thunk, 0);
+								Promise.resolve().then(thunk);
 								return;
 							}
 							thunk();
@@ -255,92 +260,202 @@ const cascade = (() => {
 					};
 				});
 			default:
-				return cascade(tubes[0], cascade(...tubes.slice(1)));
+				return tubeline(tubes[0], tubeline(...tubes.slice(1)));
 			}
 		})();
-		dp.set(cascade0, cascade0);
-		return cascade0;
+		dp.set(tubeline0, tubeline0);
+		return tubeline0;
 	};
 })();
 
 const db = (() => {
-	const hub = (() => {
+	const hub_source = `port => ({
+		send: (...list) => {
+			tickline(port => port.postMessage(list))(port);
+		},
+		on: genfn2tick(function*(listener){
+			const onmessage = ({data}) => {
+				if(data instanceof Array) listener(...data);
+			};
+			(yield port).addEventListener("message", onmessage);
+			return genfn2tick(function*(){
+				(yield port).removeEventListener("message", onmessage);
+			});
+		}),
+	})`;
+	const [hub_uri, hub] = (() => {
 		const key = "hub-uri";
 		let worker;
-		const promise = new Promise(resolve => {
-			let uri = sessionStorage.getItem(key);
-			const make = () => {
-				uri = URL.createObjectURL(new Blob([`
-					"use strict";
-
-					const port_set = new Set;
-					addEventListener("connect", ({ports: [...ports]}) => ports.forEach(port => {
-						port_set.add(port);
-						port.addEventListener("message", ({data}) => {
-							if(data instanceof Array){
-								[...port_set].forEach(port => port.postMessage(data));
-							}else if(data === "disconnect"){
-								port_set.delete(port);
-							}
-						});
-						port.start();
-						port.postMessage("connected");
-					}));
-				`], {type: "text/javascript"}));
-				sessionStorage.setItem(key, uri);
-			};
-			const onerror = () => {
-				worker.removeEventListener("error", onerror);
-				if(uri === (uri = sessionStorage.getItem(key))) make();
-				connect();
-			};
-			const connect = () => {
-				worker = new SharedWorker(uri);
-				worker.port.addEventListener("message", ({data}) => {
-					if(data === "connected"){
-						worker.removeEventListener("error", onerror);
-						resolve();
-					}
-				});
-				worker.port.start();
-			};
-			try{
-				if(!uri) throw null;
-				connect();
-				worker.addEventListener("error", onerror);
-			}catch(error){
-				make();
-				connect();
-			}
-		});
 		const onunload = () => {
 			try{
 				worker.port.postMessage("disconnect");
 			}catch(error){}
 		};
 		addEventListener("unload", onunload);
-		cancels.push(async () => {
-			await promise;
+		let uri = sessionStorage.getItem(key);
+		const make = () => {
+			uri = URL.createObjectURL(new Blob([`
+				"use strict";
+					const port_set = new Set;
+				addEventListener("connect", ({ports: [...ports]}) => ports.forEach(port => {
+					port_set.add(port);
+					port.addEventListener("message", ({data}) => {
+						if(data instanceof Array){
+							[...port_set].forEach(port => port.postMessage(data));
+						}else if(data === "disconnect"){
+							port.close();
+							port_set.delete(port);
+						}
+					});
+					port.start();
+					port.postMessage("connected");
+				}));
+			`], {type: "text/javascript"}));
+			sessionStorage.setItem(key, uri);
+		};
+		const onerror = () => {
+			worker.removeEventListener("error", onerror);
+			if(uri === (uri = sessionStorage.getItem(key))) make();
+			connect();
+		};
+		const [hell0, resolve] = hell();
+		const connect = () => {
+			worker = new SharedWorker(uri);
+			worker.port.addEventListener("message", ({data}) => {
+				if(data === "connected"){
+					worker.removeEventListener("error", onerror);
+					resolve(uri);
+				}
+			});
+			worker.port.start();
+		};
+		try{
+			if(!uri) throw null;
+			connect();
+			worker.addEventListener("error", onerror);
+		}catch(error){
+			make();
+			connect();
+		}
+		cancels.add(genfn2tick(function*(){
+			yield hell0;
 			worker.port.postMessage("disconnect");
 			removeEventListener("unload", onunload);
-		});
-		return {
-			send: (...list) => {
-				promise.then(() => worker.port.postMessage(list));
-			},
-			on: async listener => {
-				await promise;
-				const onmessage = ({data}) => {
-					if(data instanceof Array) listener(...data);
-				};
-				worker.port.addEventListener("message", onmessage);
-				return () => worker.port.removeEventListener("message", onmessage);
-			},
-		};
+		}));
+		return [hell0, self.eval('"use strict"; ' + hub_source)(tickline(() => worker.port)(hell0))];
 	})();
+	const name = ".";
+	const format_source = `list => [...list.map(a => [a]), ""]`;
+	const format = self.eval('"use strict"; ' + format_source);
+	const unformat = list => list.slice(0, -1).map(([a]) => a);
+	const put_uri = (() => {
+		const uri = URL.createObjectURL(new Blob([`
+			"use strict";
 
+			const {hell, is_hell, tickline, gen2tick, genfn2tick, prom2hell} = self.eval('"use strict"; ' + unescape("${escape(library_source)}"));
+
+			let resolve;
+			const hub = self.eval('"use strict"; ' + unescape("${escape(hub_source)}"))(new Promise(resolve1 => resolve = resolve1).then(port => new Promise(resolve => {
+				port.addEventListener("message", ({data}) => {
+					if(data === "connected") resolve(port);
+				});
+				port.start();
+			})));
+			const if_exist = (name, yes, no) => {
+				const cn = indexedDB.open(name);
+				cn.addEventListener("success", yes);
+				cn.addEventListener("blocked", () => no());
+				cn.addEventListener("upgradeneeded, () => {
+					cn.removeEventListener("success", yes);
+					cn.result.close();
+					indexedDB.deleteDatabase(name);
+					no();
+				});
+			};
+			const auto_close = transaction => {
+				transaction.addEventListener("complete", () => tansaction.db.close());
+				return transaction;
+			};
+			addEventListener("message", ({data, ports: [port]}) => {
+				if(port) resolve(port);
+				if(data){
+					
+				}
+			});
+		`], {type: "text/javascript"}));
+		const onunload = () => URL.revokeObjectURL(uri);
+		addEventListener("unload", onunload);
+		cancels.add(() => {
+			onunload();
+			removeEventListener("unload", onunload);
+		});
+		return uri;
+	})();
+	return {
+		put: (...list) => {
+			const if_exist = (name, yes, no) => {
+				const cn = indexedDB.open(name);
+				cn.addEventListener("success", yes);
+				cn.addEventListener("blocked", () => no());
+				cn.addEventListener("upgradeneeded, () => {
+					cn.removeEventListener("success", yes);
+					cn.result.close();
+					indexedDB.deleteDatabase(name);
+					no();
+				});
+			};
+			const auto_close = transaction => {
+				transaction.addEventListener("complete", () => tansaction.db.close());
+				return transaction;
+			};
+			const f = (callback, name, ...list) => {
+				const visit = (store, name) => store.get(list[0]).addEventListener("success", ({target: {result}}) => {
+					const callback1 = name => if_exist(store.transaction.db.name, ({target: {result}}) => visit(auto_close(result.transaction(["store"], "readwrite")).objectStore("store"), name), callback);
+					if(result === undefined){
+						if(name == null){
+							f(callback1, null, ...list.slice(1));
+						}else{
+							store.add({key: list[0], value: name});
+						}
+					}else{
+						f(callback1, result, ...list.slice(1));
+					}
+				});
+				const put = store => {
+					auto_close(store.transaction);
+					if(list.length === 1){
+						store.transaction.db.addEventListener("close", ({target: {name}}) => {
+							if(name == null) callback(name);
+						});
+						store.put({key: list[0]});
+					}else{
+						visit(store);
+					}
+				};
+				if(name == null){
+					const make = () => {
+						const onsuccess = () => {
+							cn.result.close();
+							make();
+						};
+						const cn = indexedDB.open(Date.now() + Math.random().toString().slice(1));
+						cn.addEventListener("success", onsuccess);
+						cn.addEventListener("blocked", make);
+						cn.addEventListener('upgradeneeded", () => {
+							cn.removeEventListener("success", onsuccess);
+							put(cn.result.createObjectStore("store", {keyPath: "key"}));
+						});
+					};
+					make();
+				}else{
+					if_exist(name, ({target: {result}}) => put(result.tansaction(["store"], "readwrite").objectStore("store")), callback);
+				}
+			};
+			f(null, name, ...format(list));
+		},
+	};
 })();
 
-return async () => {
-	for(let cancel of cancels.reverse()) await cancel();
-};
+return genfn2tick(function*(){
+	for(let cancel of [...cancels].reverse()) yield cancel();
+});

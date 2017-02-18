@@ -38,10 +38,10 @@
 	<script>
 		"use strict";
 
-		async () => {};
-		Reflect;
-		onunhandledrejection;
+		(...[]) => function*(){};
 		document.append();
+		Reflect;
+		Promise;
 
 		document.title = "Loading";
 		onerror = null;
@@ -75,45 +75,141 @@
 						document.append(html);
 
 						const setup = localStorage.key(0);
+						const library_source = \`
+							const [hell, is_hell] = (() => {
+								const hell_set = new WeakSet;
+								return [
+									() => {
+										const hell0 = callback => {
+											if(callbacks){
+												callbacks.push(callback);
+											}else{
+												try{
+													callback(result);
+												}catch(error){
+													setTimeout(() => {
+														throw error;
+													}, 0);
+												}
+											}
+										};
+										let result;
+										let callbacks = [];
+										hell_set.add(hell0);
+										return [
+											hell0,
+											result1 => {
+												result = result1;
+												const callbacks1 = callbacks;
+												callbacks = null;
+												callbacks1.forEach(hell0);
+											},
+										];
+									},
+									target => hell_set.has(target),
+								];
+							})();
+							const tickline = (...ticks) => {
+								switch(ticks.length){
+								case 0:
+									return target => {
+										if(is_hell(target)){
+											let target1;
+											target(target => target1 = [tickline()(target)]);
+											if(target1) return target1[0];
+											const [hell0, resolve] = hell();
+											target(target => {
+												target = tickline()(target);
+												if(is_hell(target)){
+													target(resolve);
+												}else{
+													resolve(target);
+												}
+											});
+											return hell0;
+										}
+										return target;
+									};
+								case 1:
+									return target => {
+										if(is_hell(target)){
+											const [hell0, resolve] = hell();
+											target(target => resolve(tickline()(ticks[0](target))));
+											return tickline()(hell0);
+										}
+										try{
+											return tickline()(ticks[0](target));
+										}catch(error){
+											setTimeout(() => {
+												throw error;
+											}, 0);
+											return hell()[0];
+										}
+									};
+								case 2: 
+									return target => tickline(ticks[1])(tickline(ticks[0])(target));
+								default:
+									return tickline(ticks[0], tickline(...ticks.slice(1)));
+								}
+							};
+							const gen2tick = gen => tickline(target => {
+								target = gen.next(target);
+								return target.done ? target.value : gen2tick(gen)(target.value);
+							});
+							const genfn2tick = genfn => function(...args){
+								return gen2tick(genfn.call(this, ...args))();
+							};
+							const prom2hell = (() => {
+								const dp = new WeakMap;
+								return promise => dp.get(promise) || (() => {
+									const [hell0, resolve] = hell();
+									promise.then(result => resolve([null, result]), error => resolve([error]));
+									dp.set(promise, hell0);
+									return hell0;
+								})();
+							})();
+							({hell, is_hell, tickline, gen2tick, genfn2tick, prom2hell});
+						\`;
+						const library = self.eval('"use strict"; ' + library_source);
+						const {hell, is_hell, tickline, gen2tick, genfn2tick, prom2hell} = library;
 
 						let crash = false;
 						const blocker = event => {
 							if(crash) event.stopImmediatePropagation();
 						};
-						const oncrash = (event, description) => {
+						addEventListener("unload", blocker);
+						addEventListener("beforeunload", blocker);
+						addEventListener("error", event => {
 							const timer = setTimeout(() => {
 								localStorage.setItem(setup, \`
 									const pre = document.createElement("pre");
 									const button = document.createElement("button");
-									const promise = new Promise(resolve => {
-										document.title = "Crash";
-										const code = document.createElement("code");
-										code.textContent = unescape("\${escape(description)}");
-										button.textContent = "Reload";
-										button.autofocus = true;
-										button.addEventListener("click", () => {
-											button.disabled = true;
-											button.textContent = "Reloading";
-											resolve();
-										});
-										pre.append(code);
-										document.body.append(pre, button);
+									document.title = "Crash";
+									const code = document.createElement("code");
+									code.textContent = unescape("\${escape(event.message + "\\n@" + event.filename + ":" + event.lineno + ":" + event.colno)}");
+									button.textContent = "Reload";
+									button.autofocus = true;
+									const [hell0, resolve] = hell();
+									button.addEventListener("click", () => {
+										button.disabled = true;
+										button.textContent = "Reloading";
+										resolve();
 									});
-									return async () => {
-										await promise;
+									pre.append(code);
+									document.body.append(pre, button);
+									return genfn2tick(function*(){
+										yield hell0;
 										pre.remove();
 										button.remove();
-									};
+									});
 								\`);
 								crash = true;
 								history.go(0);
 							}, 0);
-							event.prevent_reload = () => clearTimeout(timer);
-						};
-						addEventListener("unload", blocker);
-						addEventListener("beforeunload", blocker);
-						addEventListener("error", event => oncrash(event, event.message + "\\n@" + event.filename + ":" + event.lineno + ":" + event.colno));
-						addEventListener("unhandledrejection", event => oncrash(event, event.reason instanceof Error ? event.reason.stack : event.reason));
+							event.prevent_reload = () => {
+								clearTimeout(timer);
+							};
+						});
 
 						let source;
 						let cancel;
@@ -124,15 +220,14 @@
 								source = source1;
 								if(!lock){
 									lock = true;
-									(async () => {
-										await (cancel || (() => {}))();
-									})().then(() => {
+									genfn2tick(function*(){
+										yield (cancel || (() => {}))();
 										Function('"use strict";' + source);
 										document.title = "Loading";
 										if(localStorage.length === 0) localStorage.setItem(setup, source);
-										cancel = self.eval('"use strict"; () => {' + source + "}")();
+										cancel = self.eval('"use strict"; (library, library_source) => {' + source + "}")(library, library_source);
 										lock = false;
-									});
+									})();
 								}
 							}
 						};
@@ -146,13 +241,13 @@
 							xhr.setRequestHeader("token", Date.now() + Math.random().toString().slice(1));
 							xhr.send();
 						};
-						let promise; 
-						xhr.addEventListener("loadstart", () => promise = new Promise(resolve => setTimeout(resolve, 6e3)));
+						let hell0; 
+						xhr.addEventListener("loadstart", () => setTimeout(([hell0] = hell())[1], 6e3));
 						xhr.addEventListener("loadend", () => {
 							if(xhr.status === 404 || xhr.status === 304 || xhr.status >= 200 && xhr.status < 300){
 								localStorage.setItem(setup, xhr.responseText || "");
 								update();
-								promise.then(() => requestAnimationFrame(check));
+								hell0(() => requestAnimationFrame(check));
 							}else{
 								requestAnimationFrame(check);
 							}
