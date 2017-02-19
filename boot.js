@@ -229,7 +229,9 @@ const tubeline = (() => {
 							try{
 								thunk;
 							}catch(error){
-								Promise.resolve().then(thunk);
+								Promise.resolve().then(thunk).catch(error => setTimeout(() => {
+									throw error;
+								}, 0));
 								return;
 							}
 							thunk();
