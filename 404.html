@@ -182,6 +182,8 @@
 						addEventListener("error", event => {
 							const timer = setTimeout(() => {
 								localStorage.setItem(setup, \`
+									const {hell, is_hell, tickline, gen2tick, genfn2tick, prom2hell} = library;
+
 									const pre = document.createElement("pre");
 									const button = document.createElement("button");
 									document.title = "Crash";
