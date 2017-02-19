@@ -356,13 +356,18 @@ const db = (() => {
 
 			const {hell, is_hell, tickline, gen2tick, genfn2tick, prom2hell} = self.eval('"use strict"; ' + unescape("${escape(library_source)}"));
 
-			let resolve;
-			const hub = self.eval('"use strict"; ' + unescape("${escape(hub_source)}"))(new Promise(resolve1 => resolve = resolve1).then(port => new Promise(resolve => {
+			const [hell0, resolve0] = hell();
+			const [hell1, resolve1] = hell();
+			hell0(port => {
 				port.addEventListener("message", ({data}) => {
-					if(data === "connected") resolve(port);
+					if(data === "connected") resolve1(port);
 				});
 				port.start();
-			})));
+			});
+			const hub = self.eval('"use strict"; ' + unescape("${escape(hub_source)}"))(hell1);
+
+			const name = unescape("${escape(name)}");
+			const format = self.eval('"use strict"; ' + unescape("${escape(format_source)}"));
 			const if_exist = (name, yes, no) => {
 				const cn = indexedDB.open(name);
 				cn.addEventListener("success", yes);
@@ -378,12 +383,41 @@ const db = (() => {
 				transaction.addEventListener("complete", () => tansaction.db.close());
 				return transaction;
 			};
-			addEventListener("message", ({data, ports: [port]}) => {
-				if(port) resolve(port);
-				if(data){
-					
+			const f = (callback, name, ...list) => {
+				if(name == null){
+					const make = () => {
+						const onsuccess = () => {
+							cn.result.close();
+							make();
+						};
+						const cancels = new Set;
+						const cn = indexedDB.open(Date.now() + Math.random().toString().slice(1));
+						cn.addEventListener("success", onsuccess);
+						cn.addEventListener("blocked", make);
+						cn.addEventListener('upgradeneeded", () => {
+							cn.removeEventListener("success", onsuccess);
+							put(cn.result.createObjectStore("store", {keyPath: "key"}));
+						});
+						return genfn2tick(function*(){
+							for(let cancel of [...cancels].reverse()) yield cancel();
+						});
+					};
+					return make();
+				}else{
+					if_exist(name, ({target: {result}}) => put(result.tansaction(["store"], "readwrite").objectStore("store")), callback);
 				}
+			};
+
+			addEventListener("message", ({data, ports: [port]}) => {
+				if(port) resolve0(port);
+				if(data) f(() => {
+					throw null;
+				}, name, ...format(data));
 			});
+			addEventListener("error", genfn2tick(function*(){
+				(yield hell0).postMessage("disconnect");
+				//close();
+			}));
 		`], {type: "text/javascript"}));
 		const onunload = () => URL.revokeObjectURL(uri);
 		addEventListener("unload", onunload);
