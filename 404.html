@@ -206,9 +206,7 @@
 								crash = true;
 								history.go(0);
 							}, 0);
-							event.prevent_reload = () => {
-								clearTimeout(timer);
-							};
+							event.prevent_reload = () => clearTimeout(timer);
 						});
 
 						let source;
