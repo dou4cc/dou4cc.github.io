@@ -68,7 +68,7 @@
 					"use strict";
 
 					if(top === self){
-						const uri0 = document.location.href;
+						const uri0 = document.location.href.slice(document.location.origin.length);
 						history.replaceState(null, null, "a");
 						Promise.resolve().then(() => {
 							history.replaceState(null, null, uri0);
