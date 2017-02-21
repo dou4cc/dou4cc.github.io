@@ -3,6 +3,7 @@
 
 <head>
 	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
 	<style>
 		body{
 			display: none;
@@ -67,9 +68,6 @@
 					"use strict";
 
 					if(top === self){
-						try{
-							Reflect.deleteProperty(self, "a");
-						}catch(error){}
 						onload = null;
 						[...document.childNodes].forEach(node => {
 							if(!(node instanceof DocumentType)) node.remove();
