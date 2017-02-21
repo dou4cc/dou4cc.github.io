@@ -72,6 +72,9 @@
 						history.replaceState(null, null, "a");
 						Promise.resolve().then(() => {
 							history.replaceState(null, null, uri0);
+							try{
+								Reflect.deleteProperty(self, "a");
+							}catch(error){}
 							onload = null;
 							[...document.childNodes].forEach(node => {
 								if(!(node instanceof DocumentType)) node.remove();
