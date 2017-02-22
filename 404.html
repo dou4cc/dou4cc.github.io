@@ -4,13 +4,12 @@
 <head>
 	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width, height=device-height">
 	<style>
 		body{
 			display: none;
 		}
 	</style>
-	<meta name="viewport" content="width=device-width, height=device-height">
-	<title>不支持</title>
 </head>
 
 <body>
@@ -35,6 +34,7 @@
 		
 		onerror = function(){
 			onerror = null;
+			document.title = "不支持";
 			var hash = document.location.hash.slice(1);
 			var uri0 = document.location.href;
 			var reg = /^[^:]+:\/+[^/]+\//;
@@ -52,10 +52,10 @@
 		Reflect;
 		Promise;
 
-		document.title = "Loading";
 		onerror = null;
 		if(top === self){
 			try{
+				document.title = "Loading";
 				const hash = document.location.hash.slice(1);
 				if(!hash.startsWith(document.location.origin)) throw null;
 				const uri0 = document.location.href;
@@ -286,19 +286,10 @@
 				check();
 			}
 		}else{
-			document.title = "";
 			document.querySelector("#not-supported").style.display = "none";
 		}
 	</script>
 	<style>
-		body{
-			display: block;
-			text-align: center;
-			overflow: auto;
-			border: none;
-			margin: 8px;
-		}
-
 		table{
 			display: inline;
 			border-collapse: collapse;
@@ -361,6 +352,14 @@
 		div a:focus,
 		div a:hover{
 			background-color: rgba(0, 0, 0, 0.17);
+		}
+
+		body{
+			display: block;
+			text-align: center;
+			overflow: auto;
+			border: none;
+			margin: 8px;
 		}
 	</style>
 </body>
