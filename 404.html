@@ -47,7 +47,7 @@
 	<script>
 		"use strict";
 
-		(...[]) => function*(){};
+		(...``) => function*(){};
 		document.append();
 		Reflect;
 		Promise;
@@ -68,24 +68,23 @@
 					"use strict";
 
 					if(top === self){
-						const uri0 = document.location.href.slice(document.location.origin.length);
-						history.replaceState(null, null, "a");
+						Reflect;
+						onload = null;
+						[...document.childNodes].forEach(node => {
+							if(!(node instanceof DocumentType)) node.remove();
+						});
+						const meta = document.createElement("meta");
+						meta.setAttribute("charset", "utf-8");
+						const head = document.createElement("head");
+						head.append(meta);
+						const html = document.createElement("html");
+						html.append(head, document.createElement("body"));
+						document.append(html);
 						Promise.resolve().then(() => {
 							history.replaceState(null, null, uri0);
 							try{
 								Reflect.deleteProperty(self, "a");
 							}catch(error){}
-							onload = null;
-							[...document.childNodes].forEach(node => {
-								if(!(node instanceof DocumentType)) node.remove();
-							});
-							const meta = document.createElement("meta");
-							meta.setAttribute("charset", "utf-8");
-							const head = document.createElement("head");
-							head.append(meta);
-							const html = document.createElement("html");
-							html.append(head, document.createElement("body"));
-							document.append(html);
 
 							const setup = localStorage.key(0);
 							const library_source = \`
@@ -269,6 +268,8 @@
 						}).catch(error => setTimeout(() => {
 							throw error;
 						}, 0));
+						const uri0 = document.location.href.slice(document.location.origin.length);
+						history.replaceState(null, null, "a");
 					}
 				`, "");
 				history.go(0);
