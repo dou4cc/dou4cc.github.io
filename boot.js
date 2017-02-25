@@ -1,4 +1,4 @@
-﻿const {hell, is_hell, tickline, gen2tick, genfn2tick, prom2hell} = library;
+﻿const {hell, is_hell, tickline, gen2tick, genfn2tick, prom2hell} = Object.create(library);
 const cancels = new Set;
 
 const multi_key_map = () => {
@@ -347,9 +347,17 @@ const db = (() => {
 		return [hell0, self.eval('"use strict"; ' + hub_source)(tickline(() => worker.port)(hell0))];
 	})();
 	const name = ".";
-	const format_source = `list => [...list.map(a => [a]), ""]`;
-	const format = self.eval('"use strict"; ' + format_source);
-	const unformat = list => list.slice(0, -1).map(([a]) => a);
+	const end = Symbol();
+	const formatted_end = "";
+	const format = list => {
+		for(let i = 0, l = list.length; i < length; i += 1) if((list[i] = list[i] === end ? formatted_end : [list[i]]) === formatted_end){
+			list.splice(i + 1, l);
+			break;
+		}
+		indexedDB.cmp(list, 0);
+		return list;
+	};
+	const unformat = list => list.map(a => a === formatted_end ? end : a[0]);
 	const put_uri = (() => {
 		const uri = URL.createObjectURL(new Blob([`
 			"use strict";
@@ -366,58 +374,88 @@ const db = (() => {
 			});
 			const hub = self.eval('"use strict"; ' + unescape("${escape(hub_source)}"))(hell1);
 
-			const name = unescape("${escape(name)}");
-			const format = self.eval('"use strict"; ' + unescape("${escape(format_source)}"));
+			const end = unescape("${escape(formatted_end)}");
+			const del_db = db => {
+				db.close();
+				indexedDB.deleteDatabase(db.name);
+			};
 			const if_exist = (name, yes, no) => {
+				let abort = () => yes = no = () => {};
 				const cn = indexedDB.open(name);
-				cn.addEventListener("success", yes);
+				cn.addEventListener("success", event => abort = yes(event));
 				cn.addEventListener("blocked", () => no());
-				cn.addEventListener("upgradeneeded, () => {
+				cn.addEventListener("upgradeneeded", () => {
 					cn.removeEventListener("success", yes);
-					cn.result.close();
-					indexedDB.deleteDatabase(name);
+					del_db(cn.result);
 					no();
 				});
+				return () => abort();
 			};
 			const auto_close = transaction => {
 				transaction.addEventListener("complete", () => tansaction.db.close());
 				return transaction;
 			};
 			const f = (callback, name, ...list) => {
+				const put0 = store => {
+					auto_close(store.transaction);
+					if(name == null){
+						const req = store.put({key: list[0]});
+						store.transaction.addEventListener("complete", () => callback(store.transaction.db.name));
+						if(list.length > 1) req.addEventListener("success", () => {
+						});
+					}else{
+						store.count().addEventListener("success", ({target: {result}}) => {
+							if(result === 0){
+								callback();
+							}else{
+								store.get(end).addEventListener("success", ({target: {result}}) => {
+									if(!result)store.get(list[0]).addEventListener("success", ({target: {result}}) => {
+										if(result){
+										}else{
+											store.put({key: list[0]}).addEventListener("success", () => put1(store));
+										}
+									});
+								});
+							}
+						});
+					}
+				};
 				if(name == null){
 					const make = () => {
+						const abort0 = () => del_db(cn.result);
+						let abort1 = () => {
+							make1 = () => {};
+							cn.removeEventListener("upgradeneeded", onupgradeneeded);
+							cn.addEventListener("upgradeneeded", abort0);
+						};
+						let make1 = () => abort1 = make();
 						const onsuccess = () => {
 							cn.result.close();
-							make();
+							make1();
 						};
-						const cancels = new Set;
+						const onupgradeneeded = () => {
+							const abort2 = put0(cn.result.createObjectStore("store", {keyPath: "key"}));
+							abort1 = () => {
+								abort2();
+								abort0();
+							};
+						};
 						const cn = indexedDB.open(Date.now() + Math.random().toString().slice(1));
 						cn.addEventListener("success", onsuccess);
-						cn.addEventListener("blocked", make);
-						cn.addEventListener('upgradeneeded", () => {
-							cn.removeEventListener("success", onsuccess);
-							put(cn.result.createObjectStore("store", {keyPath: "key"}));
-						});
-						return genfn2tick(function*(){
-							for(let cancel of [...cancels].reverse()) yield cancel();
-						});
+						cn.addEventListener("blocked", make1);
+						cn.addEventListener("upgradeneeded", () => cn.removeEventListener("success", onsuccess));
+						cn.addEventListener("upgradeneeded", onupgradeneeded);
+						return () => abort1();
 					};
 					return make();
-				}else{
-					if_exist(name, ({target: {result}}) => put(result.tansaction(["store"], "readwrite").objectStore("store")), callback);
 				}
+				return if_exist(name, ({target: {result}}) => put0(result.tansaction(["store"], "readwrite").objectStore("store")), callback);
 			};
 
 			addEventListener("message", ({data, ports: [port]}) => {
 				if(port) resolve0(port);
-				if(data) f(() => {
-					throw null;
-				}, name, ...format(data));
+				if(data) f(null, ...data);
 			});
-			addEventListener("error", genfn2tick(function*(){
-				(yield hell0).postMessage("disconnect");
-				//close();
-			}));
 		`], {type: "text/javascript"}));
 		const onunload = () => URL.revokeObjectURL(uri);
 		addEventListener("unload", onunload);
