@@ -401,7 +401,6 @@ const db = (() => {
 							});
 						}, ...list.slice(1));
 						return abort;
-					}else if(list[0] === end){
 					}
 				};
 				if(typeof name === "function"){
@@ -441,14 +440,19 @@ const db = (() => {
 					const store = auto_close(result.tansaction(["store"], "readwrite")).objectStore("store");
 					store.count().addEventListener("success", ({target: {result}}) => {
 						if(result > 0) store.get(end).addEventListener("success", ({target: {result}}) => {
-							if(!result) store.get(list[0]).addEventListener("success", ({target: {result}}) => {
-								if(result && "value" in result){
-									f(result.value, ...list.slice(1));
+							if(!result){
+								if(list[0] === end){
 								}else{
-									if(!result) store.put({key: list[0]});
-									f1(store);
+									store.get(list[0]).addEventListener("success", ({target: {result}}) => {
+										if(result && "value" in result){
+											f(result.value, ...list.slice(1));
+										}else{
+											if(!result) store.put({key: list[0]});
+											f1(store);
+										}
+									});
 								}
-							});
+							}
 						});
 					});
 				};
