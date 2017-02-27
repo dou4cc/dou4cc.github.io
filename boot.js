@@ -380,56 +380,28 @@ const db = (() => {
 				db.close();
 				indexedDB.deleteDatabase(db.name);
 			};
-			const if_exist = (name, then) => {
-				let abort = () => then = () => {};
-				const onsuccess = event => abort = then(event);
-				const cn = indexedDB.open(name);
-				cn.addEventListener("success", onsuccess);
-				cn.addEventListener("upgradeneeded", () => {
-					cn.removeEventListener("success", onsuccess);
-					del_db(cn.result);
-				});
-				return () => abort();
-			};
 			const auto_close = transaction => {
 				transaction.addEventListener("complete", () => tansaction.db.close());
 				return transaction;
 			};
 			const f = (name, ...list) => {
-				const f1 = store => {
-					auto_close(store.transaction);
-					if(typeof name === "function"){
-						store.put({key: list[0]});
-						store.transaction.addEventListener("complete", () => name(store.transaction.db.name));
-						f2(store);
-					}else{
-						store.count().addEventListener("success", ({target: {result}}) => {
-							if(result > 0) store.get(end).addEventListener("success", ({target: {result}}) => {
-								if(!result) store.get(list[0]).addEventListener("success", ({target: {result}}) => {
-									if(result){
-									}else{
-										store.put({key: list[0]});
-										f2(store);
-									}
-								});
-							});
-						});
-					}
-				};
-				const f2 = ({transaction: {db}}) => {
+				const f1 = ({transaction: {db}}) => {
 					if(list.length > 1){
 						const abort = f(name => {
 							auto_close(db.transaction(["store"], "readwrite")).objectStore("store").get(list[0]).addEventListener("success", ({target: {source, result}}) => {
 								if(result){
-									if(!("value" in result)){
-										source.put({key: list[0], value: name});
+									if("value" in result){
+										f(result.value, ...list.slice(1));
 									}else{
+										source.put({key: list[0], value: name});
 									}
 								}else{
 									abort();
 								}
 							});
 						}, ...list.slice(1));
+						return abort;
+					}else if(list[0] === end){
 					}
 				};
 				if(typeof name === "function"){
@@ -446,8 +418,12 @@ const db = (() => {
 							make1();
 						};
 						const onupgradeneeded = () => {
-							const abort2 = f1(cn.result.createObjectStore("store", {keyPath: "key"}));
+							const store = cn.result.createObjectStore("store", {keyPath: "key"});
+							auto_close(store.transaction).addEventListener("complete", () => name(store.transaction.db.name));
+							store.put({key: list[0]});
+							const abort2 = f1(store);
 							abort1 = () => {
+								name = () => {};
 								abort2();
 								abort0();
 							};
@@ -461,7 +437,27 @@ const db = (() => {
 					};
 					return make();
 				}
-				return if_exist(name, ({target: {result}}) => f1(result.tansaction(["store"], "readwrite").objectStore("store")));
+				const onsuccess = ({target: {result}}) => {
+					const store = auto_close(result.tansaction(["store"], "readwrite")).objectStore("store");
+					store.count().addEventListener("success", ({target: {result}}) => {
+						if(result > 0) store.get(end).addEventListener("success", ({target: {result}}) => {
+							if(!result) store.get(list[0]).addEventListener("success", ({target: {result}}) => {
+								if(result && "value" in result){
+									f(result.value, ...list.slice(1));
+								}else{
+									if(!result) store.put({key: list[0]});
+									f1(store);
+								}
+							});
+						});
+					});
+				};
+				const cn = indexedDB.open(name);
+				cn.addEventListener("upgradeneeded", () => {
+					cn.removeEventListener("success", onsuccess);
+					del_db(cn.result);
+				});
+				cn.addEventListener("success", onsuccess);
 			};
 
 			addEventListener("message", ({data, ports: [port]}) => {
