@@ -376,6 +376,10 @@ const db = (() => {
 				transaction.addEventListener("complete", () => tansaction.db.close());
 				return transaction;
 			};
+			const rm_tree = db => {
+				auto_close(db.transaction(["store"], "readwrite")).objectStore("store").openCursor().addEventListener("success", ({target: {source, result}}) => {
+				});
+			};
 			const f = (name, i, list) => {
 				const f1 = ({transaction}) => {
 					if(list.length > i + 1){
@@ -439,8 +443,7 @@ const db = (() => {
 									store.put({key: end});
 									store.transaction.addEventListener("complete", () => {
 										hub.send(...list);
-										const store = auto_close(store.transaction.db.transaction(["store"], "readwrite")).objectStore("store");
-										
+										rm_tree(store.transaction.db);
 									});
 								}else{
 									store.get(list[i]).addEventListener("success", ({target: {result}}) => {
