@@ -1,4 +1,4 @@
-﻿const {hell, is_hell, tickline, gen2tick, genfn2tick, prom2hell} = library;
+﻿const {run, hell, is_hell, tickline, gen2tick, genfn2tick, prom2hell} = library;
 library = Object.create(library);
 const cancels = new Set;
 
@@ -227,15 +227,7 @@ const tubeline = (() => {
 					const listen = listener => {
 						cancel_map.set(listener, () => {
 							cancel_map.delete(listener);
-							try{
-								thunk;
-							}catch(error){
-								Promise.resolve().then(thunk).catch(error => setTimeout(() => {
-									throw error;
-								}, 0));
-								return;
-							}
-							thunk();
+							run(() => thunk);
 						});
 						const thunk = thunk1(listener);
 					};
@@ -363,7 +355,7 @@ const db = (() => {
 		const uri = URL.createObjectURL(new Blob([`
 			"use strict";
 
-			const {hell, is_hell, tickline, gen2tick, genfn2tick, prom2hell} = self.eval('"use strict"; ' + unescape("${escape(library_source)}"));
+			const {run, hell, is_hell, tickline, gen2tick, genfn2tick, prom2hell} = self.eval('"use strict"; ' + unescape("${escape(library_source)}"));
 
 			const [hell0, resolve0] = hell();
 			const [hell1, resolve1] = hell();
@@ -384,24 +376,26 @@ const db = (() => {
 				transaction.addEventListener("complete", () => tansaction.db.close());
 				return transaction;
 			};
-			const f = (name, ...list) => {
-				const f1 = ({transaction: {db}}) => {
-					if(list.length > 1){
+			const f = (name, i, list) => {
+				const f1 = ({transaction}) => {
+					if(list.length > i + 1){
+						const {db} = transaction;
 						const abort = f(name => {
-							auto_close(db.transaction(["store"], "readwrite")).objectStore("store").get(list[0]).addEventListener("success", ({target: {source, result}}) => {
+							auto_close(db.transaction(["store"], "readwrite")).objectStore("store").get(list[i]).addEventListener("success", ({target: {source, result}}) => {
 								if(result){
 									if("value" in result){
-										f(result.value, ...list.slice(1));
+										f(result.value, i + 1, list);
 									}else{
-										source.put({key: list[0], value: name});
+										source.put({key: list[i], value: name});
 									}
 								}else{
 									abort();
 								}
 							});
-						}, ...list.slice(1));
+						}, i + 1, list);
 						return abort;
 					}
+					transaction.addEventListener("complete", () => hub.send(...list));
 				};
 				if(typeof name === "function"){
 					const make = () => {
@@ -419,11 +413,11 @@ const db = (() => {
 						const onupgradeneeded = () => {
 							const store = cn.result.createObjectStore("store", {keyPath: "key"});
 							auto_close(store.transaction).addEventListener("complete", () => name(store.transaction.db.name));
-							store.put({key: list[0]});
+							store.put({key: list[i]});
 							const abort2 = f1(store);
 							abort1 = () => {
 								name = () => {};
-								abort2();
+								if(abort2) abort2();
 								abort0();
 							};
 						};
@@ -441,13 +435,19 @@ const db = (() => {
 					store.count().addEventListener("success", ({target: {result}}) => {
 						if(result > 0) store.get(end).addEventListener("success", ({target: {result}}) => {
 							if(!result){
-								if(list[0] === end){
+								if(list[i] === end){
+									store.put({key: end});
+									store.transaction.addEventListener("complete", () => {
+										hub.send(...list);
+										const store = auto_close(store.transaction.db.transaction(["store"], "readwrite")).objectStore("store");
+										
+									});
 								}else{
-									store.get(list[0]).addEventListener("success", ({target: {result}}) => {
+									store.get(list[i]).addEventListener("success", ({target: {result}}) => {
 										if(result && "value" in result){
-											f(result.value, ...list.slice(1));
+											if(list.length > i + 1) f(result.value, i + 1, list);
 										}else{
-											if(!result) store.put({key: list[0]});
+											if(!result) store.put({key: list[i]});
 											f1(store);
 										}
 									});
@@ -459,6 +459,7 @@ const db = (() => {
 				const cn = indexedDB.open(name);
 				cn.addEventListener("upgradeneeded", () => {
 					cn.removeEventListener("success", onsuccess);
+					cn.result.createObjectStore("store", {keyPath: "key"});
 					del_db(cn.result);
 				});
 				cn.addEventListener("success", onsuccess);
