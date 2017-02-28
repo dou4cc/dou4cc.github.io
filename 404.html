@@ -88,6 +88,22 @@
 
 							const setup = localStorage.key(0);
 							const library_source = \`
+								const run = thunk => {
+									const run = thunk => {
+										try{
+											thunk();
+										}catch(error){
+											setTimeout(() => {
+												throw error;
+											}, 0);
+										}
+									};
+									try{
+										run(thunk());
+									}catch(error){
+										Promise.resolve().then(() => run(() => thunk()()));
+									}
+								};
 								const [hell, is_hell] = (() => {
 									const hell_set = new WeakSet;
 									return [
@@ -96,13 +112,7 @@
 												if(callbacks){
 													callbacks.push(callback);
 												}else{
-													try{
-														callback(result);
-													}catch(error){
-														setTimeout(() => {
-															throw error;
-														}, 0);
-													}
+													run(() => () => callback(result));
 												}
 											};
 											let result;
@@ -180,10 +190,10 @@
 										return hell0;
 									})();
 								})();
-								({hell, is_hell, tickline, gen2tick, genfn2tick, prom2hell});
+								({run, hell, is_hell, tickline, gen2tick, genfn2tick, prom2hell});
 							\`;
 							const library = self.eval('"use strict"; ' + library_source);
-							const {hell, is_hell, tickline, gen2tick, genfn2tick, prom2hell} = library;
+							const {run, hell, is_hell, tickline, gen2tick, genfn2tick, prom2hell} = library;
 
 							let crash = false;
 							const blocker = event => {
