@@ -536,6 +536,7 @@ const db = (() => {
 		on: (...list) => {
 			const f = (name, i) => {
 				const onsuccess = () => {
+					if(list.length === 0) run(() => listener);
 					const store = cn.result.transaction(["store"], "readonly").objectStore("store");
 					store.transaction.addEventListener("complete", () => cn.result.close());
 					store.get("end").addEventListener("success", ({target: {result}}) => {
@@ -547,7 +548,6 @@ const db = (() => {
 							}
 						}else{
 							if(i === list.length){
-								if(i === 0) run(() => listener);
 								store.openKeyCursor().addEventListener("success", ({target: {result}}) => {
 									if(result){
 										result.continue();
@@ -574,7 +574,7 @@ const db = (() => {
 					if(i > 0) indexedDB.deleteDatabase(name);
 				});
 			};
-			let listener = list.unshift();
+			let listener = list.pop() || (() => {});
 			list = format(list);
 			const cancel = hub.on((...list1) => {
 				if(list1.length >= list.length && list.every((a, i) => a === list1[i])){
