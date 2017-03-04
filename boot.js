@@ -33,6 +33,7 @@ const multi_key_map = () => {
 		},
 	};
 };
+library.multi_key_map = multi_key_map;
 
 const tube = (() => {
 	const dp = new WeakMap;
@@ -44,7 +45,6 @@ const tube = (() => {
 				if(state){
 					state.handle_num += 1;
 				}else{
-					let resolve;
 					const [hell0, resolve] = hell();
 					state = {
 						alive: true,
@@ -177,6 +177,7 @@ const tube = (() => {
 		return tube0;
 	})();
 })();
+library.tube = tube;
 
 const tubeline = (() => {
 	const dp = new WeakMap;
@@ -262,9 +263,10 @@ const tubeline = (() => {
 		return tubeline0;
 	};
 })();
+library.tubeline = tubeline;
 
 const db = (() => {
-	const hub_source = `port => ({
+	const hub_source = `({run, hell, is_hell, tickline, gen2tick, genfn2tick, prom2hell}) => port => ({
 		send: (...list) => {
 			tickline(port => port.postMessage(list))(port);
 		},
@@ -291,7 +293,8 @@ const db = (() => {
 		const make = () => {
 			uri = URL.createObjectURL(new Blob([`
 				"use strict";
-					const port_set = new Set;
+
+				const port_set = new Set;
 				addEventListener("connect", ({ports: [...ports]}) => ports.forEach(port => {
 					port_set.add(port);
 					port.addEventListener("message", ({data}) => {
@@ -337,25 +340,25 @@ const db = (() => {
 			worker.port.postMessage("disconnect");
 			removeEventListener("unload", onunload);
 		}));
-		return [hell0, self.eval('"use strict"; ' + hub_source)(tickline(() => worker.port)(hell0))];
+		return [hell0, self.eval('"use strict"; ' + hub_source)(library)(tickline(() => worker.port)(hell0))];
 	})();
 	const name = ".";
 	const end = Symbol();
-	const formatted_end = "";
 	const format = list => {
-		for(let i = 0, l = list.length; i < l; i += 1) if((list[i] = list[i] === end ? formatted_end : [list[i]]) === formatted_end){
+		for(let i = 0, l = list.length; i < l; i += 1) if((list[i] = list[i] === end ? "end" : [list[i]]) === "end"){
 			list.splice(i + 1, l);
 			break;
 		}
 		indexedDB.cmp(list, 0);
 		return list;
 	};
-	const unformat = list => list.map(a => a === formatted_end ? end : a[0]);
+	const unformat = a => a === "end" ? end : a[0];
 	const put_uri = (() => {
 		const uri = URL.createObjectURL(new Blob([`
 			"use strict";
 
-			const {run, hell, is_hell, tickline, gen2tick, genfn2tick, prom2hell} = self.eval('"use strict"; ' + unescape("${escape(library_source)}"));
+			const library = self.eval('"use strict"; ' + unescape("${escape(library_source)}"));
+			const {run, hell, is_hell, tickline, gen2tick, genfn2tick, prom2hell} = library;
 
 			const [hell0, resolve0] = hell();
 			const [hell1, resolve1] = hell();
@@ -365,27 +368,56 @@ const db = (() => {
 				});
 				port.start();
 			});
-			const hub = self.eval('"use strict"; ' + unescape("${escape(hub_source)}"))(hell1);
+			const hub = self.eval('"use strict"; ' + unescape("${escape(hub_source)}"))(library)(hell1);
 
-			const end = unescape("${escape(formatted_end)}");
-			const del_db = db => {
-				db.close();
-				indexedDB.deleteDatabase(db.name);
+			let count = 0;
+			const open_db = name => {
+				const uncount = genfn2tick(function*(){
+					count -= 1;
+					if(count === 0){
+						(yield hell0).postMessage("disconnect");
+						close();
+					}
+				});
+				const onconnect = () => cn.result.addEventListener("close", uncount);
+				const cn = indexedDB.open(name);
+				count += 1;
+				cn.addEventListener("block", uncount);
+				cn.addEventListener("upgradeneeded", onconnect);
+				cn.addEventListener("success", onconnect);
+				return cn;
 			};
-			const auto_close = transaction => {
-				transaction.addEventListener("complete", () => tansaction.db.close());
+			const delete_db = ({result}) => {
+				result.close();
+				indexedDB.deleteDatabase(result.name);
+			};
+			const oncomplete = ({target: {db}}) => db.close();
+			const last_transaction = transaction => {
+				transaction.addEventListener("complete", oncomplete);
 				return transaction;
 			};
-			const rm_tree = db => {
-				auto_close(db.transaction(["store"], "readwrite")).objectStore("store").openCursor().addEventListener("success", ({target: {source, result}}) => {
+			const end = (db, then) => {
+				last_transaction(db.transaction(["store"], "readwrite")).objectStore("store").openCursor().addEventListener("success", ({target: {source, result}}) => {
+					if(result){
+						result.continue();
+						if("value" in result.value){
+							open_db(result.value.value).addEventListener("success", ({target}) => {
+								end(target.result);
+								delete_db(target);
+							});
+						}
+					}else{
+						source.clear().addEventListener("success", then);
+					}
 				});
 			};
-			const f = (name, i, list) => {
+			const f = (i, name, list) => {
 				const f1 = ({transaction}) => {
 					if(list.length > i + 1){
 						const {db} = transaction;
-						const abort = f(name => {
-							auto_close(db.transaction(["store"], "readwrite")).objectStore("store").get(list[i]).addEventListener("success", ({target: {source, result}}) => {
+						transaction.removeEventListener("complete", oncomplete);
+						const abort = f(i + 1, name => {
+							last_transaction(db.transaction(["store"], "readwrite")).objectStore("store").get(list[i]).addEventListener("success", ({target: {source, result}}) => {
 								if(result){
 									if("value" in result){
 										f(result.value, i + 1, list);
@@ -396,82 +428,90 @@ const db = (() => {
 									abort();
 								}
 							});
-						}, i + 1, list);
+						}, list);
 						return abort;
 					}
 					transaction.addEventListener("complete", () => hub.send(...list));
 				};
 				if(typeof name === "function"){
 					const make = () => {
-						const abort0 = () => del_db(cn.result);
-						let abort1 = () => {
+						let abort = () => {
 							make1 = () => {};
 							cn.removeEventListener("upgradeneeded", onupgradeneeded);
-							cn.addEventListener("upgradeneeded", abort0);
+							cn.addEventListener("upgradeneeded", () => delete_db(cn));
 						};
-						let make1 = () => abort1 = make();
+						let make1 = () => abort = make();
 						const onsuccess = () => {
 							cn.result.close();
 							make1();
 						};
 						const onupgradeneeded = () => {
 							const store = cn.result.createObjectStore("store", {keyPath: "key"});
-							auto_close(store.transaction).addEventListener("complete", () => name(store.transaction.db.name));
+							last_transaction(store.transaction).addEventListener("complete", () => name(store.transaction.db.name));
 							store.put({key: list[i]});
-							const abort2 = f1(store);
-							abort1 = () => {
+							const abort1 = f1(store);
+							abort = () => {
 								name = () => {};
-								if(abort2) abort2();
-								abort0();
+								if(abort1) abort1();
+								delete_db(cn);
 							};
 						};
-						const cn = indexedDB.open(Date.now() + Math.random().toString().slice(1));
+						const cn = open_db(Date.now() + Math.random().toString().slice(1));
 						cn.addEventListener("success", onsuccess);
 						cn.addEventListener("blocked", make1);
 						cn.addEventListener("upgradeneeded", () => cn.removeEventListener("success", onsuccess));
 						cn.addEventListener("upgradeneeded", onupgradeneeded);
-						return () => abort1();
+						return () => abort();
 					};
 					return make();
 				}
 				const onsuccess = ({target: {result}}) => {
-					const store = auto_close(result.tansaction(["store"], "readwrite")).objectStore("store");
-					store.count().addEventListener("success", ({target: {result}}) => {
-						if(result > 0) store.get(end).addEventListener("success", ({target: {result}}) => {
-							if(!result){
-								if(list[i] === end){
-									store.put({key: end});
-									store.transaction.addEventListener("complete", () => {
-										hub.send(...list);
-										rm_tree(store.transaction.db);
-									});
-								}else{
-									store.get(list[i]).addEventListener("success", ({target: {result}}) => {
-										if(result && "value" in result){
-											if(list.length > i + 1) f(result.value, i + 1, list);
-										}else{
-											if(!result) store.put({key: list[i]});
-											f1(store);
-										}
-									});
-								}
+					const f2 = () => store.get("end").addEventListener("success", ({target: {result}}) => {
+						if(!result){
+							if(list[i] === "end"){
+								store.put({key: "end"});
+								store.transaction.removeEventListener("complete", oncomplete);
+								store.transaction.addEventListener("complete", () => {
+									hub.send(...list);
+									end(store.transaction.db, ({target: {source}}) => source.put({key: "end"}));
+								});
+							}else{
+								store.get(list[i]).addEventListener("success", ({target: {result}}) => {
+									if(result && "value" in result){
+										if(list.length > i + 1) f(i + 1, result.value, list);
+									}else{
+										if(!result) store.put({key: list[i]});
+										f1(store);
+									}
+								});
 							}
-						});
+						}
 					});
+					const store = last_transaction(result.transaction(["store"], "readwrite")).objectStore("store");
+					if(i > 0){
+						store.count().addEventListener("success", ({target: {result}}) => {
+							if(result > 0) f2();
+						});
+					}else{
+						f2();
+					}
 				};
-				const cn = indexedDB.open(name);
+				const cn = open_db(name);
 				cn.addEventListener("upgradeneeded", () => {
-					cn.removeEventListener("success", onsuccess);
+					if(i > 0){
+						cn.removeEventListener("success", onsuccess);
+						del_db(cn.result);
+					}
 					cn.result.createObjectStore("store", {keyPath: "key"});
-					del_db(cn.result);
 				});
 				cn.addEventListener("success", onsuccess);
 			};
 
 			addEventListener("message", ({data, ports: [port]}) => {
 				if(port) resolve0(port);
-				if(data) f(...data);
+				if(data) f(0, ...data);
 			});
+			addEventListener("error", () => tickline(port => port.postMessage("disconnect"))(hell0));
 		`], {type: "text/javascript"}));
 		const onunload = () => URL.revokeObjectURL(uri);
 		addEventListener("unload", onunload);
@@ -482,69 +522,77 @@ const db = (() => {
 		return uri;
 	})();
 	return {
+		end,
 		put: (...list) => {
-			const if_exist = (name, yes, no) => {
-				const cn = indexedDB.open(name);
-				cn.addEventListener("success", yes);
-				cn.addEventListener("blocked", () => no());
-				cn.addEventListener("upgradeneeded, () => {
-					cn.removeEventListener("success", yes);
-					cn.result.close();
-					indexedDB.deleteDatabase(name);
-					no();
-				});
-			};
-			const auto_close = transaction => {
-				transaction.addEventListener("complete", () => tansaction.db.close());
-				return transaction;
-			};
-			const f = (callback, name, ...list) => {
-				const visit = (store, name) => store.get(list[0]).addEventListener("success", ({target: {result}}) => {
-					const callback1 = name => if_exist(store.transaction.db.name, ({target: {result}}) => visit(auto_close(result.transaction(["store"], "readwrite")).objectStore("store"), name), callback);
-					if(result === undefined){
-						if(name == null){
-							f(callback1, null, ...list.slice(1));
-						}else{
-							store.add({key: list[0], value: name});
-						}
-					}else{
-						f(callback1, result, ...list.slice(1));
-					}
-				});
-				const put = store => {
-					auto_close(store.transaction);
-					if(list.length === 1){
-						store.transaction.db.addEventListener("close", ({target: {name}}) => {
-							if(name == null) callback(name);
-						});
-						store.put({key: list[0]});
-					}else{
-						visit(store);
-					}
-				};
-				if(name == null){
-					const make = () => {
-						const onsuccess = () => {
-							cn.result.close();
-							make();
-						};
-						const cn = indexedDB.open(Date.now() + Math.random().toString().slice(1));
-						cn.addEventListener("success", onsuccess);
-						cn.addEventListener("blocked", make);
-						cn.addEventListener('upgradeneeded", () => {
-							cn.removeEventListener("success", onsuccess);
-							put(cn.result.createObjectStore("store", {keyPath: "key"}));
-						});
-					};
-					make();
-				}else{
-					if_exist(name, ({target: {result}}) => put(result.tansaction(["store"], "readwrite").objectStore("store")), callback);
+			if(list.length > 0){
+				let data = [name, format(list)];
+				const worker = new Worker(put_uri);
+				if(is_hell(tickline(uri => worker.postMessage(data, [new SharedWorker(uri).port]))(hub_uri))){
+					worker.postMessage(data);
+					data = null;
 				}
+			}
+		},
+		on: (...list) => {
+			const f = (name, i) => {
+				const onsuccess = () => {
+					const store = cn.result.transaction(["store"], "readonly").objectStore("store");
+					store.transaction.addEventListener("complete", () => cn.result.close());
+					store.get("end").addEventListener("success", ({target: {result}}) => {
+						if(result){
+							if(i === list.length){
+								run(() => () => listener(end));
+							}else if(i + 1 === list.length && list[i] === "end"){
+								run(() => listener);
+							}
+						}else{
+							if(i === list.length){
+								if(i === 0) run(() => listener);
+								store.openKeyCursor().addEventListener("success", ({target: {result}}) => {
+									if(result){
+										result.continue();
+										run(() => () => listener(unformat(result.key)));
+									}
+								});
+							}else{
+								store.get(list[i]).addEventListener("success", ({target: {result}}) => {
+									if(result){
+										if(i + 1 === list.length && list[i] === result.key) run(() => listener);
+										if("value" in result) f(result.value, i + 1);
+									}
+								});
+							}
+						}
+					});
+				};
+				const cn = indexedDB.open(name);
+				cn.addEventListener("success", onsuccess);
+				cn.addEventListener("upgradeneeded", () => {
+					cn.removeEventListener("success", onsuccess);
+					cn.result.createObjectStore("store", {keyPath: "key"});
+					cn.result.close();
+					if(i > 0) indexedDB.deleteDatabase(name);
+				});
 			};
-			f(null, name, ...format(list));
+			let listener = list.unshift();
+			list = format(list);
+			const cancel = hub.on((...list1) => {
+				if(list1.length >= list.length && list.every((a, i) => a === list1[i])){
+					run(() => listener);
+					if(list1.length > list.length) run(() => () => listener(unformat(list1[list.length])));
+				}
+			});
+			tickline(() => f(name, 0))(cancel);
+			return () => {
+				listener = () => {};
+				tickline(cancel => cancel())(cancel);
+			};
 		},
 	};
 })();
+library.db = db;
+
+self.library = library;
 
 return genfn2tick(function*(){
 	for(let cancel of [...cancels].reverse()) yield cancel();
