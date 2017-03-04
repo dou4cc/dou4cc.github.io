@@ -592,6 +592,9 @@ const db = (() => {
 })();
 library.db = db;
 
+const fetch_tube = (() => {
+})();
+
 self.library = library;
 
 return genfn2tick(function*(){

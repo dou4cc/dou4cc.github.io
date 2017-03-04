@@ -266,7 +266,7 @@
 							let hell0; 
 							xhr.addEventListener("loadstart", () => setTimeout(([hell0] = hell())[1], 6e3));
 							xhr.addEventListener("loadend", () => {
-								if(xhr.status === 404 || xhr.status === 304 || xhr.status >= 200 && xhr.status < 300){
+								if(xhr.status === 404 || xhr.status >= 200 && xhr.status < 300){
 									localStorage.setItem(setup, xhr.responseText || "");
 									update();
 									hell0(() => requestAnimationFrame(check));
