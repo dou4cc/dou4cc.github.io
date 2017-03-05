@@ -306,34 +306,38 @@ const db = (() => {
 		on: (...list) => {
 			const f = (name, i) => {
 				const onsuccess = () => {
-					if(list.length === 0) run(() => listener);
-					const store = cn.result.transaction(["store"], "readonly").objectStore("store");
-					store.transaction.addEventListener("complete", () => cn.result.close());
-					store.get("end").addEventListener("success", ({target: {result}}) => {
-						if(result){
-							if(i === list.length){
-								run(() => () => listener(end));
-							}else if(i + 1 === list.length && list[i] === "end"){
-								run(() => listener);
+					if(canceled){
+						cn.result.close();
+					}else{
+						if(list.length === 0) run(() => listener);
+						const store = cn.result.transaction(["store"], "readonly").objectStore("store");
+						store.transaction.addEventListener("complete", () => cn.result.close());
+						store.get("end").addEventListener("success", ({target: {result}}) => {
+							if(result){
+								if(i === list.length){
+									run(() => () => listener(end));
+								}else if(i + 1 === list.length && list[i] === "end"){
+									run(() => listener);
+								}
+							}else if(!canceled){
+								if(i === list.length){
+									store.openKeyCursor().addEventListener("success", ({target: {result}}) => {
+										if(result && !canceled){
+											result.continue();
+											run(() => () => listener(unformat(result.key)));
+										}
+									});
+								}else{
+									store.get(list[i]).addEventListener("success", ({target: {result}}) => {
+										if(result){
+											if(i + 1 === list.length && list[i] === result.key) run(() => listener);
+											if("value" in result && !canceled) f(result.value, i + 1);
+										}
+									});
+								}
 							}
-						}else{
-							if(i === list.length){
-								store.openKeyCursor().addEventListener("success", ({target: {result}}) => {
-									if(result){
-										result.continue();
-										run(() => () => listener(unformat(result.key)));
-									}
-								});
-							}else{
-								store.get(list[i]).addEventListener("success", ({target: {result}}) => {
-									if(result){
-										if(i + 1 === list.length && list[i] === result.key) run(() => listener);
-										if("value" in result) f(result.value, i + 1);
-									}
-								});
-							}
-						}
-					});
+						});
+					}
 				};
 				const cn = indexedDB.open(name);
 				cn.addEventListener("success", onsuccess);
@@ -344,19 +348,24 @@ const db = (() => {
 					if(i > 0) indexedDB.deleteDatabase(name);
 				});
 			};
-			let listener = list.pop() || (() => {});
-			list = format(list);
-			const cancel = hub.on((...list1) => {
-				if(list1.length >= list.length && list.every((a, i) => a === list1[i])){
-					run(() => listener);
-					if(list1.length > list.length) run(() => () => listener(unformat(list1[list.length])));
-				}
-			});
-			tickline(() => f(name, 0))(cancel);
-			return () => {
-				listener = () => {};
-				tickline(cancel => cancel())(cancel);
-			};
+			let listener = list.pop();
+			if(listener){
+				list = format(list);
+				const cancel = hub.on((...list1) => {
+					if(list1.length >= list.length && list.every((a, i) => a === list1[i])){
+						run(() => listener);
+						if(list1.length > list.length) run(() => () => listener(unformat(list1[list.length])));
+					}
+				});
+				let canceled = false;
+				tickline(() => f(name, 0))(cancel);
+				return () => {
+					listener = () => {};
+					canceled = true;
+					tickline(cancel => cancel())(cancel);
+				};
+			}
+			return () => {};
 		},
 	};
 })();
