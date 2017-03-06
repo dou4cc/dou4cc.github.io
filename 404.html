@@ -212,7 +212,6 @@
 										const code = document.createElement("code");
 										code.textContent = unescape("\${escape(event.message + "\\n@" + event.filename + ":" + event.lineno + ":" + event.colno)}");
 										button.textContent = "Reload";
-										button.autofocus = true;
 										const [hell0, resolve] = hell();
 										button.addEventListener("click", () => {
 											button.disabled = true;
@@ -221,6 +220,7 @@
 										});
 										pre.append(code);
 										document.body.append(pre, button);
+										button.focus();
 										return genfn2tick(function*(){
 											yield hell0;
 											pre.remove();
