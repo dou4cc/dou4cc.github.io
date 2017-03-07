@@ -5,7 +5,7 @@ const cancels = new Set;
 const format_uri = uri => {
 	const iframe = document.createElement("iframe");
 	iframe.src = uri;
-	return iframe.uri;
+	return iframe.src;
 };
 library.format_uri = format_uri;
 
