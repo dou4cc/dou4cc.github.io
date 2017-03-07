@@ -2,6 +2,13 @@
 library = Object.create(library);
 const cancels = new Set;
 
+const format_uri = uri => {
+	const iframe = document.createElement("iframe");
+	iframe.src = uri;
+	return iframe.uri;
+};
+library.format_uri = format_uri;
+
 const multi_key_map = () => {
 	const tree = new Map;
 	const symbol = Symbol();
@@ -609,7 +616,7 @@ library.tubeline = tubeline;
 
 const ajax = (() => {
 	const storage = new Map;
-	return tube((uri, ...points) => {
+	return tube((uri, ...edges) => {
 		//if(!storage.has(uri)
 	});
 })();
