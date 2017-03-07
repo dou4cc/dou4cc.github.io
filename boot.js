@@ -352,7 +352,7 @@ const db = (() => {
 					});
 				}
 			};
-			let listener = list.pop();
+			const listener = list.pop();
 			if(listener){
 				list = format(list);
 				const cancel = hub.on((...list1) => {
@@ -607,7 +607,11 @@ const tubeline = (() => {
 })();
 library.tubeline = tubeline;
 
-const fetch_tube = (() => {
+const ajax = (() => {
+	const storage = new Map;
+	return tube((uri, ...points) => {
+		//if(!storage.has(uri)
+	});
 })();
 
 self.library = library;
