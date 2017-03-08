@@ -30,8 +30,7 @@
 	<script>
 		"use strict";
 		
-		onerror = function(){
-			onerror = null;
+		self.onerror = function(){
 			document.title = "不支持";
 			var hash = document.location.hash.slice(1);
 			var uri0 = document.location.href;
