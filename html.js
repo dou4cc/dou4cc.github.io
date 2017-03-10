@@ -1,4 +1,4 @@
-﻿const new_span = node => {
+﻿const ﻿new_span = node => {
 	const span = document.createElement("span");
 	span.append(node);
 	return span;
