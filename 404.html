@@ -202,7 +202,7 @@
 							addEventListener("beforeunload", blocker);
 							addEventListener("error", event => {
 								const timer = setTimeout(() => {
-									localStorage.setItem(setup, \`
+									localStorage.setItem(setup, JSON.stringify({source: \`
 										const {run, hell, is_hell, tickline, gen2tick, genfn2tick, prom2hell} = library;
 
 										const pre = document.createElement("pre");
@@ -225,7 +225,7 @@
 											pre.remove();
 											button.remove();
 										});
-									\`);
+									\`}));
 									crash = true;
 									history.go(0);
 								}, 0);
@@ -236,42 +236,67 @@
 							let cancel;
 							let lock = false;
 							const update = () => {
-								const source1 = localStorage.getItem(setup);
-								if(source1 !== source){
-									source = source1;
+								if(boot.source !== source){
+									source = boot.source;
 									if(!lock){
 										lock = true;
 										genfn2tick(function*(){
 											yield (cancel || (() => {}))();
 											Function('"use strict";' + source);
 											document.title = "Loading";
-											if(localStorage.length === 0) localStorage.setItem(setup, source);
 											cancel = self.eval('"use strict"; (library, library_source) => {' + source + "}")(library, library_source);
 											lock = false;
 										})();
 									}
 								}
 							};
-							addEventListener("storage", update);
-							update();
-
+							addEventListener("storage", () => {
+								boot = JSON.parse(localStorage.getItem(setup));
+								update();
+							});
+							let boot = localStorage.getItem(setup);
+							if(boot){
+								boot = JSON.parse(boot);
+								update();
+							}else{
+								boot = {};
+							}
+							let cache;
 							const xhr = new XMLHttpRequest;
 							const check = () => {
 								xhr.open("GET", "/boot.js");
 								xhr.setRequestHeader("Cache-Control", "max-age=0");
 								xhr.setRequestHeader("token", Date.now() + Math.random().toString().slice(1));
+								if(boot.tag){
+									xhr.setRequestHeader(...boot.tag);
+									cache = boot;
+								}
 								xhr.send();
 							};
-							let hell0; 
+							let hell0;
 							xhr.addEventListener("loadstart", () => setTimeout(([hell0] = hell())[1], 6e3));
 							xhr.addEventListener("loadend", () => {
-								if(xhr.status === 404 || xhr.status >= 200 && xhr.status < 300){
-									localStorage.setItem(setup, xhr.status !== 404 && xhr.responseText || "");
-									update();
-									hell0(() => requestAnimationFrame(check));
-								}else{
+								if(xhr.status >= 200 && xhr.status < 300){
+									cache = {source: xhr.responseText};
+									const ETag = xhr.getResponseHeader("ETag");
+									if(ETag !== null){
+										cache.tag = ["If-None-Match", ETag];
+									}else{
+										const Last_Modified = xhr.getResponseHeader("Last-Modified");
+										if(Last_Modified) cache.tag = ["If-Modified-Since", Last_Modified];
+									}
+								}else if(xhr.status !== 304 && xhr.status !== 404){
 									requestAnimationFrame(check);
+									return;
 								}
+								cache.date = xhr.getResponseHeader("Date");
+								if(!(new Date(cache.date) <= new Date(boot.date))){
+									localStorage.setItem(setup, JSON.stringify(cache));
+									boot = cache;
+									update();
+								}
+								cache = null;
+								hell0(() => requestAnimationFrame(check));
 							});
 							check();
 						}).catch(error => setTimeout(() => {

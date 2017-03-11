@@ -615,10 +615,13 @@ const tubeline = (() => {
 library.tubeline = tubeline;
 
 const ajax = (() => {
-	const storage = new Map;
-	return tube((uri, ...edges) => {
+	const ajax = (uri, ...range) => {
 		//if(!storage.has(uri)
-	});
+	};
+	const storage = new Map;
+	return tubeline((uri, ...range) => listener => {
+		if(listener) listener(format_uri(uri), ...range);
+	}, ajax);
 })();
 
 self.library = library;
