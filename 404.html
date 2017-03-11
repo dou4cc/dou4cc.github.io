@@ -118,10 +118,12 @@
 											return [
 												hell0,
 												result1 => {
-													result = result1;
-													const callbacks1 = callbacks;
-													callbacks = null;
-													callbacks1.forEach(hell0);
+													if(callbacks){
+														result = result1;
+														const callbacks1 = callbacks;
+														callbacks = null;
+														callbacks1.forEach(hell0);
+													}
 												},
 											];
 										},
