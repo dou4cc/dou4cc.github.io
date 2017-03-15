@@ -358,14 +358,16 @@ const db = (() => {
 					}
 				};
 				if(!canceled){
-					const cn = indexedDB.open(name);
-					cn.addEventListener("success", onsuccess);
-					cn.addEventListener("upgradeneeded", () => {
-						cn.removeEventListener("success", onsuccess);
-						cn.result.createObjectStore("store", {keyPath: "key"});
-						cn.result.close();
-						if(i > 0) indexedDB.deleteDatabase(name);
-					});
+					try{
+						const cn = indexedDB.open(name);
+						cn.addEventListener("success", onsuccess);
+						cn.addEventListener("upgradeneeded", () => {
+							cn.removeEventListener("success", onsuccess);
+							cn.result.createObjectStore("store", {keyPath: "key"});
+							cn.result.close();
+							if(i > 0) indexedDB.deleteDatabase(name);
+						});
+					}catch(error){}
 				}
 			};
 			const listener = list.pop();
