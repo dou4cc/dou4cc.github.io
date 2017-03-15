@@ -214,6 +214,7 @@ const db = (() => {
 				};
 				if(typeof name === "function"){
 					const make = () => {
+						let cn;
 						let abort = () => {
 							make1 = () => {};
 							cn.removeEventListener("upgradeneeded", onupgradeneeded);
@@ -236,7 +237,7 @@ const db = (() => {
 							};
 						};
 						try{
-							const cn = open_db(Date.now() + Math.random().toString().slice(1));
+							cn = open_db(Date.now() + Math.random().toString().slice(1));
 							cn.addEventListener("success", onsuccess);
 							cn.addEventListener("blocked", make1);
 							cn.addEventListener("error", make1);
@@ -321,6 +322,7 @@ const db = (() => {
 		},
 		on: (...list) => {
 			const f = (name, i) => {
+				let cn;
 				const onsuccess = () => {
 					if(canceled){
 						cn.result.close();
@@ -359,7 +361,7 @@ const db = (() => {
 				};
 				if(!canceled){
 					try{
-						const cn = indexedDB.open(name);
+						cn = indexedDB.open(name);
 						cn.addEventListener("success", onsuccess);
 						cn.addEventListener("upgradeneeded", () => {
 							cn.removeEventListener("success", onsuccess);
