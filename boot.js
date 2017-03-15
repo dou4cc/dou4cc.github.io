@@ -159,7 +159,7 @@ const db = (() => {
 				const onconnect = () => cn.result.addEventListener("close", uncount);
 				const cn = indexedDB.open(name);
 				count += 1;
-				cn.addEventListener("block", uncount);
+				cn.addEventListener("blocked", uncount);
 				cn.addEventListener("upgradeneeded", onconnect);
 				cn.addEventListener("success", onconnect);
 				return cn;
@@ -178,10 +178,12 @@ const db = (() => {
 					if(result){
 						result.continue();
 						if("value" in result.value){
-							open_db(result.value.value).addEventListener("success", ({target}) => {
-								end(target.result);
-								delete_db(target);
-							});
+							try{
+								open_db(result.value.value).addEventListener("success", ({target}) => {
+									end(target.result);
+									delete_db(target);
+								});
+							}catch(error){}
 						}
 					}else{
 						source.clear().addEventListener("success", then);
@@ -233,11 +235,16 @@ const db = (() => {
 								delete_db(cn);
 							};
 						};
-						const cn = open_db(Date.now() + Math.random().toString().slice(1));
-						cn.addEventListener("success", onsuccess);
-						cn.addEventListener("blocked", make1);
-						cn.addEventListener("upgradeneeded", () => cn.removeEventListener("success", onsuccess));
-						cn.addEventListener("upgradeneeded", onupgradeneeded);
+						try{
+							const cn = open_db(Date.now() + Math.random().toString().slice(1));
+							cn.addEventListener("success", onsuccess);
+							cn.addEventListener("blocked", make1);
+							cn.addEventListener("error", make1);
+							cn.addEventListener("upgradeneeded", () => cn.removeEventListener("success", onsuccess));
+							cn.addEventListener("upgradeneeded", onupgradeneeded);
+						}catch(error){
+							make1();
+						}
 						return () => abort();
 					};
 					return make();
@@ -273,15 +280,17 @@ const db = (() => {
 						f2();
 					}
 				};
-				const cn = open_db(name);
-				cn.addEventListener("upgradeneeded", () => {
-					if(i > 0){
-						cn.removeEventListener("success", onsuccess);
-						del_db(cn.result);
-					}
-					cn.result.createObjectStore("store", {keyPath: "key"});
-				});
-				cn.addEventListener("success", onsuccess);
+				try{
+					const cn = open_db(name);
+					cn.addEventListener("upgradeneeded", () => {
+						if(i > 0){
+							cn.removeEventListener("success", onsuccess);
+							del_db(cn.result);
+						}
+						cn.result.createObjectStore("store", {keyPath: "key"});
+					});
+					cn.addEventListener("success", onsuccess);
+				}catch(error){}
 			};
 
 			addEventListener("message", ({data, ports: [port]}) => {
