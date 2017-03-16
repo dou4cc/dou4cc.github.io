@@ -383,7 +383,7 @@ const db = (() => {
 			if(listener){
 				list = format(list);
 				const cancel = hub.on((...list1) => {
-					if(list1.length >= list.length && list.every((a, i) => a === list1[i])){
+					if(list1.length >= list.length && list.every((a, i) => indexedDB.cmp(a, list1[i]) === 0)){
 						if(list1.length > list.length){
 							run(() => () => listener(unformat(list1[list.length])));
 						}else{
