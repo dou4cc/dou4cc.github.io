@@ -159,7 +159,6 @@ const db = (() => {
 				const onconnect = () => cn.result.addEventListener("close", uncount);
 				const cn = indexedDB.open(name);
 				count += 1;
-				cn.addEventListener("blocked", uncount);
 				cn.addEventListener("upgradeneeded", onconnect);
 				cn.addEventListener("success", onconnect);
 				return cn;
@@ -215,7 +214,7 @@ const db = (() => {
 						let abort = () => {
 							make1 = () => {};
 							cn.removeEventListener("upgradeneeded", onupgradeneeded);
-							cn.addEventListener("upgradeneeded", () => delete_db(cn));
+							cn.addEventListener("upgradeneeded", () => indexedDB.deleteDatabase(cn.result.name));
 						};
 						let make1 = () => abort = make();
 						const onsuccess = () => {
@@ -235,9 +234,9 @@ const db = (() => {
 						};
 						const cn = open_db(Date.now() + Math.random().toString().slice(1));
 						cn.addEventListener("success", onsuccess);
-						cn.addEventListener("blocked", () => make1());
 						cn.addEventListener("upgradeneeded", () => cn.removeEventListener("success", onsuccess));
 						cn.addEventListener("upgradeneeded", onupgradeneeded);
+						let status = 0;
 						return () => abort();
 					};
 					return make();
