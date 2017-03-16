@@ -240,7 +240,6 @@ const db = (() => {
 							cn = open_db(Date.now() + Math.random().toString().slice(1));
 							cn.addEventListener("success", onsuccess);
 							cn.addEventListener("blocked", make1);
-							cn.addEventListener("error", make1);
 							cn.addEventListener("upgradeneeded", () => cn.removeEventListener("success", onsuccess));
 							cn.addEventListener("upgradeneeded", onupgradeneeded);
 						}catch(error){
