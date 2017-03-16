@@ -339,7 +339,7 @@ const db = (() => {
 									}
 								}else{
 									if(i === list.length){
-										store.openKeyCursor().addEventListener("success", ({target: {result}}) => {
+										store.openKeyCursor(null, "prev").addEventListener("success", ({target: {result}}) => {
 											if(result && !canceled){
 												result.continue();
 												run(() => () => listener(unformat(result.key)));
