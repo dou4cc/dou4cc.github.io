@@ -214,7 +214,6 @@ const db = (() => {
 				};
 				if(typeof name === "function"){
 					const make = () => {
-						let cn;
 						let abort = () => {
 							make1 = () => {};
 							cn.removeEventListener("upgradeneeded", onupgradeneeded);
@@ -236,6 +235,7 @@ const db = (() => {
 								delete_db(cn);
 							};
 						};
+						let cn;
 						try{
 							cn = open_db(Date.now() + Math.random().toString().slice(1));
 							cn.addEventListener("success", onsuccess);
@@ -321,7 +321,6 @@ const db = (() => {
 		},
 		on: (...list) => {
 			const f = (name, i) => {
-				let cn;
 				const onsuccess = () => {
 					if(canceled){
 						cn.result.close();
@@ -358,6 +357,7 @@ const db = (() => {
 						});
 					}
 				};
+				let cn;
 				if(!canceled){
 					try{
 						cn = indexedDB.open(name);
@@ -371,6 +371,7 @@ const db = (() => {
 					}catch(error){}
 				}
 			};
+			let canceled = false;
 			const listener = list.pop();
 			if(listener){
 				list = format(list);
@@ -383,7 +384,6 @@ const db = (() => {
 						}
 					}
 				});
-				let canceled = false;
 				tickline(() => f(name, 0))(cancel);
 				return () => {
 					canceled = true;
