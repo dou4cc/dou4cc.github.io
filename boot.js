@@ -219,7 +219,10 @@ const db = (() => {
 							cn.removeEventListener("upgradeneeded", onupgradeneeded);
 							cn.addEventListener("upgradeneeded", () => delete_db(cn));
 						};
-						let make1 = () => abort = make();
+						let make1 = () => {
+							make1 = () => {};
+							abort = make();
+						};
 						const onsuccess = () => {
 							cn.result.close();
 							make1();
@@ -239,8 +242,12 @@ const db = (() => {
 						try{
 							cn = open_db(Date.now() + Math.random().toString().slice(1));
 							cn.addEventListener("success", onsuccess);
-							cn.addEventListener("blocked", make1);
-							cn.addEventListener("upgradeneeded", () => cn.removeEventListener("success", onsuccess));
+							cn.addEventListener("blocked", () => make1());
+							cn.addEventListener("error", () => make1());
+							cn.addEventListener("upgradeneeded", () => {
+								make1 = () => {};
+								cn.removeEventListener("success", onsuccess);
+							});
 							cn.addEventListener("upgradeneeded", onupgradeneeded);
 						}catch(error){
 							make1();
