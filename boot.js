@@ -162,14 +162,16 @@ const db = (() => {
 			const init_store = db => db.createObjectStore("store", {keyPath: "key"});
 			const open_store = db => db.transaction(["store"], "readwrite").objectStore("store");
 			const no_error = target => target.addEventListener("error", event => event.preventDefault());
-			const close_db = (target, type) => {
-				const listener = () => (target.transaction || target).db.close();
+			const close_db = target => {
+				const [type, listener] = "transaction" in target
+				? ["success", () => target.result.close()]
+				: ["complete", () => target.db.close()];
 				target.addEventListener(type, listener);
 				return () => target.removeEventListener(type, listener);
 			};
 			const end = (db, then) => {
 				const store = open_store(db);
-				close_db(store.transaction, "complete");
+				close_db(store.transaction);
 				store.openCursor().addEventListener("success", ({target: {result}}) => {
 					if(result){
 						result.continue();
@@ -179,7 +181,7 @@ const db = (() => {
 							const cn = open_db(name);
 							cn.addEventListener("upgradeneeded", () => {
 								cn.removeEventListener("success", f1);
-								close_db(cn, "success");
+								close_db(cn);
 								init_store(cn.result);
 							});
 							cn.addEventListener("success", f1);
@@ -211,7 +213,7 @@ const db = (() => {
 					const cn = open_db(Date.now() + Math.random().toString().slice(1));
 					cn.addEventListener("upgradeneeded", f1);
 					cn.addEventListener("success", f2);
-					const cancel = close_db(cn, "success");
+					const cancel = close_db(cn);
 					return () => {
 						abort();
 						abort = () => {};
@@ -235,7 +237,7 @@ const db = (() => {
 						const then = onresult => {
 							cancel();
 							const store = open_store(db);
-							close_db(store.transaction, "complete");
+							close_db(store.transaction);
 							get(store, ({target: {result}}) => onresult(result, store));
 							aborts.push(() => {
 								try{
@@ -302,7 +304,7 @@ const db = (() => {
 					});
 					const store = open_store(cn.result);
 					const {transaction} = store;
-					const cancel = close_db(transaction, "complete");
+					const cancel = close_db(transaction);
 					if(i > 0){
 						store.count().addEventListener("success", ({target: {result}}) => {
 							if(result > 0) f2();
@@ -316,7 +318,7 @@ const db = (() => {
 				cn.addEventListener("upgradeneeded", () => {
 					if(i > 0){
 						cn.removeEventListener("success", f1);
-						close_db(cn, "success");
+						close_db(cn);
 						indexedDB.deleteDatabase(name);
 					}
 					init_store(cn.result);
