@@ -161,7 +161,7 @@ const db = (() => {
 			let length;
 			const init_store = db => db.createObject("store", {keyPath: "key"});
 			const open_store = db => db.transaction(["store"], "readwrite").objectStore("store");
-			const no_error => target => target.addEventListener("error", event => event.preventDefault());
+			const no_error = target => target.addEventListener("error", event => event.preventDefault());
 			const close_db = (target, type) => {
 				const listener = () => (target.transaction || target).db.close();
 				target.addEventListener(type, listener);
