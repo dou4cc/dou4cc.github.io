@@ -298,6 +298,9 @@
 								cache = null;
 								hell0(() => requestAnimationFrame(check));
 							});
+							xhr.addEventListener("progress", () => {
+								if(new Date(xhr.getResponseHeader("Date")) <= new Date(boot.date)) check();
+							});
 							check();
 						}).catch(error => setTimeout(() => {
 							throw error;
