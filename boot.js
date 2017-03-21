@@ -295,7 +295,7 @@ const db = (() => {
 						}
 					});
 					const store = open_store(cn.result);
-					const {transaction} = db;
+					const {transaction} = store;
 					const cancel = close_db(transaction, "complete");
 					if(i > 0){
 						store.count().addEventListener("success", ({target: {result}}) => {
