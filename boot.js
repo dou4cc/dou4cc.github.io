@@ -237,7 +237,11 @@ const db = (() => {
 							const store = open_store(db);
 							close_db(store.transaction, "complete");
 							get(store, ({target: {result}}) => onresult(result, store));
-							aborts.push(() => store.transaction.abort());
+							aborts.push(() => {
+								try{
+									store.transaction.abort();
+								}catch(error){}
+							});
 						};
 						const abort = f(i, name => then((result, store) => {
 							if(result){
@@ -266,7 +270,9 @@ const db = (() => {
 						no_error(db);
 						while(abort = aborts.shift()) abort();
 						no_error(request);
-						transaction.abort();
+						try{
+							transaction.abort();
+						}catch(error){}
 						db.close();
 					};
 				};
