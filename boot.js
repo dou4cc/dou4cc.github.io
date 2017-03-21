@@ -141,7 +141,7 @@ const db = (() => {
 				});
 				port.start();
 			});
-			const hub = self.eval('"use strict"; ' + unescape("${escape(hub_source)}"))(library)(hell1);
+			const hub = self.eval('"use strict"; ' + unescape("${escape(hub_source)}"))(library, hell1);
 
 			let count = 0;
 			const open_db = name => {
