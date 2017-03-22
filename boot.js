@@ -221,7 +221,8 @@ const db = (() => {
 				});
 			};
 			const f = (i, name) => {
-				const put = (store, value) => store.put(value === undefined ? {key: list[i]} : {key: list[i], value});
+				i += 1;
+				const put = (store, value) => store.put(value === undefined ? {key: list[i - 1]} : {key: list[i - 1], value});
 				const get = (store, onsuccess) => store.get(list[i - 1]).addEventListener("success", onsuccess);
 				const make = () => {
 					let abort = () => {
@@ -235,7 +236,6 @@ const db = (() => {
 						const store = init_store(cn.result);
 						store.transaction.addEventListener("complete", () => name(cn.result.name));
 						put(store);
-						i += 1;
 						abort = next(cn);
 					};
 					const f2 = () => abort = make();
@@ -304,7 +304,7 @@ const db = (() => {
 				const f1 = () => {
 					const f2 = () => store.get("end").addEventListener("success", ({target: {result}}) => {
 						if(!result){
-							if(list[i] === "end"){
+							if(list[i - 1] === "end"){
 								put(store);
 								cancel();
 								transaction.addEventListener("complete", () => {
@@ -312,7 +312,6 @@ const db = (() => {
 									end(transaction.db, ({target: {source}}) => put(source));
 								});
 							}else{
-								i += 1;
 								get(store, ({target}) => {
 									const {result} = target;
 									if(result && result.value !== undefined){
