@@ -122,7 +122,7 @@ const db = (() => {
 			list.splice(i + 1, l);
 			break;
 		}
-		indexedDB.cmp(list, 0);
+		indexedDB.cmp(list, list);
 		return list;
 	};
 	const unformat = a => a === "end" ? end : a[0];
@@ -151,10 +151,42 @@ const db = (() => {
 					count -= 1;
 					if(count === 0){
 						(yield hell0).postMessage("disconnect");
-						close();
+						//close();
 					}
 				})));
 				return cn;
+			};
+			const close_db = target => {
+				return;
+				let canceled = false;
+				if(target instanceof IDBDatabase){
+					return target.close();
+				}else if(target instanceof IDBOpenDBRequest){
+					const [hell0, resolve] = hell();
+					const f1 = () => {
+						if(!canceled) close_db(target.result);
+					};
+					const f2 = () => {
+						target.transaction.addEventListener("complete", () => resolve());
+						target.removeEventListener("success", f1);
+						target.addEventListener("success", () => tickline(f1)(hell0));
+					};
+					target.addEventListener("success", f1);
+					if(target.transaction){
+						f2();
+					}else{
+						target.addEventListener("upgradeneeded", f2);
+					}
+				}else if(target instanceof IDBTransaction){
+					target.addEventListener("complete", () => {
+						if(!canceled) close_db(target.db);
+					});
+				}else{
+					throw new TypeError;
+				}
+				return () => {
+					canceled = true;
+				};
 			};
 
 			let list;
@@ -167,41 +199,6 @@ const db = (() => {
 				try{
 					transaction.abort();
 				}catch(error){}
-			};
-			const close_db = target => {
-				let canceled = false;
-				try{
-					if(target instanceof IDBDatabase){
-						return target.close();
-					}else if(target instanceof IDBOpenDBRequest){
-						const [hell0, resolve] = hell();
-						const f1 = () => {
-							if(!canceled) close_db(target.result);
-						};
-						const f2 = () => {
-							target.transaction.addEventListener("complete", () => resolve());
-							target.removeEventListener("success", f1);
-							target.addEventListener("success", () => tickline(f1)(hell0));
-						};
-						target.addEventListener("success", f1);
-						if(target.transaction){
-							f2();
-						}else{
-							target.addEventListener("upgradeneeded", f2);
-						}
-					}else if(target instanceof IDBTransaction){
-						target.addEventListener("complete", () => {
-							if(!canceled) close_db(target.db);
-						});
-					}else{
-						throw null;
-					}
-					return () => {
-						canceled = true;
-					};
-				}catch(error){
-					if(error === null) throw new TypeError;
-				}
 			};
 			const end = (db, then) => {
 				const store = open_store(db);
