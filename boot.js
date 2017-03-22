@@ -168,6 +168,37 @@ const db = (() => {
 				: ["complete", () => target.db.close()];
 				target.addEventListener(type, listener);
 				return () => target.removeEventListener(type, listener);
+				let canceled = false;
+				if(target instanceof IDBDatabase){
+					return target.close();
+				}else if(target instanceof IDBOpenDBRequest){
+					const [hell0, resolve0] = hell();
+					const [hell1, resolve1] = hell();
+					const f1 = () => {
+						if(!canceled) close_db(target.result);
+					};
+					const f2 = () => {
+						resolve0(target.transaction);
+						target.removeEventListener("success", f1);
+						target.addEventListener("success", () => tickline(f1)(hell1));
+					};
+					target.addEventListener("success", f1);
+					if(target.transaction){
+						f2();
+					}else{
+						target.addEventListener("upgradeneeded", f2);
+					}
+					hell0(transaction => transaction.addEventListener("complete", () => resolve1()));
+				}else if(target instanceof IDBTransaction){
+					target.addEventListener("complete", () => {
+						if(!canceled) target.db.close();
+					});
+				}else{
+					throw new TypeError;
+				}
+				return () => {
+					canceled = true;
+				};
 			};
 			const end = (db, then) => {
 				const store = open_store(db);
@@ -263,7 +294,7 @@ const db = (() => {
 					}else{
 						transaction.addEventListener("complete", () => {
 							hub.send(...list);
-							db.close();
+							close_db(db);
 						});
 					}
 					return () => {
@@ -275,7 +306,7 @@ const db = (() => {
 						try{
 							transaction.abort();
 						}catch(error){}
-						db.close();
+						close_db(db);
 					};
 				};
 				const f1 = () => {
