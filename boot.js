@@ -172,15 +172,14 @@ const db = (() => {
 				if(target instanceof IDBDatabase){
 					return target.close();
 				}else if(target instanceof IDBOpenDBRequest){
-					const [hell0, resolve0] = hell();
-					const [hell1, resolve1] = hell();
+					const [hell0, resolve] = hell();
 					const f1 = () => {
 						if(!canceled) close_db(target.result);
 					};
 					const f2 = () => {
-						resolve0(target.transaction);
+						target.transaction.addEventListener("complete", () => resolve());
 						target.removeEventListener("success", f1);
-						target.addEventListener("success", () => tickline(f1)(hell1));
+						target.addEventListener("success", () => tickline(f1)(hell0));
 					};
 					target.addEventListener("success", f1);
 					if(target.transaction){
@@ -188,7 +187,6 @@ const db = (() => {
 					}else{
 						target.addEventListener("upgradeneeded", f2);
 					}
-					hell0(transaction => transaction.addEventListener("complete", () => resolve1()));
 				}else if(target instanceof IDBTransaction){
 					target.addEventListener("complete", () => {
 						if(!canceled) target.db.close();
