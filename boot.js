@@ -158,9 +158,7 @@ const db = (() => {
 			};
 			const close_db = target => {
 				let canceled = false;
-				if(target instanceof IDBDatabase){
-					return target.close();
-				}else if(target instanceof IDBOpenDBRequest){
+				if(target instanceof IDBOpenDBRequest){
 					const [hell0, resolve] = hell();
 					const f1 = () => {
 						if(!canceled) close_db(target.result);
@@ -181,7 +179,7 @@ const db = (() => {
 						if(!canceled) close_db(target.db);
 					});
 				}else{
-					throw new TypeError;
+					return target.close();
 				}
 				return () => {
 					canceled = true;
