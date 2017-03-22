@@ -233,7 +233,7 @@ const db = (() => {
 						cancel();
 						cn.removeEventListener("success", f2);
 						const store = init_store(cn.result);
-						store.transaction.addEventListener("complete", () => name(cn.result.name));
+						cn.transaction.addEventListener("complete", () => name(cn.result.name));
 						abort = next(cn, put(store));
 					};
 					const f2 = () => abort = make();
