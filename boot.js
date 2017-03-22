@@ -162,8 +162,13 @@ const db = (() => {
 			const init_store = db => db.createObjectStore("store", {keyPath: "key"});
 			const open_store = db => db.transaction(["store"], "readwrite").objectStore("store");
 			const no_error = target => target.addEventListener("error", event => event.preventDefault());
+			const abort_transaction = transaction => {
+				transaction.addEventListener("abort", event => event.preventDefault());
+				try{
+					transaction.abort();
+				}catch(error){}
+			};
 			const close_db = target => {
-				return () => {};
 				let canceled = false;
 				if(target instanceof IDBDatabase){
 					return target.close();
@@ -264,11 +269,7 @@ const db = (() => {
 							const store = open_store(db);
 							close_db(store.transaction);
 							get(store, ({target: {result}}) => onresult(result, store));
-							aborts.push(() => {
-								try{
-									store.transaction.abort();
-								}catch(error){}
-							});
+							aborts.push(() => abort_transaction(store.transaction));
 						};
 						const abort = f(i, name => then((result, store) => {
 							if(result){
@@ -297,9 +298,7 @@ const db = (() => {
 						no_error(db);
 						while(abort = aborts.shift()) abort();
 						no_error(request);
-						try{
-							transaction.abort();
-						}catch(error){}
+						abort_transaction(transaction);
 						close_db(db);
 					};
 				};
