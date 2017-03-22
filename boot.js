@@ -328,7 +328,7 @@ const db = (() => {
 					const store = open_store(cn.result);
 					const {transaction} = store;
 					const cancel = close_db(transaction);
-					if(i > 0){
+					if(i > 1){
 						store.count().addEventListener("success", ({target: {result}}) => {
 							if(result > 0) f2();
 						});
@@ -339,7 +339,7 @@ const db = (() => {
 				if(typeof name === "function") return make();
 				const cn = open_db(name);
 				cn.addEventListener("upgradeneeded", () => {
-					if(i > 0){
+					if(i > 1){
 						cn.removeEventListener("success", f1);
 						close_db(cn);
 						indexedDB.deleteDatabase(name);
