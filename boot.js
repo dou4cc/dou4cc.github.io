@@ -163,6 +163,7 @@ const db = (() => {
 			const open_store = db => db.transaction(["store"], "readwrite").objectStore("store");
 			const no_error = target => target.addEventListener("error", event => event.preventDefault());
 			const close_db = target => {
+				return () => {};
 				let canceled = false;
 				if(target instanceof IDBDatabase){
 					return target.close();
@@ -184,7 +185,7 @@ const db = (() => {
 					}
 				}else if(target instanceof IDBTransaction){
 					target.addEventListener("complete", () => {
-						if(!canceled) target.db.close();
+						if(!canceled) close_db(target.db);
 					});
 				}else{
 					throw new TypeError;
