@@ -192,7 +192,6 @@ const db = (() => {
 			const open_store = db => db.transaction(["store"], "readwrite").objectStore("store");
 			const no_error = target => target.addEventListener("error", event => event.preventDefault());
 			const abort_transaction = transaction => {
-				transaction.addEventListener("abort", event => event.preventDefault());
 				try{
 					transaction.abort();
 				}catch(error){}
