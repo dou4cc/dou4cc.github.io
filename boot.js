@@ -295,8 +295,8 @@ const db = (() => {
 						let abort;
 						indexedDB.deleteDatabase(db.name);
 						no_error(db);
-						while(abort = aborts.shift()) abort();
 						no_error(request);
+						while(abort = aborts.shift()) abort();
 						abort_transaction(transaction);
 						close_db(db);
 					};
