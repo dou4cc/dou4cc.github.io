@@ -157,7 +157,7 @@ const db = (() => {
 				return cn;
 			};
 			const close_db = target => {
-				return;
+				return () => {};
 				let canceled = false;
 				if(target instanceof IDBDatabase){
 					return target.close();
