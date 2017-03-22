@@ -358,7 +358,7 @@ const db = (() => {
 				}
 			});
 			addEventListener("error", () => tickline(port => port.postMessage("disconnect"))(hell0));
-			addEventListener("error", e => console.dir(e));
+			addEventListener("error", e => console.dir(e.error.stack));
 		`], {type: "text/javascript"}));
 		const onunload = () => URL.revokeObjectURL(uri);
 		addEventListener("unload", onunload);
