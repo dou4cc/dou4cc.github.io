@@ -192,7 +192,6 @@ const db = (() => {
 			const open_store = db => db.transaction(["store"], "readwrite").objectStore("store");
 			const no_error = target => target.addEventListener("error", event => event.preventDefault());
 			const abort_transaction = transaction => {
-				no_error(transaction);
 				try{
 					transaction.abort();
 				}catch(error){}
@@ -235,8 +234,7 @@ const db = (() => {
 						cn.removeEventListener("success", f2);
 						const store = init_store(cn.result);
 						store.transaction.addEventListener("complete", () => name(cn.result.name));
-						put(store);
-						abort = next(cn);
+						abort = next(cn, put(store));
 					};
 					const f2 = () => abort = make();
 					const cn = open_db(Date.now() + Math.random().toString().slice(1));
@@ -248,8 +246,8 @@ const db = (() => {
 						abort = () => {};
 					};
 				}
-				const next = request => {
-					const {transaction} = request;
+				const next = (...requests) => {
+					const {transaction} = requests[0];
 					const {db} = transaction;
 					const aborts = [];
 					if(i < length){
@@ -295,8 +293,8 @@ const db = (() => {
 						let abort;
 						indexedDB.deleteDatabase(db.name);
 						no_error(db);
-						no_error(request);
 						while(abort = aborts.shift()) abort();
+						requests.forEach(request => no_error(request));
 						abort_transaction(transaction);
 						close_db(db);
 					};
@@ -358,7 +356,6 @@ const db = (() => {
 				}
 			});
 			addEventListener("error", () => tickline(port => port.postMessage("disconnect"))(hell0));
-			addEventListener("error", e => console.dir(e.error.stack));
 		`], {type: "text/javascript"}));
 		const onunload = () => URL.revokeObjectURL(uri);
 		addEventListener("unload", onunload);
