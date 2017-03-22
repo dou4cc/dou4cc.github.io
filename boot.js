@@ -151,13 +151,12 @@ const db = (() => {
 					count -= 1;
 					if(count === 0){
 						(yield hell0).postMessage("disconnect");
-						//close();
+						close();
 					}
 				})));
 				return cn;
 			};
 			const close_db = target => {
-				return () => {};
 				let canceled = false;
 				if(target instanceof IDBDatabase){
 					return target.close();
@@ -225,7 +224,7 @@ const db = (() => {
 			};
 			const f = (i, name) => {
 				const put = (store, value) => store.put(value === undefined ? {key: list[i]} : {key: list[i], value});
-				const get = (store, onsuccess) => store.get(list[i]).addEventListener("success", onsuccess);
+				const get = (store, onsuccess) => store.get(list[i - 1]).addEventListener("success", onsuccess);
 				const make = () => {
 					let abort = () => {
 						cn.removeEventListener("upgradeneeded", f1);
@@ -238,6 +237,7 @@ const db = (() => {
 						const store = init_store(cn.result);
 						store.transaction.addEventListener("complete", () => name(cn.result.name));
 						put(store);
+						i += 1;
 						abort = next(cn);
 					};
 					const f2 = () => abort = make();
@@ -251,7 +251,6 @@ const db = (() => {
 					};
 				}
 				const next = request => {
-					i += 1;
 					const {transaction} = request;
 					const {db} = transaction;
 					const aborts = [];
@@ -315,10 +314,11 @@ const db = (() => {
 									end(transaction.db, ({target: {source}}) => put(source));
 								});
 							}else{
+								i += 1;
 								get(store, ({target}) => {
 									const {result} = target;
 									if(result && result.value !== undefined){
-										if(i < length - 1) f(i + 1, result.value);
+										if(i < length) f(i, result.value);
 									}else{
 										if(!result) put(store);
 										cancel();
