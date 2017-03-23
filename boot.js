@@ -234,7 +234,7 @@ const db = (() => {
 						cn.removeEventListener("success", f2);
 						const store = init_store(cn.result);
 						cn.transaction.addEventListener("complete", () => name(cn.result.name));
-						abort = next(cn, put(store));
+						abort = next(cn.transaction, cn, put(store));
 					};
 					const f2 = () => abort = make();
 					const cn = open_db(Date.now() + Math.random().toString().slice(1));
@@ -246,10 +246,14 @@ const db = (() => {
 						abort = () => {};
 					};
 				}
-				const next = (...requests) => {
-					const {transaction} = requests[0];
+				const next = (transaction, ...requests) => {
 					const {db} = transaction;
-					const aborts = [];
+					const aborts = [() => {
+						indexedDB.deleteDatabase(db.name);
+						requests.forEach(request => no_error(request));
+						abort_transaction(transaction);
+						close_db(db);
+					}];
 					if(i < length){
 						const cancel = hub.on((...list1) => {
 							if(list1.length > i){
@@ -291,12 +295,8 @@ const db = (() => {
 					}
 					return () => {
 						let abort;
-						indexedDB.deleteDatabase(db.name);
 						no_error(db);
 						while(abort = aborts.shift()) abort();
-						requests.forEach(request => no_error(request));
-						abort_transaction(transaction);
-						close_db(db);
 					};
 				};
 				const f1 = () => {
@@ -310,14 +310,12 @@ const db = (() => {
 									end(transaction.db, ({target: {source}}) => put(source));
 								});
 							}else{
-								get(store, ({target}) => {
-									const {result} = target;
+								get(store, ({target: {result}}) => {
 									if(result && result.value !== undefined){
 										if(i < length) f(i, result.value);
 									}else{
-										if(!result) put(store);
 										cancel();
-										next(target);
+										next(transaction, ...(result ? [] : [put(store)]));
 									}
 								});
 							}
