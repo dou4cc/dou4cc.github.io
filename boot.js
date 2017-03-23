@@ -182,7 +182,9 @@ const db = (() => {
 						if(!canceled) close_db(target.db);
 					});
 				}else{
-					return target.close();
+					setTimeout(() => {
+						if(!canceled) target.close();
+					}, 0);
 				}
 				return () => {
 					canceled = true;
