@@ -149,13 +149,13 @@ const db = (() => {
 				count += 1;
 				cn.addEventListener("success", () => cn.result.addEventListener("close", genfn2tick(function*(){
 					count -= 1;
-					setTimeout(() => {
+					setTimeout(genfn2tick(function*(){
 						if(count === 0){
 							hub.send(...list);
 							(yield hell0).postMessage("disconnect");
 							close();
 						}}				
-					}, 0);
+					}), 0);
 				})));
 				return cn;
 			};
