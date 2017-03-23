@@ -263,7 +263,7 @@ const db = (() => {
 						const cancel = hub.on((...list1) => {
 							if(list1.length > i){
 								for(let j = 0; j <= i; j += 1) if(indexedDB.cmp(list[j], list1[j]) !== 0) return;
-								cancel();
+								tickline(cancel => cancel())(cancel);
 								abort();
 								then(result => {
 									if(result) f(i, result.value);
@@ -271,7 +271,7 @@ const db = (() => {
 							}
 						});
 						const then = onresult => {
-							cancel();
+							tickline(cancel => cancel())(cancel);
 							const store = open_store(db);
 							close_db(store.transaction);
 							const request = get(store, ({target: {result}}) => onresult(result, store));
@@ -293,7 +293,7 @@ const db = (() => {
 							}
 						}));
 						aborts.push(() => {
-							cancel();
+							tickline(cancel => cancel())(cancel);
 							abort();
 						});
 					}else{
