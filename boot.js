@@ -150,6 +150,7 @@ const db = (() => {
 				cn.addEventListener("success", () => cn.result.addEventListener("close", genfn2tick(function*(){
 					count -= 1;
 					if(count === 0){
+						hub.send(...list);
 						(yield hell0).postMessage("disconnect");
 						close();
 					}
@@ -296,10 +297,7 @@ const db = (() => {
 							abort();
 						});
 					}else{
-						transaction.addEventListener("complete", () => {
-							hub.send(...list);
-							close_db(db);
-						});
+						close_db(transaction);
 					}
 					return () => {
 						let abort;
