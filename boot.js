@@ -154,7 +154,7 @@ const db = (() => {
 							hub.send(...list);
 							(yield hell0).postMessage("disconnect");
 							close();
-						}}				
+						}
 					}), 0);
 				})));
 				return cn;
