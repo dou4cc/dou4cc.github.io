@@ -222,7 +222,11 @@ const db = (() => {
 			const f = (i, name) => {
 				i += 1;
 				const put = (store, value) => store.put(value === undefined ? {key: list[i - 1]} : {key: list[i - 1], value});
-				const get = (store, onsuccess) => store.get(list[i - 1]).addEventListener("success", onsuccess);
+				const get = (store, onsuccess) => {
+					const request = store.get(list[i - 1]);
+					request.addEventListener("success", onsuccess);
+					return request;
+				};
 				const make = () => {
 					let abort = () => {
 						cn.removeEventListener("upgradeneeded", f1);
@@ -269,13 +273,17 @@ const db = (() => {
 							cancel();
 							const store = open_store(db);
 							close_db(store.transaction);
-							get(store, ({target: {result}}) => onresult(result, store));
-							aborts.push(() => abort_transaction(store.transaction));
+							const request = get(store, ({target: {result}}) => onresult(result, store));
+							aborts.push(() => {
+								no_error(request);
+								abort_transaction(store.transaction);
+							});
 						};
 						const abort = f(i, name => then((result, store) => {
 							if(result){
 								if(result.value === undefined){
-									put(store, name);
+									const request = put(store, name);
+									aborts.push(() => no_error(request));
 								}else{
 									f(i, result.value);
 								}
