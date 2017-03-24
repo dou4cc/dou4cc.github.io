@@ -294,7 +294,9 @@ const db = (() => {
 				};
 				const f1 = () => {
 					const f2 = () => store.get("end").addEventListener("success", ({target: {result}}) => {
-						if(!result){
+						if(result){
+							tickline(port => port.postMessage("disconnect"))(hell0);
+						}else{
 							if(list[i - 1] === "end"){
 								put(store);
 								cancel();
