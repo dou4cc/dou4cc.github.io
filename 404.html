@@ -322,7 +322,14 @@
 					xhr.send();
 				});
 				xhr.addEventListener("readystatechange", () => {
-					if(xhr.status) xhr.status === 404 ? check() : document.location.reload();
+					if(xhr.status){
+						if(xhr.status === 404){
+							check();
+						}else{
+							document.location.reload();
+							xhr.abort();
+						}
+					}
 				});
 				check();
 			}
