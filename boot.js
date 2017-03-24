@@ -143,18 +143,15 @@ const db = (() => {
 			});
 			const hub = self.eval('"use strict"; ' + unescape("${escape(hub_source)}"))(library, hell1);
 
-			let count = 0;
+			const db_set = new Set;
 			const open_db = name => {
 				const cn = indexedDB.open(name);
-				count += 1;
-				cn.addEventListener("success", () => cn.result.addEventListener("close", genfn2tick(function*(){
-					count -= 1;
-					if(count === 0){
-						hub.send(...list);
-						(yield hell0).postMessage("disconnect");
-						close();
-					}
-				})));
+				const symbol = Symbol();
+				db_set.add(symbol);
+				cn.addEveneListener("success", () => {
+					db_set.add(cn.result);
+					db_set.delete(symbol);
+				});
 				return cn;
 			};
 			const close_db = target => {
@@ -168,7 +165,15 @@ const db = (() => {
 						if(!canceled) close_db(target.db);
 					});
 				}else{
-					return target.close();
+					target.close();
+					db_set.delete(target);
+					if(db_set.size === 0){
+						hub.send(...list);
+						tickline(port => {
+							port.postMessage("disconnect");
+							close();
+						})(hell1);
+					}
 				}
 				return () => {
 					canceled = true;
