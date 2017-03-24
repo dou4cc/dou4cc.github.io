@@ -220,13 +220,18 @@ const db = (() => {
 					};
 					const f1 = () => {
 						cn.removeEventListener("success", f2);
-						const store = init_store(cn.result);
+						const {result} = cn;
+						const store = init_store(result);
 						const request = put(store);
-						cn.transaction.addEventListener("complete", () => name(cn.result.name));
-						const abort1 = next(cancel, cn.transaction);
+						cn.transaction.addEventListener("complete", () => name(result.name));
+						const abort1 = next(cancel, result);
 						abort = () => {
+							indexedDB.deleteDatabase(result.name);
 							if(abort1) abort1();
-							
+							no_error(cn);
+							no_error(request);
+							abort_transaction(cn.transaction);
+							close_db(result);
 						};
 					};
 					const f2 = () => abort = make();
@@ -239,14 +244,7 @@ const db = (() => {
 						abort = () => {};
 					};
 				}
-				const next = (cancel, transaction, ...requests) => {
-					const {db} = transaction;
-					const aborts = [() => {
-						indexedDB.deleteDatabase(db.name);
-						requests.forEach(request => no_error(request));
-						abort_transaction(transaction);
-						close_db(db);
-					}];
+				const next = (cancel, db) => {
 					if(i < length){
 						cancel();
 						const hell0 = hub.on((...list1) => {
@@ -278,16 +276,16 @@ const db = (() => {
 								abort();
 							}
 						}));
-						aborts.push(() => {
+						const aborts = [() => {
 							cancel();
 							abort();
-						});
+						}];
+						return () => {
+							let abort;
+							no_error(db);
+							while(abort = aborts.shift()) abort();
+						};
 					}
-					return () => {
-						let abort;
-						no_error(db);
-						while(abort = aborts.shift()) abort();
-					};
 				};
 				const f1 = () => {
 					const f2 = () => store.get("end").addEventListener("success", ({target: {result}}) => {
@@ -297,7 +295,7 @@ const db = (() => {
 								cancel();
 								transaction.addEventListener("complete", () => {
 									hub.send(...list);
-									end(transaction.db, ({target: {source}}) => put(source));
+									end(db, ({target: {source}}) => put(source));
 								});
 							}else{
 								get(store, ({target: {result}}) => {
@@ -305,15 +303,15 @@ const db = (() => {
 										if(i < length) f(i, result.value);
 									}else{
 										if(!result) put(store);
-										next(cancel,     transaction);
+										next(cancel, db);
 									}
 								});
 							}
 						}
 					});
-					const store = open_store(cn.result);
-					const {transaction} = store;
-					const cancel = close_db(transaction);
+					const db = cn.result;
+					const store = open_store(db);
+					const cancel = close_db(store.transaction);
 					if(i > 1){
 						store.count().addEventListener("success", ({target: {result}}) => {
 							if(result > 0) f2();
