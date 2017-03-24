@@ -202,8 +202,8 @@ const db = (() => {
 							const cn = open_db(name);
 							cn.addEventListener("upgradeneeded", () => {
 								cn.removeEventListener("success", f1);
-								close_db(cn);
 								init_store(cn.result);
+								close_db(cn);
 							});
 							cn.addEventListener("success", () => indexedDB.deleteDatabase(name));
 							cn.addEventListener("success", f1);
@@ -298,7 +298,7 @@ const db = (() => {
 							if(list[i - 1] === "end"){
 								put(store);
 								cancel();
-								transaction.addEventListener("complete", () => {
+								store.transaction.addEventListener("complete", () => {
 									hub.send(...list);
 									end(db, ({target: {source}}) => put(source));
 								});
