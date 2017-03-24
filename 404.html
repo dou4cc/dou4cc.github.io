@@ -261,6 +261,7 @@
 							}else{
 								boot = {};
 							}
+
 							let cache;
 							const xhr = new XMLHttpRequest;
 							const check = () => {
@@ -320,7 +321,9 @@
 					xhr.setRequestHeader("Range", "bytes=0-0");
 					xhr.send();
 				});
-				xhr.addEventListener("loadend", () => xhr.status === 404 ? check() : document.location.reload());
+				xhr.addEventListener("readystatechange", () => {
+					if(xhr.status) xhr.status === 404 ? check() : document.location.reload();
+				});
 				check();
 			}
 		}else{

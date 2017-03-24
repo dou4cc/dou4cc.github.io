@@ -145,9 +145,9 @@ const db = (() => {
 
 			const db_set = new Set;
 			const open_db = name => {
-				const cn = indexedDB.open(name);
 				const symbol = Symbol();
 				db_set.add(symbol);
+				const cn = indexedDB.open(name);
 				cn.addEventListener("success", () => {
 					db_set.add(cn.result);
 					db_set.delete(symbol);
@@ -165,7 +165,6 @@ const db = (() => {
 						if(!canceled) close_db(target.db);
 					});
 				}else{
-					target.close();
 					db_set.delete(target);
 					if(db_set.size === 0){
 						hub.send(...list);
@@ -174,6 +173,7 @@ const db = (() => {
 							close();
 						})(hell1);
 					}
+					return target.close();
 				}
 				return () => {
 					canceled = true;
@@ -205,8 +205,8 @@ const db = (() => {
 								close_db(cn);
 								init_store(cn.result);
 							});
-							cn.addEventListener("success", f1);
 							cn.addEventListener("success", () => indexedDB.deleteDatabase(name));
+							cn.addEventListener("success", f1);
 						}
 					}else{
 						store.clear().addEventListener("success", then);
@@ -330,8 +330,8 @@ const db = (() => {
 				cn.addEventListener("upgradeneeded", () => {
 					if(i > 1){
 						cn.removeEventListener("success", f1);
-						close_db(cn);
 						indexedDB.deleteDatabase(name);
+						close_db(cn);
 					}
 					init_store(cn.result);
 				});
