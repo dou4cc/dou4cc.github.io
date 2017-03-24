@@ -149,42 +149,26 @@ const db = (() => {
 				count += 1;
 				cn.addEventListener("success", () => cn.result.addEventListener("close", genfn2tick(function*(){
 					count -= 1;
-					setTimeout(genfn2tick(function*(){
-						if(count === 0){
-							hub.send(...list);
-							(yield hell0).postMessage("disconnect");
-							close();
-						}
-					}), 0);
+					if(count === 0){
+						hub.send(...list);
+						(yield hell0).postMessage("disconnect");
+						close();
+					}
 				})));
 				return cn;
 			};
 			const close_db = target => {
 				let canceled = false;
 				if(target instanceof IDBOpenDBRequest){
-					const [hell0, resolve] = hell();
-					const f1 = () => {
+					target.addEventListener("success", () => {
 						if(!canceled) close_db(target.result);
-					};
-					const f2 = () => {
-						target.transaction.addEventListener("complete", () => resolve());
-						target.removeEventListener("success", f1);
-						target.addEventListener("success", () => tickline(f1)(hell0));
-					};
-					target.addEventListener("success", f1);
-					if(target.transaction){
-						f2();
-					}else{
-						target.addEventListener("upgradeneeded", f2);
-					}
+					});
 				}else if(target instanceof IDBTransaction){
 					target.addEventListener("complete", () => {
 						if(!canceled) close_db(target.db);
 					});
 				}else{
-					setTimeout(() => {
-						if(!canceled) target.close();
-					}, 0);
+					return target.close();
 				}
 				return () => {
 					canceled = true;
@@ -227,11 +211,7 @@ const db = (() => {
 			const f = (i, name) => {
 				i += 1;
 				const put = (store, value) => store.put(value === undefined ? {key: list[i - 1]} : {key: list[i - 1], value});
-				const get = (store, onsuccess) => {
-					const request = store.get(list[i - 1]);
-					request.addEventListener("success", onsuccess);
-					return request;
-				};
+				const get = (store, onsuccess) => store.get(list[i - 1]).addEventListener("success", onsuccess);
 				const make = () => {
 					let abort = () => {
 						cn.removeEventListener("upgradeneeded", f1);
@@ -239,11 +219,15 @@ const db = (() => {
 						cn.addEventListener("upgradeneeded", () => indexedDB.deleteDatabase(cn.result.name));
 					};
 					const f1 = () => {
-						cancel();
 						cn.removeEventListener("success", f2);
 						const store = init_store(cn.result);
+						const request = put(store);
 						cn.transaction.addEventListener("complete", () => name(cn.result.name));
-						abort = next(cn.transaction, cn, put(store));
+						const abort1 = next(cancel, cn.transaction);
+						abort = () => {
+							if(abort1) abort1();
+							
+						};
 					};
 					const f2 = () => abort = make();
 					const cn = open_db(Date.now() + Math.random().toString().slice(1));
@@ -255,7 +239,7 @@ const db = (() => {
 						abort = () => {};
 					};
 				}
-				const next = (transaction, ...requests) => {
+				const next = (cancel, transaction, ...requests) => {
 					const {db} = transaction;
 					const aborts = [() => {
 						indexedDB.deleteDatabase(db.name);
@@ -264,31 +248,29 @@ const db = (() => {
 						close_db(db);
 					}];
 					if(i < length){
-						const cancel = hub.on((...list1) => {
+						cancel();
+						const hell0 = hub.on((...list1) => {
 							if(list1.length > i){
 								for(let j = 0; j <= i; j += 1) if(indexedDB.cmp(list[j], list1[j]) !== 0) return;
-								tickline(cancel => cancel())(cancel);
+								cancel();
 								abort();
 								then(result => {
 									if(result) f(i, result.value);
 								});
 							}
 						});
+						cancel = () => tickline(cancel => cancel())(hell0);
 						const then = onresult => {
-							tickline(cancel => cancel())(cancel);
+							cancel();
 							const store = open_store(db);
 							close_db(store.transaction);
-							const request = get(store, ({target: {result}}) => onresult(result, store));
-							aborts.push(() => {
-								no_error(request);
-								abort_transaction(store.transaction);
-							});
+							get(store, ({target: {result}}) => onresult(result, store));
+							aborts.push(() => abort_transaction(store.transaction));
 						};
 						const abort = f(i, name => then((result, store) => {
 							if(result){
 								if(result.value === undefined){
-									const request = put(store, name);
-									aborts.push(() => no_error(request));
+									put(store, name);
 								}else{
 									f(i, result.value);
 								}
@@ -297,11 +279,9 @@ const db = (() => {
 							}
 						}));
 						aborts.push(() => {
-							tickline(cancel => cancel())(cancel);
+							cancel();
 							abort();
 						});
-					}else{
-						close_db(transaction);
 					}
 					return () => {
 						let abort;
@@ -324,8 +304,8 @@ const db = (() => {
 									if(result && result.value !== undefined){
 										if(i < length) f(i, result.value);
 									}else{
-										cancel();
-										next(transaction, ...(result ? [] : [put(store)]));
+										if(!result) put(store);
+										next(cancel,     transaction);
 									}
 								});
 							}
