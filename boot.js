@@ -148,7 +148,7 @@ const db = (() => {
 				const cn = indexedDB.open(name);
 				const symbol = Symbol();
 				db_set.add(symbol);
-				cn.addEveneListener("success", () => {
+				cn.addEventListener("success", () => {
 					db_set.add(cn.result);
 					db_set.delete(symbol);
 				});
