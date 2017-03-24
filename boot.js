@@ -300,6 +300,7 @@ const db = (() => {
 								cancel();
 								store.transaction.addEventListener("complete", () => {
 									hub.send(...list);
+									tickline(port => port.postMessage("disconnect"))(hell1);
 									end(db, ({target: {source}}) => put(source));
 								});
 							}else{
