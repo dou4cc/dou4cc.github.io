@@ -203,6 +203,7 @@
 							addEventListener("error", event => {
 								const timer = setTimeout(() => {
 									if(!crash){
+										crash = true;
 										localStorage.setItem(setup, JSON.stringify({source: \`
 											const {run, hell, is_hell, tickline, gen2tick, genfn2tick, prom2hell} = library;
 
@@ -227,7 +228,6 @@
 												button.remove();
 											});
 										\`}));
-										crash = true;
 										history.go(0);
 									}
 								}, 0);
