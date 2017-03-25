@@ -125,7 +125,7 @@ const db = (() => {
 		indexedDB.cmp(list, list);
 		return list;
 	};
-	const unformat = a => a === "end" ? end : a[0];
+	const unformat = a => indexedDB.cmp(a, "end") === 0 ? end : a[0];
 	const put_uri = (() => {
 		const uri = URL.createObjectURL(new Blob([`
 			"use strict";
@@ -297,7 +297,7 @@ const db = (() => {
 						if(result){
 							tickline(port => port.postMessage("disconnect"))(hell0);
 						}else{
-							if(list[i - 1] === "end"){
+							if(indexedDB.cmp(list[i - 1], "end") === 0){
 								put(store);
 								cancel();
 								store.transaction.addEventListener("complete", () => {
@@ -385,7 +385,7 @@ const db = (() => {
 							if(result){
 								if(i === length){
 									run(() => () => listener(end));
-								}else if(i === length - 1 && list[i] === "end"){
+								}else if(i === length - 1 && indexedDB.cmp(list[i], "end") === 0){
 									run(() => listener);
 								}
 							}else{
