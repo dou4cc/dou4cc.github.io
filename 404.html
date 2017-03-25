@@ -269,7 +269,7 @@
 							const check = () => {
 								xhr.open("GET", "/boot.js");
 								xhr.setRequestHeader("Cache-Control", "max-age=0");
-								xhr.setRequestHeader("token", Date.now() + Math.random().toString().slice(1));
+								//xhr.setRequestHeader("token", Date.now() + Math.random().toString().slice(1));
 								if(boot.tag){
 									xhr.setRequestHeader(...boot.tag);
 									cache = boot;

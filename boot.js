@@ -670,15 +670,10 @@ const tubeline = (() => {
 })();
 library.tubeline = tubeline;
 
-const ajax = (() => {
-	const ajax = (uri, ...range) => {
-		//if(!storage.has(uri)
+const ajax = (uri, headers, ...range) => {
+	const xhr = (...range) => {
 	};
-	const storage = new Map;
-	return tubeline((uri, ...range) => listener => {
-		if(listener) listener(format_uri(uri), ...range);
-	}, ajax);
-})();
+};
 
 self.library = library;
 
