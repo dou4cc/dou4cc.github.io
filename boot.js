@@ -670,9 +670,34 @@ const tubeline = (() => {
 })();
 library.tubeline = tubeline;
 
-const ajax = (uri, headers, ...range) => {
-	const xhr = (...range) => {
+const ajax = (listener, uri, tag, from = 0, ...to) => {
+	const send = (listener, piped, from, to) => {
+		const xhr = new XMLHttpRequest;
+		if(piped){
+			xhr.overrideMimeType("text/plain; charset=x-user-defined");
+		}else{
+			xhr.responseType = "arraybuffer";
+		}
+		xhr.open('GET', uri);
+		if(tag) xhr.setRequestHeader(...tag);
+		xhr.setRequestHeader("Cache-Control", "max-age=0");
+		xhr.setRequestHeader("Range", "bytes=" + from + (to === null ? "" : "-" + to));
+		xhr.addEventListener("readystatechange", listener);
+		xhr.send();
+		return () => {
+			xhr.removeEventListener("readystatechange", listener);
+			xhr.abort();
+		};
 	};
+	uri = format_uri(uri);
+	to = to.length > 0 ? +to : null;
+	if(from === 0 && (to === null || to - from > 5)){
+		const abort0 = send(({target}) => {
+			//if(target.status === 
+		}, false, 0, 0);
+		const abort1 = send(({target}) => {
+		}, true, 1, to);
+	}
 };
 
 self.library = library;

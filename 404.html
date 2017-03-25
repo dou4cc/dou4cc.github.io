@@ -265,19 +265,18 @@
 							}
 
 							let cache;
+							let hell0;
 							const xhr = new XMLHttpRequest;
 							const check = () => {
 								xhr.open("GET", "/boot.js");
 								xhr.setRequestHeader("Cache-Control", "max-age=0");
-								//xhr.setRequestHeader("token", Date.now() + Math.random().toString().slice(1));
 								if(boot.tag){
 									xhr.setRequestHeader(...boot.tag);
 									cache = boot;
 								}
 								xhr.send();
+								setTimeout(([hell0] = hell())[1], 1e4);
 							};
-							let hell0;
-							xhr.addEventListener("loadstart", () => setTimeout(([hell0] = hell())[1], 6e3));
 							xhr.addEventListener("loadend", () => {
 								if(xhr.status >= 200 && xhr.status < 300){
 									cache = {source: xhr.responseText};
