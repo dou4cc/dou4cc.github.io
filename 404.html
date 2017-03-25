@@ -202,32 +202,34 @@
 							addEventListener("beforeunload", blocker);
 							addEventListener("error", event => {
 								const timer = setTimeout(() => {
-									localStorage.setItem(setup, JSON.stringify({source: \`
-										const {run, hell, is_hell, tickline, gen2tick, genfn2tick, prom2hell} = library;
+									if(!crash){
+										localStorage.setItem(setup, JSON.stringify({source: \`
+											const {run, hell, is_hell, tickline, gen2tick, genfn2tick, prom2hell} = library;
 
-										const pre = document.createElement("pre");
-										const button = document.createElement("button");
-										document.title = "Crash";
-										const code = document.createElement("code");
-										code.textContent = unescape("\${escape(event.message + "\\n@" + event.filename + ":" + event.lineno + ":" + event.colno)}");
-										button.textContent = "Reload";
-										const [hell0, resolve] = hell();
-										button.addEventListener("click", () => {
-											button.disabled = true;
-											button.textContent = "Reloading";
-											resolve();
-										});
-										pre.append(code);
-										document.body.append(pre, button);
-										button.focus();
-										return genfn2tick(function*(){
-											yield hell0;
-											pre.remove();
-											button.remove();
-										});
-									\`}));
-									crash = true;
-									history.go(0);
+											const pre = document.createElement("pre");
+											const button = document.createElement("button");
+											document.title = "Crash";
+											const code = document.createElement("code");
+											code.textContent = unescape("\${escape(event.message + "\\n@" + event.filename + ":" + event.lineno + ":" + event.colno)}");
+											button.textContent = "Reload";
+											const [hell0, resolve] = hell();
+											button.addEventListener("click", () => {
+												button.disabled = true;
+												button.textContent = "Reloading";
+												resolve();
+											});
+											pre.append(code);
+											document.body.append(pre, button);
+											button.focus();
+											return genfn2tick(function*(){
+												yield hell0;
+												pre.remove();
+												button.remove();
+											});
+										\`}));
+										crash = true;
+										history.go(0);
+									}
 								}, 0);
 								event.prevent_reload = () => clearTimeout(timer);
 							});

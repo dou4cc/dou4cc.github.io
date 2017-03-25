@@ -378,7 +378,6 @@ const db = (() => {
 					if(canceled) return;
 					const f1 = () => {
 						if(canceled) return cn.result.close();
-						if(length === 0) run(() => listener);
 						const store = cn.result.transaction(["store"], "readonly").objectStore("store");
 						store.transaction.addEventListener("complete", () => cn.result.close());
 						store.get("end").addEventListener("success", ({target: {result}}) => {
