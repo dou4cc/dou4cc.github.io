@@ -399,7 +399,7 @@ const db = (() => {
 								}else{
 									store.get(list[i]).addEventListener("success", ({target: {result}}) => {
 										if(result && !canceled){
-											if(i === length - 1 && list[i] === result.key) run(() => listener);
+											if(i === length - 1 && indexedDB.cmp(list[i], result.key) === 0) run(() => listener);
 											if(result.value !== undefined) f(i + 1, result.value);
 										}
 									});
