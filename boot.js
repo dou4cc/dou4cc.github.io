@@ -670,34 +670,65 @@ const tubeline = (() => {
 })();
 library.tubeline = tubeline;
 
-const ajax = (listener, uri, tag, from = 0, ...to) => {
-	const send = (listener, piped, from, to) => {
-		const xhr = new XMLHttpRequest;
+const _ajax = (listener, uri, tag, from = 0, to = null) => {
+	const xhr = (piped, from, to) => {
+		const xhr0 = new XMLHttpRequest;
 		if(piped){
-			xhr.overrideMimeType("text/plain; charset=x-user-defined");
+			xhr0.overrideMimeType("text/plain; charset=x-user-defined");
 		}else{
-			xhr.responseType = "arraybuffer";
+			xhr0.responseType = "arraybuffer";
 		}
-		xhr.open('GET', uri);
-		if(tag) xhr.setRequestHeader(...tag);
-		xhr.setRequestHeader("Cache-Control", "max-age=0");
-		xhr.setRequestHeader("Range", "bytes=" + from + (to === null ? "" : "-" + to));
-		xhr.addEventListener("readystatechange", listener);
-		xhr.send();
-		return () => {
-			xhr.removeEventListener("readystatechange", listener);
-			xhr.abort();
-		};
+		xhr0.open('GET', uri);
+		if(tag) xhr0.setRequestHeader(...tag);
+		xhr0.setRequestHeader("Cache-Control", "max-age=0");
+		xhr0.setRequestHeader("Range", "bytes=" + from + (to === null ? "" : "-" + to));
+		return xhr0;
 	};
 	uri = format_uri(uri);
-	to = to.length > 0 ? +to : null;
-	if(from === 0 && (to === null || to - from > 5)){
-		const abort0 = send(({target}) => {
-			//if(target.status === 
-		}, false, 0, 0);
-		const abort1 = send(({target}) => {
-		}, true, 1, to);
-	}
+	const xhr0 = xhr(true, from, to);
+	
+};
+
+const ajax = (uri, ...points) => {
+	const storage = new Map;
+	const join = (a, b) => { //bug still
+		const result = [];
+		for(let i = 0, j = 0, step = p => result.push(p ? a[i++] : b[j++]), below = () => i < a.length && j < b.length; below(); ){
+			step(a[i] < b[j]);
+			for(let n = 1, count = x => x % 2 ? n-- : n++; n && below(); ){
+				if(a[i] === b[j] && !(i % 2 && j % 2)){
+					step(j % 2);
+					n++;
+					continue;
+				}
+				const bool = a[i] < b[j];
+				count(bool ? i : j);
+				step(bool);
+			}
+		}
+		return result;
+	};
+	const ajax = (uri, ...points) => {
+		const state = storage.get(uri) || (() => {
+			const state = {
+				count: 0,
+				points: [],
+				tag: null,
+				date: null,
+				tag_points: [],
+				cns: new Set,
+			};
+			storage.set(uri, state);
+			return state;
+		})();
+		state.count += 1;
+		let pos = 0;
+		points = points.map(a => pos += a);
+		state.points = join(state.points, points);
+	};
+	return tube((uri, ...points) => {
+		if(listener) listener(format_uri(uri), ...points);
+	}, ajax);
 };
 
 self.library = library;
