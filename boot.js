@@ -9,6 +9,18 @@ const format_uri = uri => {
 };
 library.format_uri = format_uri;
 
+const cache = f => {
+	let args;
+	let result;
+	return (...args1) => {
+		if(args && args.length === args1.length && args1.every((arg, i) => arg === args[i])) return result;
+		result = f(...args1);
+		args = args1;
+		return result;
+	};
+};
+library.cache = cache;
+
 const multi_key_map = () => {
 	const tree = new Map;
 	const symbol = Symbol();
@@ -477,6 +489,7 @@ const tube = (() => {
 					const update = () => {
 						const f = (a, b) => a.length === 0 || a[0] === b[0] && f(a.slice(1), b.slice(1));
 						if(!solution1 || solution.length !== solution1.length || !f(solution, solution1)){
+						//if(solution1 && solution.length === solution1.length && 
 							lock = true;
 							genfn2tick(function*(){
 								const [hell0, resolve] = hell();
