@@ -487,9 +487,9 @@ const tube = (() => {
 			const listen = listener => {
 				const f0 = listener => {
 					const update = () => {
-						const f = (a, b) => a.length === 0 || a[0] === b[0] && f(a.slice(1), b.slice(1));
-						if(!solution1 || solution.length !== solution1.length || !f(solution, solution1)){
-						//if(solution1 && solution.length === solution1.length && 
+						if(solution1 && solution.length === solution1.length && solution1.every((a, i) => a === solution[i])){
+							lock = false;
+						}else{
 							lock = true;
 							genfn2tick(function*(){
 								const [hell0, resolve] = hell();
@@ -500,8 +500,6 @@ const tube = (() => {
 								yield hell0;
 								update();
 							})();
-						}else{
-							lock = false;
 						}
 					};
 					let lock = false;
@@ -704,6 +702,32 @@ const _ajax = (listener, uri, tag, from = 0, to = null) => {
 
 const ajax = (uri, ...points) => {
 	const storage = new Map;
+	const sum = (...list) => {
+		let s = 0;
+		return list.map(a => s += a);
+	};
+	const points = (mode, ...moves) => {
+		let pos;
+		let n = 0;
+		const result = [];
+		moves.forEach(([mode1, pos1]) => {
+			if(n > 0){
+				if(mode ^ mode1){
+					n -= 1;
+					pos = [pos1];
+				}else{
+					n += 1;
+				}
+			}else{
+				if(pos && (pos1 > pos[0] || mode ^ mode1)) result.push(pos[0]);
+				result.push(pos1);
+				mode = mode1;
+				n = 1;
+			}
+		});
+		if(pos && n === 0) result.push(pos[0]);
+		return result;
+	};
 	const join = (a, b) => { //bug still
 		const result = [];
 		for(let i = 0, j = 0, step = p => result.push(p ? a[i++] : b[j++]), below = () => i < a.length && j < b.length; below(); ){
@@ -735,12 +759,11 @@ const ajax = (uri, ...points) => {
 			return state;
 		})();
 		state.count += 1;
-		let pos = 0;
-		points = points.map(a => pos += a);
+		points = sum(points);
 		state.points = join(state.points, points);
 	};
-	return tube((uri, ...points) => {
-		if(listener) listener(format_uri(uri), ...points);
+	return tube((uri, ...rest) => {
+		if(listener) listener(format_uri(uri), ...rest);
 	}, ajax);
 };
 
