@@ -707,8 +707,8 @@ const ajax = (uri, ...points) => {
 		return list.map(a => s += a);
 	};
 	const points = (mode, ...moves) => {
-		let pos;
 		let n = 0;
+		let pos = [];
 		const result = [];
 		moves.forEach(([mode1, pos1]) => {
 			if(n > 0){
@@ -719,13 +719,12 @@ const ajax = (uri, ...points) => {
 					n += 1;
 				}
 			}else{
-				if(pos && (pos1 > pos[0] || mode ^ mode1)) result.push(pos[0]);
-				result.push(pos1);
+				if(pos1 > pos[0] || mode ^ mode1) result.push(...pos, pos1);
 				mode = mode1;
 				n = 1;
 			}
 		});
-		if(pos && n === 0) result.push(pos[0]);
+		if(n === 0) result.push(...pos);
 		return result;
 	};
 	const join = (a, b) => { //bug still
