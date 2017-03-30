@@ -710,7 +710,7 @@ const ajax = (uri, ...points) => {
 		let n = 0;
 		let pos = [];
 		const result = [];
-		moves.forEach(([mode1, pos1]) => {
+		moves.sort(([mode0, pos0], [mode1, pos1]) => pos0 - pos1).forEach(([mode1, pos1]) => {
 			if(n > 0){
 				if(mode ^ mode1){
 					n -= 1;
@@ -727,23 +727,8 @@ const ajax = (uri, ...points) => {
 		if(n === 0) result.push(...pos);
 		return result;
 	};
-	const join = (a, b) => { //bug still
-		const result = [];
-		for(let i = 0, j = 0, step = p => result.push(p ? a[i++] : b[j++]), below = () => i < a.length && j < b.length; below(); ){
-			step(a[i] < b[j]);
-			for(let n = 1, count = x => x % 2 ? n-- : n++; n && below(); ){
-				if(a[i] === b[j] && !(i % 2 && j % 2)){
-					step(j % 2);
-					n++;
-					continue;
-				}
-				const bool = a[i] < b[j];
-				count(bool ? i : j);
-				step(bool);
-			}
-		}
-		return result;
-	};
+	const moves = (mode, ...points) => points.map(pos => [mode = !mode, pos]);
+	const join = (a, b) => points(false, ...moves(false, ...a).concat(moves(false, ...b)));
 	const ajax = (uri, ...points) => {
 		const state = storage.get(uri) || (() => {
 			const state = {
