@@ -700,6 +700,10 @@ const _ajax = (listener, uri, tag, from = 0, to = null) => {
 	
 };
 
+const concat_buffer = (...buffers) => {
+};
+
+
 const ajax = (uri, ...points) => {
 	const path = ["cache"];
 	const sum = (...list) => {
@@ -741,6 +745,9 @@ const ajax = (uri, ...points) => {
 		});
 		return listener => {
 			if(listener){
+				let tag;
+				let date;
+				let buffer = new ArrayBuffer(0);
 				const cancels = new Set;
 				cancels.add(db.on(...path, uri, tag => {
 					if(tag){
