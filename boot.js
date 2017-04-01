@@ -701,7 +701,7 @@ const _ajax = (listener, uri, tag, from = 0, to = null) => {
 };
 
 const ajax = (uri, ...points) => {
-	const storage = new Map;
+	const path = ["cache"];
 	const sum = (...list) => {
 		let s = 0;
 		return list.map(a => s += a);
@@ -728,23 +728,31 @@ const ajax = (uri, ...points) => {
 		return result;
 	};
 	const moves = (mode, ...points) => points.map(pos => [mode = !mode, pos]);
-	const join = (a, b) => points(false, ...moves(false, ...a).concat(moves(false, ...b)));
+	const mix = (a, b, mode0, mode1, mode2) => points(mode0, ...moves(mode1, ...a).concat(moves(mode2, ...b)));
+	const connect = tube(uri => {
+		const state = {
+		};
+		return listener => {
+			if(listener) listener(state);
+		};
+	});
 	const ajax = (uri, ...points) => {
-		const state = storage.get(uri) || (() => {
-			const state = {
-				count: 0,
-				points: [],
-				tag: null,
-				date: null,
-				tag_points: [],
-				cns: new Set,
-			};
-			storage.set(uri, state);
-			return state;
-		})();
-		state.count += 1;
-		points = sum(points);
-		state.points = join(state.points, points);
+		const cancel = connect(uri)(() => {
+		});
+		return listener => {
+			if(listener){
+				const cancels = new Set;
+				cancels.add(db.on(...path, uri, tag => {
+					if(tag){
+						db.on(...path, uri, tag, record => {
+							if(record);
+						});
+					}
+				}));
+				return () => cancels.forEach(cancel => cancel());
+			}
+			tickline(cancel => cancel())(cancel);
+		};
 	};
 	return tube((uri, ...rest) => {
 		if(listener) listener(format_uri(uri), ...rest);
