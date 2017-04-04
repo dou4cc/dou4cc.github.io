@@ -700,10 +700,6 @@ const _ajax = (listener, uri, tag, from = 0, to = null) => {
 	
 };
 
-const concat_buffer = (...buffers) => {
-};
-
-
 const ajax = (uri, ...points) => {
 	const path = ["cache"];
 	const sum = (...list) => {
@@ -745,16 +741,29 @@ const ajax = (uri, ...points) => {
 		});
 		return listener => {
 			if(listener){
-				let tag;
-				let date;
-				let buffer = new ArrayBuffer(0);
+				const cache = multi_key_map();
 				const cancels = new Set;
 				cancels.add(db.on(...path, uri, tag => {
-					if(tag){
-						db.on(...path, uri, tag, record => {
-							if(record);
-						});
-					}
+					if(!(tag instanceof Array) || cache.get(...tag)) return;
+					cancels.add(db.on(...path, uri, tag, record => {
+						if(!(record instanceof Array)) return;
+						tag.date = new Date(Math.max(tag.date, new Date(record[0])));
+						switch(record[1]){
+						case "size":
+							tag.size = record[2];
+							break;
+						case "piece":
+							db.on(...path, uri, tag, record, content => {
+							});
+						}
+					}));
+					cache.set(...tag, tag = {
+						size: null,
+						date: null,
+						complete: false,
+						pieces: new Set,
+						blob: new Blob([]),
+					});
 				}));
 				return () => cancels.forEach(cancel => cancel());
 			}
