@@ -705,7 +705,7 @@ const ajax = (uri, ...points) => {
 		const dir = path => (...path1) => {
 			path = path.concat(path1);
 			const listener = path.pop();
-			return db.on(...path, (...args) => listener(dir(path), ...args));
+			return db.on(...path, (...path1) => listener(dir(path.concat(path1)), ...path1));
 		};
 		return dir(["cache"]);
 	})();
