@@ -707,8 +707,8 @@ const ajax = (uri, ...points) => {
 			const listener = path.pop();
 			return db.on(...path, (...args) => listener(dir(path), ...args));
 		};
-		return dir;
-	})(["cache"]);
+		return dir(["cache"]);
+	})();
 	const sum = (...list) => {
 		let s = 0;
 		return list.map(a => s += a);
