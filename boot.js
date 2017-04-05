@@ -701,7 +701,14 @@ const _ajax = (listener, uri, tag, from = 0, to = null) => {
 };
 
 const ajax = (uri, ...points) => {
-	const path = ["cache"];
+	const dir = (() => {
+		const dir = path => (...path1) => {
+			path = path.concat(path1);
+			const listener = path.pop();
+			return db.on(...path, (...args) => listener(dir(path), ...args));
+		};
+		return dir;
+	})(["cache"]);
 	const sum = (...list) => {
 		let s = 0;
 		return list.map(a => s += a);
@@ -736,7 +743,7 @@ const ajax = (uri, ...points) => {
 			if(listener) listener(state);
 		};
 	});
-	const ajax = (uri, ...points) => {
+	const ajax = tube((uri, ...points) => {
 		const cancel = connect(uri)(() => {
 		});
 		return listener => {
@@ -769,7 +776,7 @@ const ajax = (uri, ...points) => {
 			}
 			tickline(cancel => cancel())(cancel);
 		};
-	};
+	});
 	return tube((uri, ...rest) => {
 		if(listener) listener(format_uri(uri), ...rest);
 	}, ajax);
