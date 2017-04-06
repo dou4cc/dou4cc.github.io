@@ -21,6 +21,17 @@ const cache = f => {
 };
 library.cache = cache;
 
+const copy = source => {
+	const [hell0, resolve] = hell();
+	const {port1, port2: port0} = new MessageChannel;
+	port1.addEventListener("message", ({data}) => resolve(data));
+	port1.start();
+	port0.start();
+	port0.postMessage(source);
+	return hell0;
+};
+library.copy = copy;
+
 const multi_key_map = () => {
 	const tree = new Map;
 	const symbol = Symbol();
