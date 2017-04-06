@@ -439,22 +439,27 @@ const db = (() => {
 						if(i > 0) indexedDB.deleteDatabase(name);
 					});
 				};
-				list = format(list);
-				const length = list.length;
-				const cancel = hub.on((...list1) => {
-					if(list1.length >= length && list.every((a, i) => indexedDB.cmp(a, list1[i]) === 0)){
-						if(list1.length > length){
-							run(() => () => listener(unformat(list1[length])));
-						}else{
-							run(() => listener);
-						}
-					}
-				});
+				let cancel;
 				let canceled = false;
-				tickline(() => f(0, name))(cancel);
+				genfn2tick(function*(){
+					if(canceled) return;
+					list = yield copy(format(list));
+					const length = list.length;
+					cancel = hub.on((...list1) => {
+						if(list1.length >= length && list.every((a, i) => indexedDB.cmp(a, list1[i]) === 0)){
+							if(list1.length > length){
+								run(() => () => listener(unformat(list1[length])));
+							}else{
+								run(() => listener);
+							}
+						}
+					});
+					yield cancel;
+					f(0, name);
+				})();
 				return () => {
 					canceled = true;
-					tickline(cancel => cancel())(cancel);
+					if(cancel) tickline(cancel => cancel())(cancel);
 				};
 			}
 			return () => {};
