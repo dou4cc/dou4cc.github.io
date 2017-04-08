@@ -40,18 +40,16 @@ const multi_key_map = () => {
 			const keys = [...args.slice(0, -1), symbol];
 			const [value] = args.slice(-1);
 			const f0 = (parent, ...keys) => {
-				if(keys.length === 1 || parent.has(keys[0]) && f0(parent.get(keys[0]), ...keys.slice(1)) === 0){
-					parent.delete(keys[0]);
-					return parent.size;
-				}
+				if(keys.length > 1 && (!parent.has(keys[0]) || f0(parent.get(keys[0]), ...keys.slice(1)) === 0)) return;
+				parent.delete(keys[0]);
+				return parent.size;
 			};
 			const f1 = (parent, ...keys) => {
 				if(keys.length > 1){
 					if(!parent.has(keys[0])) parent.set(keys[0], new Map);
-					f1(parent.get(keys[0]), ...keys.slice(1));
-				}else{
-					parent.set(keys[0], value);
+					return f1(parent.get(keys[0]), ...keys.slice(1));
 				}
+				parent.set(keys[0], value);
 			};
 			(value === undefined ? f0 : f1)(tree, ...keys);
 		},
@@ -94,12 +92,10 @@ const db = (() => {
 				addEventListener("connect", ({ports: [...ports]}) => ports.forEach(port => {
 					port_set.add(port);
 					port.addEventListener("message", ({data}) => {
-						if(data instanceof Array){
-							[...port_set].forEach(port => port.postMessage(data));
-						}else if(data === "disconnect"){
-							port.close();
-							port_set.delete(port);
-						}
+						if(data instanceof Array) return [...port_set].forEach(port => port.postMessage(data));
+						if(data !== "disconnect") return;
+						port.close();
+						port_set.delete(port);
 					});
 					port.start();
 					port.postMessage("connected");
@@ -116,10 +112,9 @@ const db = (() => {
 		const connect = () => {
 			worker = new SharedWorker(uri);
 			worker.port.addEventListener("message", ({data}) => {
-				if(data === "connected"){
-					worker.removeEventListener("error", onerror);
-					resolve(uri);
-				}
+				if(data !== "connected") return;
+				worker.removeEventListener("error", onerror);
+				resolve(uri);
 			});
 			worker.port.start();
 		};
@@ -218,7 +213,6 @@ const db = (() => {
 				close_db(store.transaction);
 				store.openCursor().addEventListener("success", ({target: {result}}) => {
 					if(result){
-						result.continue();
 						const name = result.value.value;
 						if(name !== undefined){
 							const f1 = () => end(cn.result);
@@ -231,9 +225,9 @@ const db = (() => {
 							cn.addEventListener("success", () => indexedDB.deleteDatabase(name));
 							cn.addEventListener("success", f1);
 						}
-					}else{
-						store.clear().addEventListener("success", then);
+						return result.continue();
 					}
+					store.clear().addEventListener("success", then);
 				});
 			};
 			const f = (i, name) => {
@@ -276,14 +270,13 @@ const db = (() => {
 					if(i < length){
 						cancel();
 						const hell0 = hub.on((...list1) => {
-							if(list1.length > i){
-								for(let j = 0; j <= i; j += 1) if(indexedDB.cmp(list[j], list1[j]) !== 0) return;
-								cancel();
-								abort();
-								then(result => {
-									if(result) f(i, result.value);
-								});
-							}
+							if(list1.length <= i) return;
+							for(let j = 0; j <= i; j += 1) if(indexedDB.cmp(list[j], list1[j]) !== 0) return;
+							cancel();
+							abort();
+							then(result => {
+								if(result) f(i, result.value);
+							});
 						});
 						cancel = () => tickline(cancel => cancel())(hell0);
 						const then = onresult => {
@@ -295,14 +288,10 @@ const db = (() => {
 						};
 						const abort = f(i, name => then((result, store) => {
 							if(result){
-								if(result.value === undefined){
-									put(store, name);
-								}else{
-									f(i, result.value);
-								}
-							}else{
-								abort();
+								if(result.value === undefined) return put(store, name);
+								return f(i, result.value);
 							}
+							abort();
 						}));
 						const aborts = [() => {
 							cancel();
@@ -317,39 +306,32 @@ const db = (() => {
 				};
 				const f1 = () => {
 					const f2 = () => store.get("end").addEventListener("success", ({target: {result}}) => {
-						if(result){
-							tickline(port => port.postMessage("disconnect"))(hell0);
-						}else{
-							if(indexedDB.cmp(list[i - 1], "end") === 0){
-								put(store);
-								cancel();
-								store.transaction.addEventListener("complete", () => {
-									hub.send(...list);
-									tickline(port => port.postMessage("disconnect"))(hell1);
-									end(db, ({target: {source}}) => put(source));
-								});
-							}else{
-								get(store, ({target: {result}}) => {
-									if(result && result.value !== undefined){
-										if(i < length) f(i, result.value);
-									}else{
-										if(!result) put(store);
-										next(cancel, db);
-									}
-								});
-							}
+						if(result) return tickline(port => port.postMessage("disconnect"))(hell0);
+						if(indexedDB.cmp(list[i - 1], "end") === 0){
+							put(store);
+							cancel();
+							return store.transaction.addEventListener("complete", () => {
+								hub.send(...list);
+								tickline(port => port.postMessage("disconnect"))(hell1);
+								end(db, ({target: {source}}) => put(source));
+							});
 						}
+						get(store, ({target: {result}}) => {
+							if(result && result.value !== undefined){
+								if(i < length) f(i, result.value);
+								return;
+							}
+							if(!result) put(store);
+							next(cancel, db);
+						});
 					});
 					const db = cn.result;
 					const store = open_store(db);
 					const cancel = close_db(store.transaction);
-					if(i > 1){
-						store.count().addEventListener("success", ({target: {result}}) => {
-							if(result > 0) f2();
-						});
-					}else{
-						f2();
-					}
+					if(i > 1) return store.count().addEventListener("success", ({target: {result}}) => {
+						if(result > 0) f2();
+					});
+					f2();
 				};
 				if(typeof name === "function") return make();
 				const cn = open_db(name);
@@ -366,11 +348,10 @@ const db = (() => {
 
 			addEventListener("message", ({data, ports: [port]}) => {
 				if(port) resolve0(port);
-				if(data){
-					list = data.list;
-					length = list.length;
-					f(0, data.name);
-				}
+				if(!data) return;
+				list = data.list;
+				length = list.length;
+				f(0, data.name);
 			});
 			addEventListener("error", () => tickline(port => port.postMessage("disconnect"))(hell0));
 		`], {type: "text/javascript"}));
@@ -385,84 +366,69 @@ const db = (() => {
 	return {
 		end,
 		put: (...list) => {
-			if(list.length > 0){
-				let data = {name, list: format(list)};
-				const worker = new Worker(put_uri);
-				if(is_hell(tickline(uri => worker.postMessage(data, [new SharedWorker(uri).port]))(hub_uri))){
-					worker.postMessage(data);
-					data = null;
-				}
-			}
+			if(!list.length) return;
+			let data = {name, list: format(list)};
+			const worker = new Worker(put_uri);
+			if(!is_hell(tickline(uri => worker.postMessage(data, [new SharedWorker(uri).port]))(hub_uri))) return;
+			worker.postMessage(data);
+			data = null;
 		},
 		on: (...list) => {
 			const listener = list.pop();
-			if(listener){
-				const f = (i, name) => {
-					if(canceled) return;
-					const f1 = () => {
-						if(canceled) return cn.result.close();
-						const store = cn.result.transaction(["store"], "readonly").objectStore("store");
-						store.transaction.addEventListener("complete", () => cn.result.close());
-						store.get("end").addEventListener("success", ({target: {result}}) => {
-							if(canceled) return;
-							if(result){
-								if(i === length){
-									run(() => () => listener(end));
-								}else if(i === length - 1 && indexedDB.cmp(list[i], "end") === 0){
-									run(() => listener);
-								}
-							}else{
-								if(i === length){
-									store.openKeyCursor(null, "prev").addEventListener("success", ({target: {result}}) => {
-										if(result && !canceled){
-											result.continue();
-											run(() => () => listener(unformat(result.key)));
-										}
-									});
-								}else{
-									store.get(list[i]).addEventListener("success", ({target: {result}}) => {
-										if(result && !canceled){
-											if(i === length - 1 && indexedDB.cmp(list[i], result.key) === 0) run(() => listener);
-											if(result.value !== undefined) f(i + 1, result.value);
-										}
-									});
-								}
-							}
-						});
-					};
-					const cn = indexedDB.open(name);
-					cn.addEventListener("success", f1);
-					cn.addEventListener("upgradeneeded", () => {
-						cn.removeEventListener("success", f1);
-						cn.addEventListener("success", () => cn.result.close());
-						cn.result.createObjectStore("store", {keyPath: "key"});
-						if(i > 0) indexedDB.deleteDatabase(name);
-					});
-				};
-				let cancel;
-				let canceled = false;
-				genfn2tick(function*(){
-					if(canceled) return;
-					list = yield copy(format(list));
-					const length = list.length;
-					cancel = hub.on((...list1) => {
-						if(list1.length >= length && list.every((a, i) => indexedDB.cmp(a, list1[i]) === 0)){
-							if(list1.length > length){
-								run(() => () => listener(unformat(list1[length])));
-							}else{
-								run(() => listener);
-							}
+			if(!listener) return () => {};
+			const f = (i, name) => {
+				if(canceled) return;
+				const f1 = () => {
+					if(canceled) return cn.result.close();
+					const store = cn.result.transaction(["store"], "readonly").objectStore("store");
+					store.transaction.addEventListener("complete", () => cn.result.close());
+					store.get("end").addEventListener("success", ({target: {result}}) => {
+						if(canceled) return;
+						if(result){
+							if(i === length) return run(() => () => listener(end));
+							if(i === length - 1 && indexedDB.cmp(list[i], "end") === 0) run(() => listener);
+							return;
 						}
+						if(i < length) return store.get(list[i]).addEventListener("success", ({target: {result}}) => {
+							if(!result || canceled) return;
+							if(i === length - 1 && indexedDB.cmp(list[i], result.key) === 0) run(() => listener);
+							if(result.value !== undefined) f(i + 1, result.value);
+						});
+						store.openKeyCursor(null, "prev").addEventListener("success", ({target: {result}}) => {
+							if(!result || canceled) return;
+							result.continue();
+							run(() => () => listener(unformat(result.key)));
+						});
+						
 					});
-					yield cancel;
-					f(0, name);
-				})();
-				return () => {
-					canceled = true;
-					if(cancel) tickline(cancel => cancel())(cancel);
 				};
-			}
-			return () => {};
+				const cn = indexedDB.open(name);
+				cn.addEventListener("success", f1);
+				cn.addEventListener("upgradeneeded", () => {
+					cn.removeEventListener("success", f1);
+					cn.addEventListener("success", () => cn.result.close());
+					cn.result.createObjectStore("store", {keyPath: "key"});
+					if(i > 0) indexedDB.deleteDatabase(name);
+				});
+			};
+			let cancel;
+			let canceled = false;
+			genfn2tick(function*(){
+				if(canceled) return;
+				list = yield copy(format(list));
+				const length = list.length;
+				cancel = hub.on((...list1) => {
+					if(list1.length < length || !list.every((a, i) => indexedDB.cmp(a, list1[i]) === 0)) return;
+					if(list1.length > length) return run(() => () => listener(unformat(list1[length])));
+					run(() => listener);
+				});
+				yield cancel;
+				f(0, name);
+			})();
+			return () => {
+				canceled = true;
+				if(cancel) tickline(cancel => cancel())(cancel);
+			};
 		},
 	};
 })();
@@ -494,29 +460,27 @@ const tube = (() => {
 			};
 			const unsync = () => {
 				state.handle_num -= 1;
-				if(state.handle_num === 0){
-					state.alive = false;
-					storage.set(...condition, undefined);
-					state.thunk();
-				}
+				if(state.handle_num > 0) return;
+				state.alive = false;
+				storage.set(...condition, undefined);
+				state.thunk();
 			};
 			const listen = listener => {
 				const f0 = listener => {
 					const update = () => {
 						if(solution1 && solution.length === solution1.length && solution1.every((a, i) => a === solution[i])){
-							lock = false;
-						}else{
-							lock = true;
-							genfn2tick(function*(){
-								const [hell0, resolve] = hell();
-								setTimeout(resolve, 0);
-								yield (cancel || (() => {}))();
-								solution1 = solution;	
-								cancel = listener(...solution1);
-								yield hell0;
-								update();
-							})();
+							return lock = false;
 						}
+						lock = true;
+						genfn2tick(function*(){
+							const [hell0, resolve] = hell();
+							setTimeout(resolve, 0);
+							yield (cancel || (() => {}))();
+							solution1 = solution;	
+							cancel = listener(...solution1);
+							yield hell0;
+							update();
+						})();
 					};
 					let lock = false;
 					let cancel;
@@ -587,20 +551,16 @@ const tube = (() => {
 							resolve(listen(listener));
 						}, 0);
 						return () => {
-							if(timer){
-								clearTimeout(timer);
-							}else{
-								hell0(thunk => thunk());
-							}
+							if(timer) return clearTimeout(timer);
+							hell0(thunk => thunk());
 						};
 					}
 					return listen(listener);
 				}
 				setTimeout(() => {
-					if(!used){
-						used = true;
-						unsync();
-					}
+					if(used) return;
+					used = true;
+					unsync();
 				}, 0);
 			};
 		};
