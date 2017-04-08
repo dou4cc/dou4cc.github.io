@@ -40,7 +40,7 @@ const multi_key_map = () => {
 			const keys = [...args.slice(0, -1), symbol];
 			const [value] = args.slice(-1);
 			const f0 = (parent, ...keys) => {
-				if(keys.length > 1 && (!parent.has(keys[0]) || f0(parent.get(keys[0]), ...keys.slice(1)) === 0)) return;
+				if(keys.length > 1 && (!parent.has(keys[0]) || f0(parent.get(keys[0]), ...keys.slice(1)) !== 0)) return;
 				parent.delete(keys[0]);
 				return parent.size;
 			};
@@ -317,12 +317,11 @@ const db = (() => {
 							});
 						}
 						get(store, ({target: {result}}) => {
-							if(result && result.value !== undefined){
-								if(i < length) f(i, result.value);
-								return;
+							if(!result || result.value === undefined){
+								if(!result) put(store);
+								return next(cancel, db);
 							}
-							if(!result) put(store);
-							next(cancel, db);
+							if(i < length) f(i, result.value);
 						});
 					});
 					const db = cn.result;
@@ -441,22 +440,19 @@ const tube = (() => {
 		const tube0 = (...condition) => {
 			const sync = () => {
 				state = storage.get(...condition);
-				if(state){
-					state.handle_num += 1;
-				}else{
-					const [hell0, resolve] = hell();
-					state = {
-						alive: true,
-						thunk: genfn2tick(function*(...args){
-							if(yield hell0 || args.length > 0) (yield hell0)(...args);
-						}),
-						handle_num: 1,
-						listener_num: 0,
-						cache: new Set,
-					};
-					storage.set(...condition, state);
-					resolve(source(...condition));
-				}
+				if(state) return state.handle_num += 1;
+				const [hell0, resolve] = hell();
+				state = {
+					alive: true,
+					thunk: genfn2tick(function*(...args){
+						if(yield hell0 || args.length > 0) (yield hell0)(...args);
+					}),
+					handle_num: 1,
+					listener_num: 0,
+					cache: new Set,
+				};
+				storage.set(...condition, state);
+				resolve(source(...condition));
 			};
 			const unsync = () => {
 				state.handle_num -= 1;
@@ -468,19 +464,19 @@ const tube = (() => {
 			const listen = listener => {
 				const f0 = listener => {
 					const update = () => {
-						if(solution1 && solution.length === solution1.length && solution1.every((a, i) => a === solution[i])){
-							return lock = false;
+						if(!solution1 || solution.length !== solution1.length || !solution1.every((a, i) => a === solution[i])){
+							lock = true;
+							return genfn2tick(function*(){
+								const [hell0, resolve] = hell();
+								setTimeout(resolve, 0);
+								yield (cancel || (() => {}))();
+								solution1 = solution;	
+								cancel = listener(...solution1);
+								yield hell0;
+								update();
+							})();
 						}
-						lock = true;
-						genfn2tick(function*(){
-							const [hell0, resolve] = hell();
-							setTimeout(resolve, 0);
-							yield (cancel || (() => {}))();
-							solution1 = solution;	
-							cancel = listener(...solution1);
-							yield hell0;
-							update();
-						})();
+						lock = false;
 					};
 					let lock = false;
 					let cancel;
@@ -504,26 +500,25 @@ const tube = (() => {
 				const f1 = () => {
 					let used = false;
 					return genfn2tick(function*(){
-						if(!used){
-							used = true;
-							const hell0 = cancel();
-							const listen = listener1 => {
-								clearTimeout(timer);
-								state.cache.delete(listen);
-								[listener, cancel] = f0(listener1);
-								if(solution) listener(...solution);
-								return f1();
-							};
-							state.cache.add(listen);
-							const timer = setTimeout(genfn2tick(function*(){
-								state.cache.delete(listen);
-								state.listener_num -= 1;
-								yield (yield thunk || (() => {}))();
-								listener_num -= 1;
-								if(listener_num === 0) unsync();
-							}), 0);
-							yield hell0;
-						}
+						if(used) return;
+						used = true;
+						const hell0 = cancel();
+						const listen = listener1 => {
+							clearTimeout(timer);
+							state.cache.delete(listen);
+							[listener, cancel] = f0(listener1);
+							if(solution) listener(...solution);
+							return f1();
+						};
+						state.cache.add(listen);
+						const timer = setTimeout(genfn2tick(function*(){
+							state.cache.delete(listen);
+							state.listener_num -= 1;
+							yield (yield thunk || (() => {}))();
+							listener_num -= 1;
+							if(listener_num === 0) unsync();
+						}), 0);
+						yield hell0;
 					});
 				};
 				used = true;
