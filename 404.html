@@ -64,252 +64,244 @@
 				if(localStorage.length === 0) localStorage.setItem(`
 					"use strict";
 
-					if(top === self){
-						Reflect;
-						onload = null;
-						[...document.childNodes].forEach(node => {
-							if(!(node instanceof DocumentType)) node.remove();
-						});
-						const meta = document.createElement("meta");
-						meta.setAttribute("charset", "utf-8");
-						const head = document.createElement("head");
-						head.append(meta);
-						const html = document.createElement("html");
-						html.append(head, document.createElement("body"));
-						document.append(html);
-						Promise.resolve().then(() => {
-							history.replaceState(null, null, uri0);
-							try{
-								Reflect.deleteProperty(self, "a");
-							}catch(error){}
+					if(top !== self) throw null;
+					Reflect;
+					onload = null;
+					[...document.childNodes].forEach(node => {
+						if(!(node instanceof DocumentType)) node.remove();
+					});
+					const meta = document.createElement("meta");
+					meta.setAttribute("charset", "utf-8");
+					const head = document.createElement("head");
+					head.append(meta);
+					const html = document.createElement("html");
+					html.append(head, document.createElement("body"));
+					document.append(html);
+					Promise.resolve().then(() => {
+						history.replaceState(null, null, uri0);
+						try{
+							Reflect.deleteProperty(self, "a");
+						}catch(error){}
 
-							const setup = localStorage.key(0);
-							const library_source = \`
+						const setup = localStorage.key(0);
+						const library_source = \`
+							const run = thunk => {
 								const run = thunk => {
-									const run = thunk => {
+									try{
+										thunk();
+									}catch(error){
+										setTimeout(() => {
+											throw error;
+										}, 0);
+									}
+								};
+								try{
+									run(thunk());
+								}catch(error){
+									Promise.resolve().then(() => run(() => thunk()()));
+								}
+							};
+							const [hell, is_hell] = (() => {
+								const hell_set = new WeakSet;
+								return [
+									() => {
+										const hell0 = callback => {
+											if(callbacks){
+												callbacks.push(callback);
+												return;
+											}
+											run(() => () => callback(result));
+										};
+										let result;
+										let callbacks = [];
+										hell_set.add(hell0);
+										return [
+											hell0,
+											result1 => {
+												if(!callbacks) return;
+												result = result1;
+												const callbacks1 = callbacks;
+												callbacks = null;
+												callbacks1.forEach(hell0);
+											},
+										];
+									},
+									target => hell_set.has(target),
+								];
+							})();
+							const tickline = (...ticks) => {
+								switch(ticks.length){
+								case 0:
+									return target => {
+										if(is_hell(target)){
+											let target1;
+											target(target => target1 = [tickline()(target)]);
+											if(target1) return target1[0];
+											const [hell0, resolve] = hell();
+											target(target => {
+												target = tickline()(target);
+												if(is_hell(target)) return target(resolve);
+												resolve(target);
+											});
+											return hell0;
+										}
+										return target;
+									};
+								case 1:
+									return target => {
+										if(is_hell(target)){
+											const [hell0, resolve] = hell();
+											target(target => resolve(tickline()(ticks[0](target))));
+											return tickline()(hell0);
+										}
 										try{
-											thunk();
+											return tickline()(ticks[0](target));
 										}catch(error){
 											setTimeout(() => {
 												throw error;
 											}, 0);
+											return hell()[0];
 										}
 									};
-									try{
-										run(thunk());
-									}catch(error){
-										Promise.resolve().then(() => run(() => thunk()()));
-									}
-								};
-								const [hell, is_hell] = (() => {
-									const hell_set = new WeakSet;
-									return [
-										() => {
-											const hell0 = callback => {
-												if(callbacks){
-													callbacks.push(callback);
-												}else{
-													run(() => () => callback(result));
-												}
-											};
-											let result;
-											let callbacks = [];
-											hell_set.add(hell0);
-											return [
-												hell0,
-												result1 => {
-													if(callbacks){
-														result = result1;
-														const callbacks1 = callbacks;
-														callbacks = null;
-														callbacks1.forEach(hell0);
-													}
-												},
-											];
-										},
-										target => hell_set.has(target),
-									];
-								})();
-								const tickline = (...ticks) => {
-									switch(ticks.length){
-									case 0:
-										return target => {
-											if(is_hell(target)){
-												let target1;
-												target(target => target1 = [tickline()(target)]);
-												if(target1) return target1[0];
-												const [hell0, resolve] = hell();
-												target(target => {
-													target = tickline()(target);
-													if(is_hell(target)){
-														target(resolve);
-													}else{
-														resolve(target);
-													}
-												});
-												return hell0;
-											}
-											return target;
-										};
-									case 1:
-										return target => {
-											if(is_hell(target)){
-												const [hell0, resolve] = hell();
-												target(target => resolve(tickline()(ticks[0](target))));
-												return tickline()(hell0);
-											}
-											try{
-												return tickline()(ticks[0](target));
-											}catch(error){
-												setTimeout(() => {
-													throw error;
-												}, 0);
-												return hell()[0];
-											}
-										};
-									case 2: 
-										return target => tickline(ticks[1])(tickline(ticks[0])(target));
-									default:
-										return tickline(ticks[0], tickline(...ticks.slice(1)));
-									}
-								};
-								const gen2tick = gen => tickline(target => {
-									target = gen.next(target);
-									return target.done ? target.value : gen2tick(gen)(target.value);
-								});
-								const genfn2tick = genfn => function(...args){
-									return gen2tick(genfn.call(this, ...args))();
-								};
-								const prom2hell = (() => {
-									const dp = new WeakMap;
-									return promise => dp.get(promise) || (() => {
-										const [hell0, resolve] = hell();
-										Promise.resolve(promise).then(result => resolve([null, result]), error => resolve([error]));
-										dp.set(promise, hell0);
-										return hell0;
-									})();
-								})();
-								({run, hell, is_hell, tickline, gen2tick, genfn2tick, prom2hell});
-							\`;
-							const library = self.eval('"use strict"; ' + library_source);
-							const {run, hell, is_hell, tickline, gen2tick, genfn2tick, prom2hell} = library;
-
-							let crash = false;
-							const blocker = event => {
-								if(crash) event.stopImmediatePropagation();
-							};
-							addEventListener("unload", blocker);
-							addEventListener("beforeunload", blocker);
-							addEventListener("error", event => {
-								const timer = setTimeout(() => {
-									if(!crash){
-										crash = true;
-										localStorage.setItem(setup, JSON.stringify({source: \`
-											const {run, hell, is_hell, tickline, gen2tick, genfn2tick, prom2hell} = library;
-
-											const pre = document.createElement("pre");
-											const button = document.createElement("button");
-											document.title = "Crash";
-											const code = document.createElement("code");
-											code.textContent = unescape("\${escape(event.message + "\\n@" + event.filename + ":" + event.lineno + ":" + event.colno)}");
-											button.textContent = "Reload";
-											const [hell0, resolve] = hell();
-											button.addEventListener("click", () => {
-												button.disabled = true;
-												button.textContent = "Reloading";
-												resolve();
-											});
-											pre.append(code);
-											document.body.append(pre, button);
-											button.focus();
-											return genfn2tick(function*(){
-												yield hell0;
-												pre.remove();
-												button.remove();
-											});
-										\`}));
-										history.go(0);
-									}
-								}, 0);
-								event.prevent_reload = () => clearTimeout(timer);
-							});
-
-							let source;
-							let cancel;
-							let lock = false;
-							const update = () => {
-								if(boot.source !== source){
-									source = boot.source;
-									if(!lock){
-										lock = true;
-										genfn2tick(function*(){
-											yield (cancel || (() => {}))();
-											Function('"use strict";' + source);
-											document.title = "Loading";
-											cancel = self.eval('"use strict"; (library, library_source) => {' + source + "}")(library, library_source);
-											lock = false;
-										})();
-									}
+								case 2: 
+									return target => tickline(ticks[1])(tickline(ticks[0])(target));
+								default:
+									return tickline(ticks[0], tickline(...ticks.slice(1)));
 								}
 							};
-							addEventListener("storage", () => {
-								boot = JSON.parse(localStorage.getItem(setup));
-								update();
+							const gen2tick = gen => tickline(target => {
+								target = gen.next(target);
+								return target.done ? target.value : gen2tick(gen)(target.value);
 							});
-							let boot = localStorage.getItem(setup);
-							if(boot){
-								boot = JSON.parse(boot);
-								update();
-							}else{
-								boot = {};
+							const genfn2tick = genfn => function(...args){
+								return gen2tick(genfn.call(this, ...args))();
+							};
+							const prom2hell = (() => {
+								const dp = new WeakMap;
+								return promise => dp.get(promise) || (() => {
+									const [hell0, resolve] = hell();
+									Promise.resolve(promise).then(result => resolve([null, result]), error => resolve([error]));
+									dp.set(promise, hell0);
+									return hell0;
+								})();
+							})();
+							({run, hell, is_hell, tickline, gen2tick, genfn2tick, prom2hell});
+						\`;
+						const library = self.eval('"use strict"; ' + library_source);
+						const {run, hell, is_hell, tickline, gen2tick, genfn2tick, prom2hell} = library;
+
+						let crash = false;
+						const blocker = event => {
+							if(crash) event.stopImmediatePropagation();
+						};
+						addEventListener("unload", blocker);
+						addEventListener("beforeunload", blocker);
+						addEventListener("error", event => {
+							const timer = setTimeout(() => {
+								if(crash) return;
+								crash = true;
+								localStorage.setItem(setup, JSON.stringify({source: \`
+									const {run, hell, is_hell, tickline, gen2tick, genfn2tick, prom2hell} = library;
+
+									const pre = document.createElement("pre");
+									const button = document.createElement("button");
+									document.title = "Crash";
+									const code = document.createElement("code");
+									code.textContent = unescape("\${escape(event.message + "\\n@" + event.filename + ":" + event.lineno + ":" + event.colno)}");
+									button.textContent = "Reload";
+									const [hell0, resolve] = hell();
+									button.addEventListener("click", () => {
+										button.disabled = true;
+										button.textContent = "Reloading";
+										resolve();
+									});
+									pre.append(code);
+									document.body.append(pre, button);
+									button.focus();
+									return genfn2tick(function*(){
+										yield hell0;
+										pre.remove();
+										button.remove();
+									});
+								\`}));
+								history.go(0);
+							}, 0);
+							event.prevent_reload = () => clearTimeout(timer);
+						});
+
+						let source;
+						let cancel;
+						let lock = false;
+						const update = () => {
+							if(boot.source === source) return;
+							source = boot.source;
+							if(lock) return;
+							lock = true;
+							genfn2tick(function*(){
+								yield (cancel || (() => {}))();
+								Function('"use strict";' + source);
+								document.title = "Loading";
+								cancel = self.eval('"use strict"; (library, library_source) => {' + source + "}")(library, library_source);
+								lock = false;
+							})();
+						};
+						addEventListener("storage", () => {
+							boot = JSON.parse(localStorage.getItem(setup));
+							update();
+						});
+						let boot = localStorage.getItem(setup);
+						if(boot){
+							boot = JSON.parse(boot);
+							update();
+						}else{
+							boot = {};
+						}
+
+						let cache;
+						let hell0;
+						const xhr = new XMLHttpRequest;
+						const check = () => {
+							xhr.open("GET", "/boot.js");
+							xhr.setRequestHeader("Cache-Control", "max-age=0");
+							if(boot.tag){
+								xhr.setRequestHeader(...boot.tag);
+								cache = boot;
 							}
-
-							let cache;
-							let hell0;
-							const xhr = new XMLHttpRequest;
-							const check = () => {
-								xhr.open("GET", "/boot.js");
-								xhr.setRequestHeader("Cache-Control", "max-age=0");
-								if(boot.tag){
-									xhr.setRequestHeader(...boot.tag);
-									cache = boot;
+							xhr.send();
+							setTimeout(([hell0] = hell())[1], 1e4);
+						};
+						xhr.addEventListener("loadend", () => {
+							if(xhr.status >= 200 && xhr.status < 300){
+								cache = {source: xhr.responseText};
+								const ETag = xhr.getResponseHeader("ETag");
+								if(ETag !== null){
+									cache.tag = ["If-None-Match", ETag];
+								}else{
+									const Last_Modified = xhr.getResponseHeader("Last-Modified");
+									if(Last_Modified) cache.tag = ["If-Modified-Since", Last_Modified];
 								}
-								xhr.send();
-								setTimeout(([hell0] = hell())[1], 1e4);
-							};
-							xhr.addEventListener("loadend", () => {
-								if(xhr.status >= 200 && xhr.status < 300){
-									cache = {source: xhr.responseText};
-									const ETag = xhr.getResponseHeader("ETag");
-									if(ETag !== null){
-										cache.tag = ["If-None-Match", ETag];
-									}else{
-										const Last_Modified = xhr.getResponseHeader("Last-Modified");
-										if(Last_Modified) cache.tag = ["If-Modified-Since", Last_Modified];
-									}
-								}else if(xhr.status !== 304 && xhr.status !== 404){
-									requestAnimationFrame(check);
-									return;
-								}
-								cache.date = xhr.getResponseHeader("Date");
-								if(!(new Date(cache.date) <= new Date(boot.date))){
-									localStorage.setItem(setup, JSON.stringify(cache));
-									boot = cache;
-									update();
-								}
-								cache = null;
-								hell0(() => requestAnimationFrame(check));
-							});
-							xhr.addEventListener("progress", () => {
-								if(new Date(xhr.getResponseHeader("Date")) <= new Date(boot.date)) check();
-							});
-							check();
-						}).catch(error => setTimeout(() => {
-							throw error;
-						}, 0));
-						const uri0 = document.location.href.slice(document.location.origin.length);
-						history.replaceState(null, null, "a");
-					}
+							}else if(xhr.status !== 304 && xhr.status !== 404){
+								requestAnimationFrame(check);
+								return;
+							}
+							cache.date = xhr.getResponseHeader("Date");
+							if(!(new Date(cache.date) <= new Date(boot.date))){
+								localStorage.setItem(setup, JSON.stringify(cache));
+								boot = cache;
+								update();
+							}
+							cache = null;
+							hell0(() => requestAnimationFrame(check));
+						});
+						xhr.addEventListener("progress", () => {
+							if(new Date(xhr.getResponseHeader("Date")) <= new Date(boot.date)) check();
+						});
+						check();
+					}).catch(error => setTimeout(() => {
+						throw error;
+					}, 0));
+					const uri0 = document.location.href.slice(document.location.origin.length);
+					history.replaceState(null, null, "a");
 				`, "");
 				history.go(0);
 			}catch(error){
@@ -323,14 +315,10 @@
 					xhr.send();
 				});
 				xhr.addEventListener("readystatechange", () => {
-					if(xhr.status){
-						if(xhr.status === 404){
-							check();
-						}else{
-							document.location.reload();
-							xhr.abort();
-						}
-					}
+					if(!xhr.status) return;
+					if(xhr.status === 404) return check();
+					document.location.reload();
+					xhr.abort();
 				});
 				check();
 			}
