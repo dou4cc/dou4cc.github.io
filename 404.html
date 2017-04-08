@@ -35,10 +35,9 @@
 			var hash = document.location.hash.slice(1);
 			var uri0 = document.location.href;
 			var reg = /^[^:]+:\/+[^/]+\//;
-			if((uri0.match(reg) || [0])[0] === (hash.match(reg) || [1])[0]){
-				history.replaceState(null, null, hash);
-				if(document.location.href !== hash) history.replaceState(null, null, uri0);
-			}
+			if((uri0.match(reg) || [0])[0] !== (hash.match(reg) || [1])[0]) return;
+			history.replaceState(null, null, hash);
+			if(document.location.href !== hash) history.replaceState(null, null, uri0);
 		};
 	</script>
 	<script>
