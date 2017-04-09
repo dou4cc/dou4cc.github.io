@@ -21,7 +21,7 @@ const cache = f => {
 };
 library.cache = cache;
 
-const copy = source => {
+const clone = source => {
 	const [hell0, resolve] = hell();
 	const {port1, port2: port0} = new MessageChannel;
 	port1.addEventListener("message", ({data}) => resolve(data));
@@ -30,7 +30,7 @@ const copy = source => {
 	port0.postMessage(source);
 	return hell0;
 };
-library.copy = copy;
+library.clone = clone;
 
 const multi_key_map = () => {
 	const tree = new Map;
@@ -267,42 +267,41 @@ const db = (() => {
 					};
 				}
 				const next = (cancel, db) => {
-					if(i < length){
+					if(i === length) return;
+					cancel();
+					const hell0 = hub.on((...list1) => {
+						if(list1.length <= i) return;
+						for(let j = 0; j <= i; j += 1) if(indexedDB.cmp(list[j], list1[j]) !== 0) return;
 						cancel();
-						const hell0 = hub.on((...list1) => {
-							if(list1.length <= i) return;
-							for(let j = 0; j <= i; j += 1) if(indexedDB.cmp(list[j], list1[j]) !== 0) return;
-							cancel();
-							abort();
-							then(result => {
-								if(result) f(i, result.value);
-							});
+						abort();
+						then(result => {
+							if(result) f(i, result.value);
 						});
-						cancel = () => tickline(cancel => cancel())(hell0);
-						const then = onresult => {
-							cancel();
-							const store = open_store(db);
-							close_db(store.transaction);
-							get(store, ({target: {result}}) => onresult(result, store));
-							aborts.push(() => abort_transaction(store.transaction));
-						};
-						const abort = f(i, name => then((result, store) => {
-							if(result){
-								if(result.value === undefined) return put(store, name);
-								return f(i, result.value);
-							}
-							abort();
-						}));
-						const aborts = [() => {
-							cancel();
-							abort();
-						}];
-						return () => {
-							let abort;
-							no_error(db);
-							while(abort = aborts.shift()) abort();
-						};
-					}
+					});
+					cancel = () => tickline(cancel => cancel())(hell0);
+					const then = onresult => {
+						cancel();
+						const store = open_store(db);
+						close_db(store.transaction);
+						get(store, ({target: {result}}) => onresult(result, store));
+						aborts.push(() => abort_transaction(store.transaction));
+					};
+					const abort = f(i, name => then((result, store) => {
+						if(result){
+							if(result.value === undefined) return put(store, name);
+							return f(i, result.value);
+						}
+						abort();
+					}));
+					const aborts = [() => {
+						cancel();
+						abort();
+					}];
+					return () => {
+						let abort;
+						no_error(db);
+						while(abort = aborts.shift()) abort();
+					};
 				};
 				const f1 = () => {
 					const f2 = () => store.get("end").addEventListener("success", ({target: {result}}) => {
@@ -335,12 +334,11 @@ const db = (() => {
 				if(typeof name === "function") return make();
 				const cn = open_db(name);
 				cn.addEventListener("upgradeneeded", () => {
-					if(i > 1){
-						cn.removeEventListener("success", f1);
-						indexedDB.deleteDatabase(name);
-						close_db(cn);
-					}
 					init_store(cn.result);
+					if(i === 1) return;
+					cn.removeEventListener("success", f1);
+					indexedDB.deleteDatabase(name);
+					close_db(cn);
 				});
 				cn.addEventListener("success", f1);
 			};
@@ -413,8 +411,8 @@ const db = (() => {
 			let cancel;
 			let canceled = false;
 			genfn2tick(function*(){
+				list = yield clone(format(list));
 				if(canceled) return;
-				list = yield copy(format(list));
 				const length = list.length;
 				cancel = hub.on((...list1) => {
 					if(list1.length < length || !list.every((a, i) => indexedDB.cmp(a, list1[i]) === 0)) return;
@@ -673,10 +671,23 @@ const _ajax = (listener, uri, tag, from = 0, to = null) => {
 
 const ajax = (uri, ...points) => {
 	const dir = (() => {
-		const dir = path => (...path1) => {
-			path = path.concat(path1);
-			const listener = path.pop();
-			return db.on(...path, (...path1) => listener(dir(path.concat(path1)), ...path1));
+		const dir = path => {
+			path = clone(path);
+			return (...path1) => {
+				let cancel;
+				let canceled = false;
+				const listener = path1.pop();
+				path1 = clone(path1);
+				genfn2tick(function*(){
+					path = (yield path).concat(yield path1);
+					if(canceled) return;
+					cancel = db.on(...path, (...path1) => listener(dir(path.concat(path1)), ...path1));
+				})();
+				return () => {
+					canceled = true;
+					if(cancel) cancel();
+				};
+			};
 		};
 		return dir(["cache"]);
 	})();
@@ -692,15 +703,13 @@ const ajax = (uri, ...points) => {
 			if(n > 0){
 				if(mode ^ mode1){
 					n -= 1;
-					pos = [pos1];
-				}else{
-					n += 1;
+					return pos = [pos1];
 				}
-			}else{
-				if(pos1 > pos[0] || mode ^ mode1) result.push(...pos, pos1);
-				mode = mode1;
-				n = 1;
+				return n += 1;
 			}
+			if(pos1 > pos[0] || mode ^ mode1) result.push(...pos, pos1);
+			mode = mode1;
+			n = 1;
 		});
 		if(n === 0) result.push(...pos);
 		return result;
@@ -708,10 +717,17 @@ const ajax = (uri, ...points) => {
 	const moves = (mode, ...points) => points.map(pos => [mode = !mode, pos]);
 	const mix = (a, b, mode0, mode1, mode2) => points(mode0, ...moves(mode1, ...a).concat(moves(mode2, ...b)));
 	const connect = tube(uri => {
+		const cancels = new Set;
+		cancels.add(dir(uri, (dir, tag) => {
+			if(!(tag instanceof Array)) return;
+			cancels.add(dir((dir, record) => {
+			}));
+		}));
 		const state = {
 		};
 		return listener => {
-			if(listener) listener(state);
+			if(listener) return listener(state);
+			cancels.forEach(cancel => cancel());
 		};
 	});
 	const ajax = tube((uri, ...points) => {
