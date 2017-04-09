@@ -669,7 +669,7 @@ const _ajax = (listener, uri, tag, from = 0, to = null) => {
 	
 };
 
-const ajax = (uri, ...points) => {
+const ajax = (() => {
 	const dir = (() => {
 		const dir = path => {
 			path = clone(path);
@@ -718,6 +718,7 @@ const ajax = (uri, ...points) => {
 	const mix = (a, b, mode0, mode1, mode2) => points(mode0, ...moves(mode1, ...a).concat(moves(mode2, ...b)));
 	const connect = tube(uri => {
 		const cancels = new Set;
+		const cache = multi_key_map();
 		cancels.add(dir(uri, (dir, tag) => {
 			if(!(tag instanceof Array)) return;
 			cancels.add(dir((dir, record) => {
@@ -767,7 +768,7 @@ const ajax = (uri, ...points) => {
 	return tube((uri, ...rest) => {
 		if(listener) listener(format_uri(uri), ...rest);
 	}, ajax);
-};
+})();
 
 self.library = library;
 
