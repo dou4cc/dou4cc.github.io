@@ -1,4 +1,4 @@
-﻿const {run, hell, is_hell, tickline, gen2tick, genfn2tick, prom2hell} = library;
+﻿const {run, hell, is_hell, tickline, gen2tick, genfn2tick, prom2hell, clone} = library;
 library = Object.create(library);
 const cancels = new Set;
 
@@ -20,17 +20,6 @@ const cache = f => {
 	};
 };
 library.cache = cache;
-
-const clone = source => {
-	const [hell0, resolve] = hell();
-	const {port1, port2: port0} = new MessageChannel;
-	port1.addEventListener("message", ({data}) => resolve(data));
-	port1.start();
-	port0.start();
-	port0.postMessage(source);
-	return hell0;
-};
-library.clone = clone;
 
 const multi_key_map = () => {
 	const tree = new Map;
@@ -62,17 +51,21 @@ const multi_key_map = () => {
 library.multi_key_map = multi_key_map;
 
 const db = (() => {
-	const hub_source = `({tickline, genfn2tick}, port) => ({
+	const hub_source = `({tickline, genfn2tick, clone}, port) => ({
 		send: (...list) => {
 			tickline(port => port.postMessage(list))(port);
 		},
 		on: genfn2tick(function*(listener){
-			const onmessage = ({data}) => {
-				if(data instanceof Array) listener(...data);
-			};
+			const onmessage = genfn2tick(function*({data}){
+				if(!(data instanceof Array)) return;
+				data = yield clone(data);
+				if(!canceled) listener(...data);
+			});
 			(yield port).addEventListener("message", onmessage);
+			let canceled = false;
 			return genfn2tick(function*(){
 				(yield port).removeEventListener("message", onmessage);
+				canceled = true;
 			});
 		}),
 	})`;
