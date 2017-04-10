@@ -671,22 +671,19 @@ const _ajax = (listener, uri, tag, from = 0, to = null) => {
 
 const ajax = (() => {
 	const dir = (() => {
-		const dir = path => {
-			path = clone(path);
-			return (...path1) => {
-				let cancel;
-				let canceled = false;
-				const listener = path1.pop();
-				path1 = clone(path1);
-				genfn2tick(function*(){
-					path = (yield path).concat(yield path1);
-					if(canceled) return;
-					cancel = db.on(...path, (...path1) => listener(dir(path.concat(path1)), ...path1));
-				})();
-				return () => {
-					canceled = true;
-					if(cancel) cancel();
-				};
+		const dir = path => (...path1) => {
+			let cancel;
+			let canceled = false;
+			const listener = path1.pop();
+			path1 = clone(path1);
+			genfn2tick(function*(){
+				path = (yield path).concat(yield path1);
+				if(canceled) return;
+				cancel = db.on(...path, (...path1) => listener(dir(clone(path.concat(path1))), ...path1));
+			})();
+			return () => {
+				canceled = true;
+				if(cancel) cancel();
 			};
 		};
 		return dir(["cache"]);
