@@ -184,10 +184,20 @@
 									return hell0;
 								})();
 							})();
-							({run, hell, is_hell, tickline, gen2tick, genfn2tick, prom2hell});
+							const clone = source => {
+								const [hell0, resolve] = hell();
+								const {port1, port2: port0} = new MessageChannel;
+								port1.addEventListener("message", ({data}) => resolve(data));
+								port1.start();
+								port0.start();
+								port0.postMessage(source);
+								return hell0;
+							};
+
+							({run, hell, is_hell, tickline, gen2tick, genfn2tick, prom2hell, clone});
 						\`;
 						const library = self.eval('"use strict"; ' + library_source);
-						const {run, hell, is_hell, tickline, gen2tick, genfn2tick, prom2hell} = library;
+						const {run, hell, is_hell, tickline, gen2tick, genfn2tick, prom2hell, clone} = library;
 
 						let crash = false;
 						const blocker = event => {
@@ -200,7 +210,7 @@
 								if(crash) return;
 								crash = true;
 								localStorage.setItem(setup, JSON.stringify({source: \`
-									const {run, hell, is_hell, tickline, gen2tick, genfn2tick, prom2hell} = library;
+									const {run, hell, is_hell, tickline, gen2tick, genfn2tick, prom2hell, clone} = library;
 
 									const pre = document.createElement("pre");
 									const button = document.createElement("button");
