@@ -710,8 +710,15 @@ const ajax = (() => {
 		const cancels = new Set;
 		const cache = multi_key_map();
 		cancels.add(dir(uri, (dir, tag) => {
-			if(!(tag instanceof Array)) return;
+			if(!(tag instanceof Array) || !cache.get(...tag)) return;
+			cache.set(...tag, tag = {
+				size: null,
+				date: null,
+				pieces: [],
+			});
 			cancels.add(dir((dir, record) => {
+				if(!(record instanceof Array)) return;
+				tag.date = new Date(Math.max(tag.date, new Date(record.shift())));
 			}));
 		}));
 		const state = {
