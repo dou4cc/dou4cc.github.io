@@ -675,6 +675,11 @@ const _ajax = (listener, uri, tag, from = 0, to = null) => {
 };
 
 const ajax = (() => {
+	const clone_list = genfn2tick(function*(list){
+		list = list.map(a => clone(a));
+		for(let i = 0, l = list.length; i < l; i += 1) list[i] = yield clone(list[i]);
+		return list;
+	});
 	const dir = (() => {
 		const dir = path => (...path1) => {
 			let cancel;
