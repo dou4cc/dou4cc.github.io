@@ -46,7 +46,6 @@
 		a => function*(...[]){``};
 		document.append();
 		Reflect;
-		MessageChannel;
 		Promise;
 
 		onerror = null;
@@ -66,7 +65,6 @@
 
 					if(top !== self) throw null;
 					Reflect;
-					MessageChannel;
 					onload = null;
 					[...document.childNodes].forEach(node => {
 						if(!(node instanceof DocumentType)) node.remove();
@@ -186,20 +184,11 @@
 									return hell0;
 								})();
 							})();
-							const clone = source => {
-								const [hell0, resolve] = hell();
-								const {port1, port2: port0} = new MessageChannel;
-								port1.addEventListener("message", ({data}) => resolve(data));
-								port1.start();
-								port0.start();
-								port0.postMessage(source);
-								return hell0;
-							};
 
-							({run, hell, is_hell, tickline, gen2tick, genfn2tick, prom2hell, clone});
+							({run, hell, is_hell, tickline, gen2tick, genfn2tick, prom2hell});
 						\`;
 						const library = self.eval('"use strict"; ' + library_source);
-						const {run, hell, is_hell, tickline, gen2tick, genfn2tick, prom2hell, clone} = library;
+						const {run, hell, is_hell, tickline, gen2tick, genfn2tick, prom2hell} = library;
 
 						let crash = false;
 						const blocker = event => {
@@ -212,7 +201,7 @@
 								if(crash) return;
 								crash = true;
 								localStorage.setItem(setup, JSON.stringify({source: \`
-									const {run, hell, is_hell, tickline, gen2tick, genfn2tick, prom2hell, clone} = library;
+									const {run, hell, is_hell, tickline, gen2tick, genfn2tick, prom2hell} = library;
 
 									const pre = document.createElement("pre");
 									const button = document.createElement("button");
