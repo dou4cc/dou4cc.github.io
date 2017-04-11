@@ -452,7 +452,7 @@ const tube = (() => {
 					}),
 					handle_num: 1,
 					listener_num: 0,
-					cache: new Set,
+					pool: new Set,
 				};
 				storage.set(...condition, state);
 				resolve(source(...condition));
@@ -508,14 +508,14 @@ const tube = (() => {
 						const hell0 = cancel();
 						const listen = listener1 => {
 							clearTimeout(timer);
-							state.cache.delete(listen);
+							state.pool.delete(listen);
 							[listener, cancel] = f0(listener1);
 							if(solution) listener(...solution);
 							return f1();
 						};
-						state.cache.add(listen);
+						state.pool.add(listen);
 						const timer = setTimeout(genfn2tick(function*(){
-							state.cache.delete(listen);
+							state.pool.delete(listen);
 							state.listener_num -= 1;
 							yield (yield thunk || (() => {}))();
 							listener_num -= 1;
@@ -541,11 +541,11 @@ const tube = (() => {
 				if(listener){
 					if(!state || !state.alive) sync();
 					if(state.listener_num > 0){
-						for(let thunk of state.cache) return thunk(listener);
+						for(let thunk of state.pool) return thunk(listener);
 						const [hell0, resolve] = hell();
 						let timer = setTimeout(() => {
 							timer = null;
-							for(let thunk of state.cache) return resolve(thunk(listener));
+							for(let thunk of state.pool) return resolve(thunk(listener));
 							resolve(listen(listener));
 						}, 0);
 						return () => {
@@ -725,9 +725,9 @@ const ajax = (() => {
 	const mix = (a, b, mode0, mode1, mode2) => points(mode0, ...moves(mode1, ...a).concat(moves(mode2, ...b)));
 	const connect = tube(uri => {
 		const cancels = new Set;
-		const cache = multi_key_map();
+		const file = multi_key_map();
 		cancels.add(dir(uri, (dir, tag) => {
-			if(!(tag instanceof Array) || !cache.get(...tag)) return;
+			if(!(tag instanceof Array) || !file.get(...tag)) return;
 			cache.set(...tag, tag = {
 				size: null,
 				date: null,
