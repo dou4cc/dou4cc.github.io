@@ -1,4 +1,4 @@
-﻿const {run, hell, is_hell, tickline, gen2tick, genfn2tick, prom2hell, clone} = library;
+﻿const {run, hell, is_hell, tickline, gen2tick, genfn2tick, prom2hell} = library;
 library = Object.create(library);
 const cancels = new Set;
 
@@ -20,6 +20,18 @@ const cache = f => {
 	};
 };
 library.cache = cache;
+
+const clone = source => {
+	if(source === null || new Set(["undefined", "boolean", "number", "string"]).has(typeof source)) return source;
+	const [hell0, resolve] = hell();
+	const {port1, port2: port0} = new MessageChannel;
+	port1.addEventListener("message", ({data}) => resolve(data));
+	port1.start();
+	port0.start();
+	port0.postMessage(source);
+	return hell0;
+};
+library.clone = clone;
 
 const multi_key_map = () => {
 	const tree = new Map;
@@ -51,21 +63,17 @@ const multi_key_map = () => {
 library.multi_key_map = multi_key_map;
 
 const db = (() => {
-	const hub_source = `({tickline, genfn2tick, clone}, port) => ({
+	const hub_source = `({tickline, genfn2tick}, port) => ({
 		send: (...list) => {
 			tickline(port => port.postMessage(list))(port);
 		},
 		on: genfn2tick(function*(listener){
-			const onmessage = genfn2tick(function*({data}){
-				if(!(data instanceof Array)) return;
-				data = yield clone(data);
-				if(!canceled) listener(...data);
-			});
+			const onmessage = ({data}) => {
+				if(data instanceof Array) listener(...data);
+			};
 			(yield port).addEventListener("message", onmessage);
-			let canceled = false;
 			return genfn2tick(function*(){
 				(yield port).removeEventListener("message", onmessage);
-				canceled = true;
 			});
 		}),
 	})`;
@@ -407,11 +415,15 @@ const db = (() => {
 				list = yield clone(format(list));
 				if(canceled) return;
 				const length = list.length;
-				cancel = hub.on((...list1) => {
+				cancel = hub.on(genfn2tick(function*(...list1){
 					if(list1.length < length || !list.every((a, i) => indexedDB.cmp(a, list1[i]) === 0)) return;
-					if(list1.length > length) return run(() => () => listener(unformat(list1[length])));
+					if(list1.length > length){
+						const a = yield clone(unformat(list1[length]));
+						if(canceled) return;
+						return run(() => () => listener(a));
+					}
 					run(() => listener);
-				});
+				}));
 				yield cancel;
 				f(0, name);
 			})();
@@ -672,7 +684,11 @@ const ajax = (() => {
 			genfn2tick(function*(){
 				path = (yield path).concat(yield path1);
 				if(canceled) return;
-				cancel = db.on(...path, (...path1) => listener(dir(clone(path.concat(path1))), ...path1));
+				cancel = db.on(...path, (...path1) => listener(dir(genfn2tick(function*(){
+					const path2 = path.slice();
+					for(let a of path1.map(a => clone(a))) path2.push(yield a);
+					return path2;
+				})()), ...path1));
 			})();
 			return () => {
 				canceled = true;
