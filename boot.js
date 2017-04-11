@@ -685,15 +685,11 @@ const ajax = (() => {
 			let cancel;
 			let canceled = false;
 			const listener = path1.pop();
-			path1 = clone(path1);
+			path1 = clone_list(path1);
 			genfn2tick(function*(){
 				path = (yield path).concat(yield path1);
 				if(canceled) return;
-				cancel = db.on(...path, (...path1) => listener(dir(genfn2tick(function*(){
-					const path2 = path.slice();
-					for(let a of path1.map(a => clone(a))) path2.push(yield a);
-					return path2;
-				})()), ...path1));
+				cancel = db.on(...path, (...path1) => listener(dir(tickline(path1 => path.concat(path1))(clone_list(path1))), ...path1));
 			})();
 			return () => {
 				canceled = true;
@@ -740,6 +736,8 @@ const ajax = (() => {
 			cancels.add(dir((dir, record) => {
 				if(!(record instanceof Array)) return;
 				tag.date = new Date(Math.max(tag.date, new Date(record.shift())));
+				switch(record.shift()){
+				}
 			}));
 		}));
 		const state = {
