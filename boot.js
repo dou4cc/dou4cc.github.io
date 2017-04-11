@@ -728,7 +728,7 @@ const ajax = (() => {
 		const file = multi_key_map();
 		cancels.add(dir(uri, (dir, tag) => {
 			if(!(tag instanceof Array) || !file.get(...tag)) return;
-			cache.set(...tag, tag = {
+			file.set(...tag, tag = {
 				size: null,
 				date: null,
 				pieces: [],
@@ -737,6 +737,19 @@ const ajax = (() => {
 				if(!(record instanceof Array)) return;
 				tag.date = new Date(Math.max(tag.date, new Date(record.shift())));
 				switch(record.shift()){
+				case "size":
+					tag.size = record.shift();
+					break;
+				case "piece":
+					const cancel = dir((dir, content) => {
+						cancel();
+						cancels.delete(cancel);
+						if(content === db.end) return;
+						content = new Blob([content]);
+						const begin = record.shift();
+						const end = begin + content.size - 1;
+					});
+					cancels.add(cancel);
 				}
 			}));
 		}));
