@@ -754,11 +754,10 @@ const ajax = (() => {
 						const end = begin + content.size - 1;
 						let i = 0;
 						const l = pieces.length;
-						for(let begin; i < l; i += 1){
-							const [begin1, content1] = pieces[i];
-							const end1 = begin1 + content.size - 1;
-							if(end >= begin1);
-						}
+						for(; i < l && pieces[i][0] < begin; i += 1);
+						pieces.splice(i, 0, [begin, content]);
+						let j = i;
+						for(; j < l && pieces[j][0] + pieces[j][1].size - 1 <= end; j += 1);
 					});
 					cancels.add(cancel);
 				}
