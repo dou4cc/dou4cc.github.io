@@ -33,6 +33,13 @@ const clone = source => {
 };
 library.clone = clone;
 
+const clone_list = genfn2tick(function*(list){
+	list = list.map(a => clone(a));
+	for(let i = 0, l = list.length; i < l; i += 1) list[i] = yield clone(list[i]);
+	return list;
+});
+library.clone_list = clone_list;
+
 const multi_key_map = () => {
 	const tree = new Map;
 	const symbol = Symbol();
@@ -412,7 +419,7 @@ const db = (() => {
 			let cancel;
 			let canceled = false;
 			genfn2tick(function*(){
-				list = yield clone(format(list));
+				list = yield clone_list(format(list));
 				if(canceled) return;
 				const length = list.length;
 				cancel = hub.on(genfn2tick(function*(...list1){
@@ -675,11 +682,6 @@ const _ajax = (listener, uri, tag, from = 0, to = null) => {
 };
 
 const ajax = (() => {
-	const clone_list = genfn2tick(function*(list){
-		list = list.map(a => clone(a));
-		for(let i = 0, l = list.length; i < l; i += 1) list[i] = yield clone(list[i]);
-		return list;
-	});
 	const dir = (() => {
 		const dir = path => (...path1) => {
 			let cancel;
@@ -733,6 +735,7 @@ const ajax = (() => {
 				date: null,
 				pieces: [],
 			});
+			const pieces = [];
 			cancels.add(dir((dir, record) => {
 				if(!(record instanceof Array)) return;
 				tag.date = new Date(Math.max(tag.date, new Date(record.shift())));
@@ -746,8 +749,16 @@ const ajax = (() => {
 						cancels.delete(cancel);
 						if(content === db.end) return;
 						content = new Blob([content]);
+						if(content.size === 0) return;
 						const begin = record.shift();
 						const end = begin + content.size - 1;
+						let i = 0;
+						const l = pieces.length;
+						for(let begin; i < l; i += 1){
+							const [begin1, content1] = pieces[i];
+							const end1 = begin1 + content.size - 1;
+							if(end >= begin1);
+						}
 					});
 					cancels.add(cancel);
 				}
