@@ -752,12 +752,14 @@ const ajax = (() => {
 						if(content.size === 0) return;
 						const begin = record.shift();
 						const end = begin + content.size - 1;
+						const piece = [begin, content];
 						let i = 0;
 						const l = pieces.length;
 						for(; i < l && pieces[i][0] < begin; i += 1);
-						pieces.splice(i, 0, [begin, content]);
+						pieces.splice(i, 0, piece);
 						let j = i;
 						for(; j < l && pieces[j][0] + pieces[j][1].size - 1 <= end; j += 1);
+						
 					});
 					cancels.add(cancel);
 				}
@@ -771,37 +773,15 @@ const ajax = (() => {
 		};
 	});
 	const ajax = tube((uri, ...points) => {
-		const cancel = connect(uri)(() => {
-		});
+		points = sum(...points);
+		const [hell0, resolve] = resolve();
+		const cancel = connect(uri)(arrange => resolve(arrange));
 		return listener => {
 			if(listener){
-				const cache = multi_key_map();
-				const cancels = new Set;
-				cancels.add(db.on(...path, uri, tag => {
-					if(!(tag instanceof Array) || cache.get(...tag)) return;
-					cancels.add(db.on(...path, uri, tag, record => {
-						if(!(record instanceof Array)) return;
-						tag.date = new Date(Math.max(tag.date, new Date(record[0])));
-						switch(record[1]){
-						case "size":
-							tag.size = record[2];
-							break;
-						case "piece":
-							db.on(...path, uri, tag, record, content => {
-							});
-						}
-					}));
-					cache.set(...tag, tag = {
-						size: null,
-						date: null,
-						complete: false,
-						pieces: new Set,
-						blob: new Blob([]),
-					});
-				}));
-				return () => cancels.forEach(cancel => cancel());
+				const cancel = tickline(arrange => arrange(...points)(listener))(hell0);
+				return () => tickline(cancel => cancel())(cancel);
 			}
-			tickline(cancel => cancel())(cancel);
+			cancel();
 		};
 	});
 	return tube((uri, ...rest) => {
