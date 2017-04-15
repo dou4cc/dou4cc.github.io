@@ -40,6 +40,20 @@ const clone_list = genfn2tick(function*(list){
 });
 library.clone_list = clone_list;
 
+const roll = poll => {
+	let cancel;
+	return (interval = Infinity, offset = interval) => {
+		(cancel || (() => {}))();
+		const timer = setTimeout(() => {
+			const timer = setInterval(poll, interval);
+			cancel = () => clearInterval(timer);
+			poll();
+		}, interval - offset);
+		cancel = () => clearTimeout(timer);
+	};
+};
+library.roll = roll;
+
 const multi_key_map = () => {
 	const tree = new Map;
 	const symbol = Symbol();
@@ -478,7 +492,7 @@ const tube = (() => {
 							lock = true;
 							return genfn2tick(function*(){
 								const [hell0, resolve] = hell();
-								setTimeout(resolve, 0);
+								setTimeout(resolve);
 								yield (cancel || (() => {}))();
 								solution1 = solution;	
 								cancel = listener(...solution1);
@@ -527,7 +541,7 @@ const tube = (() => {
 							yield (yield thunk || (() => {}))();
 							listener_num -= 1;
 							if(listener_num === 0) unsync();
-						}), 0);
+						}));
 						yield hell0;
 					});
 				};
@@ -554,7 +568,7 @@ const tube = (() => {
 							timer = null;
 							for(let thunk of state.pool) return resolve(thunk(listener));
 							resolve(listen(listener));
-						}, 0);
+						});
 						return () => {
 							if(timer) return clearTimeout(timer);
 							hell0(thunk => thunk());
@@ -566,7 +580,7 @@ const tube = (() => {
 					if(used) return;
 					used = true;
 					unsync();
-				}, 0);
+				});
 			};
 		};
 		dp.set(tube0, tube0);
@@ -682,6 +696,7 @@ const _ajax = (listener, uri, tag, from = 0, to = null) => {
 };
 
 const ajax = (() => {
+	const path = ["cache"];
 	const dir = (() => {
 		const dir = path => (...path1) => {
 			let cancel;
@@ -698,17 +713,13 @@ const ajax = (() => {
 				if(cancel) cancel();
 			};
 		};
-		return dir(["cache"]);
+		return dir(path);
 	})();
-	const sum = (...list) => {
-		let s = 0;
-		return list.map(a => s += a);
-	};
-	const points = (mode, ...moves) => {
+	const pointlist = (mode, ...movelist) => {
 		let n = 0;
 		let pos = [];
 		const result = [];
-		moves.sort(([mode0, pos0], [mode1, pos1]) => pos0 - pos1).forEach(([mode1, pos1]) => {
+		movelist.sort(([mode0, pos0], [mode1, pos1]) => pos0 - pos1).forEach(([mode1, pos1]) => {
 			if(n > 0){
 				if(mode ^ mode1){
 					n -= 1;
@@ -723,26 +734,37 @@ const ajax = (() => {
 		if(n === 0) result.push(...pos);
 		return result;
 	};
-	const moves = (mode, ...points) => points.map(pos => [mode = !mode, pos]);
-	const mix = (a, b, mode0, mode1, mode2) => points(mode0, ...moves(mode1, ...a).concat(moves(mode2, ...b)));
+	const movelist = (mode, ...pointlist) => pointlist.map(pos => [mode = !mode, pos]);
+	const mix = (a, b, mode0, mode1, mode2) => pointlist(mode0, ...movelist(mode1, ...a).concat(movelist(mode2, ...b)));
 	const connect = tube(uri => {
 		const cancels = new Set;
 		const file = multi_key_map();
-		cancels.add(dir(uri, (dir, tag) => {
-			if(!(tag instanceof Array) || !file.get(...tag)) return;
-			file.set(...tag, tag = {
-				size: null,
-				date: null,
-				pieces: [],
-			});
-			const pieces = [];
+		const tags = [];
+		let tag;
+		let edition;
+		let pieces;
+		cancels.add(dir(uri, (dir, tag1) => {
+			if(!(tag1 instanceof Array) || file.get(...tag1)) return;
+			const edition1 = {
+				date: -Infinity,
+				size: NaN,
+				records: [],
+			};
+			tags.push(tag1);
+			file.set(...tag1, edition1);
+			const records = multi_key_map();
+			const pieces1 = [];
 			cancels.add(dir((dir, record) => {
-				if(!(record instanceof Array)) return;
-				tag.date = new Date(Math.max(tag.date, new Date(record.shift())));
+				if(!(record instanceof Array) || records.get(...record)) return;
+				records.set(...record, edition1.records.push([...record]));
+				if((edition1.date = Math.max(edition1.date, +new Date(record.shift()))) > edition.date){
+					tag = tag1;
+					edition = edition1
+					pieces = pieces1;
+				}
 				switch(record.shift()){
 				case "size":
-					tag.size = record.shift();
-					break;
+					return edition1.size = record.shift();
 				case "piece":
 					const cancel = dir((dir, content) => {
 						cancel();
@@ -752,33 +774,47 @@ const ajax = (() => {
 						if(content.size === 0) return;
 						const begin = record.shift();
 						const end = begin + content.size - 1;
-						const piece = [begin, content];
+						if(end !== record.shift()) return;
 						let i = 0;
-						const l = pieces.length;
-						for(; i < l && pieces[i][0] < begin; i += 1);
-						pieces.splice(i, 0, piece);
+						const l = pieces1.length;
+						for(; i < l && pieces1[i][0] < begin; i += 1);
 						let j = i;
-						for(; j < l && pieces[j][0] + pieces[j][1].size - 1 <= end; j += 1);
-						
+						for(; j < l && pieces1[j][0] + pieces1[j][1].size - 1 <= end; j += 1);
+						const d = j < l ? end - pieces1[j][0] + 1 : NaN;
+						if(d >= 0){
+							pieces1.splice(i, j - i + 1, [begin, new Blob([content, pieces1[j][1].slice(d)])]);
+						}else{
+							pieces1.splice(i, j - i, [begin, content]);
+						}
+						if(pieces1.length > 1 || pieces1[0][0] > 0 || pieces1[0][1].size !== edition1.size) return;
+						tags.forEach(tag2 => {
+							const edition2 = file.get(...tag2);
+							if(edition1.date < edition2.date) return;
+							edition2.records.forEach(record => db.put(...path, uri, tag2, record, db.end));
+							edition2.records = [];
+						});
 					});
-					cancels.add(cancel);
+					return cancels.add(cancel);
 				}
 			}));
 		}));
-		const state = {
-		};
+		const pointlists = [];
+		let pointlist = [];
+		const arrange = tube((...pointlist1) => {
+		});
 		return listener => {
-			if(listener) return listener(state);
+			if(listener) return listener(arrange);
 			cancels.forEach(cancel => cancel());
 		};
 	});
-	const ajax = tube((uri, ...points) => {
-		points = sum(...points);
+	const ajax = tube((uri, ...pointlist) => {
+		let s = 0;
+		pointlist = pointlist.map(a => s += a);
 		const [hell0, resolve] = resolve();
 		const cancel = connect(uri)(arrange => resolve(arrange));
 		return listener => {
 			if(listener){
-				const cancel = tickline(arrange => arrange(...points)(listener))(hell0);
+				const cancel = tickline(arrange => arrange(...pointlist)(listener))(hell0);
 				return () => tickline(cancel => cancel())(cancel);
 			}
 			cancel();

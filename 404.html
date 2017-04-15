@@ -91,7 +91,7 @@
 									}catch(error){
 										setTimeout(() => {
 											throw error;
-										}, 0);
+										});
 									}
 								};
 								try{
@@ -158,7 +158,7 @@
 										}catch(error){
 											setTimeout(() => {
 												throw error;
-											}, 0);
+											});
 											return hell()[0];
 										}
 									};
@@ -225,7 +225,7 @@
 									});
 								\`}));
 								history.go(0);
-							}, 0);
+							});
 							event.prevent_reload = () => clearTimeout(timer);
 						});
 
@@ -284,7 +284,7 @@
 								requestAnimationFrame(check);
 								return;
 							}
-							cache.date = xhr.getResponseHeader("Date");
+							cache.date = xhr.getResponseHeader("Date") || NaN;
 							if(!(new Date(cache.date) <= new Date(boot.date))){
 								localStorage.setItem(setup, JSON.stringify(cache));
 								boot = cache;
@@ -294,12 +294,12 @@
 							hell0(() => requestAnimationFrame(check));
 						});
 						xhr.addEventListener("progress", () => {
-							if(new Date(xhr.getResponseHeader("Date")) <= new Date(boot.date)) check();
+							if(new Date(xhr.getResponseHeader("Date") || NaN) <= new Date(boot.date)) check();
 						});
 						check();
 					}).catch(error => setTimeout(() => {
 						throw error;
-					}, 0));
+					}));
 					const uri0 = document.location.href.slice(document.location.origin.length);
 					history.replaceState(null, null, "a");
 				`, "");
