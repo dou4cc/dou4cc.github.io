@@ -808,6 +808,9 @@ const ajax = (() => {
 				pointlist2 = mix(pointlist, pointlist2, false, false, true);
 				//
 			}
+			return listener => {
+				if(listener);
+			};
 		});
 		return listener => {
 			if(listener) return listener(arrange);
@@ -818,12 +821,13 @@ const ajax = (() => {
 		let s = 0;
 		pointlist = pointlist.map(a => s += a);
 		const [hell0, resolve] = resolve();
-		const cancel = connect(uri)(arrange => resolve(arrange));
+		const cancel = connect(uri)(arrange => resolve(arrange(...pointlist)));
 		return listener => {
 			if(listener){
-				const cancel = tickline(arrange => arrange(...pointlist)(listener))(hell0);
+				const cancel = tickline(arrange => arrange(listener))(hell0);
 				return () => tickline(cancel => cancel())(cancel);
 			}
+			tickline(arrange => arrange())(hell0);
 			cancel();
 		};
 	});
