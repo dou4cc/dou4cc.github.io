@@ -798,9 +798,16 @@ const ajax = (() => {
 				}
 			}));
 		}));
-		const pointlists = [];
+		const pointlists = new Set;
 		let pointlist = [];
 		const arrange = tube((...pointlist1) => {
+			pointlists.add(pointlist1);
+			const pointlist2 = pointlist;
+			pointlist = mix(pointlist, pointlist1, false, false, false);
+			if(pointlists.size === 1){
+				pointlist2 = mix(pointlist, pointlist2, false, false, true);
+				//
+			}
 		});
 		return listener => {
 			if(listener) return listener(arrange);
