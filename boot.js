@@ -740,33 +740,33 @@ const ajax = (() => {
 		const cancels = new Set;
 		const file = multi_key_map();
 		const tags = [];
-		let edition;
-		let pieces;
+		let edition0;
+		let pieces0;
 		const onpieces = new Set;
-		cancels.add(dir(uri, (dir, tag1) => {
-			if(!(tag1 instanceof Array) || file.get(...tag1)) return;
-			const edition1 = {
+		cancels.add(dir(uri, (dir, tag) => {
+			if(!(tag instanceof Array) || file.get(...tag)) return;
+			const edition = {
 				date: -Infinity,
 				size: NaN,
 				mtime: new Date(NaN),
 				records: [],
 			};
-			tags.push(tag1);
-			file.set(...tag1, edition1);
+			tags.push(tag);
+			file.set(...tag, edition);
 			const records = multi_key_map();
-			const pieces1 = [];
+			const pieces = [];
 			cancels.add(dir((dir, record) => {
 				if(!(record instanceof Array) || records.get(...record)) return;
-				records.set(...record, edition1.records.push([...record]));
-				if((edition1.date = Math.max(edition1.date, +new Date(record.shift()))) > edition.date){
-					edition = edition1;
-					pieces = pieces1;
+				records.set(...record, edition.records.push([...record]));
+				if((edition.date = Math.max(edition.date, +new Date(record.shift()))) > edition0.date){
+					edition0 = edition;
+					pieces0 = pieces;
 				}
 				switch(record.shift()){
 				case "size":
-					return edition1.size = record.shift();
+					return edition.size = record.shift();
 				case "mtime":
-					return edition1.mtime = new Date(record.shift());
+					return edition.mtime = new Date(record.shift());
 				case "piece":
 					const cancel = dir((dir, content) => {
 						cancel();
@@ -778,25 +778,25 @@ const ajax = (() => {
 						const end = begin + content.size - 1;
 						if(end !== record.shift()) return;
 						let i = 0;
-						const l = pieces1.length;
-						for(; i < l && pieces1[i][0] < begin; i += 1);
+						const l = pieces.length;
+						for(; i < l && pieces[i][0] < begin; i += 1);
 						let j = i;
-						for(; j < l && pieces1[j][0] + pieces1[j][1].size - 1 <= end; j += 1);
-						const d = j < l ? end - pieces1[j][0] + 1 : NaN;
+						for(; j < l && pieces[j][0] + pieces[j][1].size - 1 <= end; j += 1);
+						const d = j < l ? end - pieces[j][0] + 1 : NaN;
 						if(d >= 0){
 							j += 1;
-							content = new Blob([content, pieces1[j][1].slice(d)]);
+							content = new Blob([content, pieces[j][1].slice(d)]);
 						}
-						pieces1.splice(i, j - i, [begin, content]);
-						if(pieces1.length > 1 || pieces1[0][0] > 0 || pieces1[0][1].size !== edition1.size){
-							return onpieces.forEach(onpiece => run(() => () => onpiece(edition1, begin, content)));
+						pieces.splice(i, j - i, [begin, content]);
+						if(pieces.length > 1 || pieces[0][0] > 0 || pieces[0][1].size !== edition.size){
+							return onpieces.forEach(onpiece => run(() => () => onpiece(edition, begin, content)));
 						}
-						onpieces.forEach(onpiece => run(() => () => onpiece(edition1, begin, content, true)));
-						tags.forEach(tag2 => {
-							const edition2 = file.get(...tag2);
-							if(edition1.date < edition2.date) return;
-							edition2.records.forEach(record => db.put(...path, uri, tag2, record, db.end));
-							edition2.records = [];
+						onpieces.forEach(onpiece => run(() => () => onpiece(edition, begin, content, true)));
+						tags.forEach(tag => {
+							const edition1 = file.get(...tag);
+							if(edition.date < edition1.date) return;
+							edition1.records.forEach(record => db.put(...path, uri, tag, record, db.end));
+							edition1.records = [];
 						});
 					});
 					return cancels.add(cancel);
@@ -817,7 +817,18 @@ const ajax = (() => {
 				if(listener){
 					const processes = new Map;
 					let process = 0;
-					const onpiece = 0;//
+					const onpiece = (edition, begin, content, complete) => {
+						const process1 = processes.get(edition) || (() => {
+							const process = {
+								pieces: [],
+								buffer: new Blob([]),
+							};
+							processes.set(edition, process);
+							return process;
+						})();
+						for(let i = 0, l = pointlist1.length; i < l; i += 2){
+						}
+					};
 				}
 			};
 		});
