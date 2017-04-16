@@ -740,14 +740,15 @@ const ajax = (() => {
 		const cancels = new Set;
 		const file = multi_key_map();
 		const tags = [];
-		let tag;
 		let edition;
 		let pieces;
+		const onpieces = new Set;
 		cancels.add(dir(uri, (dir, tag1) => {
 			if(!(tag1 instanceof Array) || file.get(...tag1)) return;
 			const edition1 = {
 				date: -Infinity,
 				size: NaN,
+				mtime: new Date(NaN),
 				records: [],
 			};
 			tags.push(tag1);
@@ -758,13 +759,14 @@ const ajax = (() => {
 				if(!(record instanceof Array) || records.get(...record)) return;
 				records.set(...record, edition1.records.push([...record]));
 				if((edition1.date = Math.max(edition1.date, +new Date(record.shift()))) > edition.date){
-					tag = tag1;
-					edition = edition1
+					edition = edition1;
 					pieces = pieces1;
 				}
 				switch(record.shift()){
 				case "size":
 					return edition1.size = record.shift();
+				case "mtime":
+					return edition1.mtime = new Date(record.shift());
 				case "piece":
 					const cancel = dir((dir, content) => {
 						cancel();
@@ -782,11 +784,14 @@ const ajax = (() => {
 						for(; j < l && pieces1[j][0] + pieces1[j][1].size - 1 <= end; j += 1);
 						const d = j < l ? end - pieces1[j][0] + 1 : NaN;
 						if(d >= 0){
-							pieces1.splice(i, j - i + 1, [begin, new Blob([content, pieces1[j][1].slice(d)])]);
-						}else{
-							pieces1.splice(i, j - i, [begin, content]);
+							j += 1;
+							content = new Blob([content, pieces1[j][1].slice(d)]);
 						}
-						if(pieces1.length > 1 || pieces1[0][0] > 0 || pieces1[0][1].size !== edition1.size) return;
+						pieces1.splice(i, j - i, [begin, content]);
+						if(pieces1.length > 1 || pieces1[0][0] > 0 || pieces1[0][1].size !== edition1.size){
+							return onpieces.forEach(onpiece => run(() => () => onpiece(edition1, begin, content)));
+						}
+						onpieces.forEach(onpiece => run(() => () => onpiece(edition1, begin, content, true)));
 						tags.forEach(tag2 => {
 							const edition2 = file.get(...tag2);
 							if(edition1.date < edition2.date) return;
@@ -809,7 +814,11 @@ const ajax = (() => {
 				//
 			}
 			return listener => {
-				if(listener);
+				if(listener){
+					const processes = new Map;
+					let process = 0;
+					const onpiece = 0;//
+				}
 			};
 		});
 		return listener => {
