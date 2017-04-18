@@ -35,7 +35,7 @@ library.clone = clone;
 
 const clone_list = genfn2tick(function*(list){
 	list = list.map(a => clone(a));
-	for(let i = 0, l = list.length; i < l; i += 1) list[i] = yield clone(list[i]);
+	for(let i = list.length - 1; i >= 0; i -= 1) list[i] = yield clone(list[i]);
 	return list;
 });
 library.clone_list = clone_list;
