@@ -804,29 +804,31 @@ const ajax = (() => {
 			}));
 		}));
 		const pointlists = new Set;
-		let pointlist = [];
-		const arrange = tube((...pointlist1) => {
-			pointlists.add(pointlist1);
-			const pointlist2 = pointlist;
-			pointlist = mix(pointlist, pointlist1, false, false, false);
+		let pointlist0 = [];
+		const arrange = tube((...pointlist) => {
+			const length = Math.ceil(pointlist.length / 2);
+			pointlists.add(pointlist);
+			const pointlist1 = pointlist0;
+			pointlist0 = mix(pointlist0, pointlist, false, false, false);
 			if(pointlists.size === 1){
-				pointlist2 = mix(pointlist, pointlist2, false, false, true);
+				pointlist1 = mix(pointlist0, pointlist1, false, false, true);
 				//
 			}
 			return listener => {
 				if(listener){
 					const processes = new Map;
-					let process = 0;
+					let process0 = 0;
 					const onpiece = (edition, begin, content, complete) => {
-						const process1 = processes.get(edition) || (() => {
+						const process = processes.get(edition) || (() => {
 							const process = {
-								pieces: [],
-								buffer: new Blob([]),
+								pieces: new Array(length).map(() => new Blob),
+								chunk: new Blob,
 							};
 							processes.set(edition, process);
 							return process;
 						})();
-						for(let i = 0, l = pointlist1.length; i < l; i += 2){
+						for(let i = 0, l = process.pieces.length; i < l; i += 1){
+							if(pointlist[length]);
 						}
 					};
 				}
