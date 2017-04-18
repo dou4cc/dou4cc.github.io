@@ -827,9 +827,9 @@ const ajax = (() => {
 							processes.set(edition, process);
 							return process;
 						})();
-						for(let i = 0, l = process.pieces.length; i < l; i += 1){
-							if(pointlist[length]);
-						}
+						let i = process.pieces.length - 1;
+						for(; i >= 0 && pointlist[2 * (length - i - 1)] > begin; i -= 1);
+						for(; i >= 0 && 
 					};
 				}
 			};
