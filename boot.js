@@ -110,14 +110,14 @@ const db = (() => {
 			uri = URL.createObjectURL(new Blob([`
 				"use strict";
 
-				const port_set = new Set;
-				addEventListener("connect", ({ports: [...ports]}) => ports.forEach(port => {
-					port_set.add(port);
+				const ports = new Set;
+				addEventListener("connect", ({ports: [...ports1]}) => ports1.forEach(port => {
+					ports.add(port);
 					port.addEventListener("message", ({data}) => {
-						if(data instanceof Array) return [...port_set].forEach(port => port.postMessage(data));
+						if(data instanceof Array) return ports.forEach(port => port.postMessage(data));
 						if(data !== "disconnect") return;
 						port.close();
-						port_set.delete(port);
+						ports.delete(port);
 					});
 					port.start();
 					port.postMessage("connected");
@@ -806,7 +806,7 @@ const ajax = (() => {
 		const pointlists = new Set;
 		let pointlist0 = [];
 		const arrange = tube((...pointlist) => {
-			const length = Math.ceil(pointlist.length / 2);
+			const length = Math.ceil(pointlist.length / 2) + 1;
 			pointlists.add(pointlist);
 			const pointlist1 = pointlist0;
 			pointlist0 = mix(pointlist0, pointlist, false, false, false);
@@ -816,29 +816,14 @@ const ajax = (() => {
 			}
 			return listener => {
 				if(listener){
-					const processes = new Map;
-					let process0 = 0;
+					const chunklists = new Map;
+					let process = 0;
 					const onpiece = (edition, begin, content, complete) => {
-						const process = processes.get(edition) || (() => {
-							const process = {
-								pieces: new Array(length).map(() => new Blob),
-								chunk: new Blob,
-							};
-							processes.set(edition, process);
-							return process;
+						const chunklist = chunklists.get(edition) || (() => {
+							const chunklist = new Array(length).map(() => new Blob);
+							chunklists.set(edition, chunklist);
+							return chunklist;
 						})();
-						const pieces = process.pieces;
-						const end = begin + content.size - 1;
-						let i = pieces.length - 1;
-						const l = pieces[i].size;
-						for(; i >= 0 && pointlist[2 * (length - i) - 2] + pieces[i].size > begin; i -= 1);
-						let j = i;
-						for(; j >= 0 && pointlist[2 * (length - j) - 2] <= end; j -= 1){
-							pieces[j] = new Blob([pieces[j], content.slice(
-								pointlist[2 * (length - j) - 2] + pieces[j].size - begin,
-								pointlist[2 * (length - j) - 1] - begin + 1,
-							)]);
-						}
 					};
 				}
 			};
