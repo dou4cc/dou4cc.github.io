@@ -827,9 +827,18 @@ const ajax = (() => {
 							processes.set(edition, process);
 							return process;
 						})();
-						let i = process.pieces.length - 1;
-						for(; i >= 0 && pointlist[2 * (length - i - 1)] > begin; i -= 1);
-						for(; i >= 0 && 
+						const pieces = process.pieces;
+						const end = begin + content.size - 1;
+						let i = pieces.length - 1;
+						const l = pieces[i].size;
+						for(; i >= 0 && pointlist[2 * (length - i) - 2] + pieces[i].size > begin; i -= 1);
+						let j = i;
+						for(; j >= 0 && pointlist[2 * (length - j) - 2] <= end; j -= 1){
+							pieces[j] = new Blob([pieces[j], content.slice(
+								pointlist[2 * (length - j) - 2] + pieces[j].size - begin,
+								pointlist[2 * (length - j) - 1] - begin + 1,
+							)]);
+						}
 					};
 				}
 			};
