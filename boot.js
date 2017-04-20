@@ -824,6 +824,10 @@ const ajax = (() => {
 							chunklists.set(edition, chunklist);
 							return chunklist;
 						})();
+						const end = begin + content.size - 1;
+						for(let i = 1, l = chunklist.length, j = 2 * (length - l); i < l; i += 1, j += 2){
+							chunklist[i] = 0;
+						}
 					};
 				}
 			};
