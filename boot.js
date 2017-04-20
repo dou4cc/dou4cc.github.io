@@ -825,9 +825,19 @@ const ajax = (() => {
 							return chunklist;
 						})();
 						const end = begin + content.size - 1;
-						for(let i = 1, l = chunklist.length, j = 2 * (length - l); i < l; i += 1, j += 2){
-							chunklist[i] = 0;
+						const l = chunklist.length;
+						let k = 2 * (length - l);
+						for(let i = 1, j = k, begin1; i < l && (begin1 = points[j] + chunklist[i] - begin) >= 0; i += 1, j += 2){
+							chunklist[i] = new Blob([chunklist[i], content.slice(
+								begin1, ...points[j + 1] >= 0 ? [points[j + 1] + 1 - begin] : [],
+							))]);
 						}
+						for(;
+							chunklist.length > 1 &&
+							(points[k + 1] >= 0 ? chunklist[0].size === points[k + 1] - points[k] + 1 : complete);
+							k += 2
+						) chunklist[0] = new Blob([chunklist[0], ...chunklist.splice(1, 1)]);
+						listener(new Blob(chunklist.slice(0, 2)), chunklist.length === 1);
 					};
 				}
 			};
