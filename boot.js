@@ -788,10 +788,8 @@ const ajax = (() => {
 							content = new Blob([content, pieces[j][1].slice(d)]);
 						}
 						pieces.splice(i, j - i, [begin, content]);
-						if(pieces.length > 1 || pieces[0][0] > 0 || pieces[0][1].size !== edition.size){
-							return onpieces.forEach(onpiece => run(() => () => onpiece(edition, begin, content)));
-						}
-						onpieces.forEach(onpiece => run(() => () => onpiece(edition, begin, content, true)));
+						onpieces.forEach(onpiece => run(() => () => onpiece(edition, begin, content)));
+						if(pieces.length > 1 || pieces[0][0] > 0 || pieces[0][1].size !== edition.size) return;
 						tags.forEach(tag => {
 							const edition1 = file.get(...tag);
 							if(edition.date < edition1.date) return;
@@ -817,13 +815,15 @@ const ajax = (() => {
 			return listener => {
 				if(listener){
 					const chunklists = new Map;
+					let date = -Infinity;
 					let process = 0;
-					const onpiece = (edition, begin, content, complete) => {
+					const onpiece = (edition, begin, content) => {
 						const chunklist = chunklists.get(edition) || (() => {
 							const chunklist = new Array(length).map(() => new Blob);
 							chunklists.set(edition, chunklist);
 							return chunklist;
 						})();
+						const complete = begin === 0 && edition.size === content.size;
 						const end = begin + content.size - 1;
 						const l = chunklist.length;
 						let k = 2 * (length - l);
