@@ -839,10 +839,14 @@ const ajax = (() => {
 						) chunklist[0] = new Blob([chunklist[0], ...chunklist.splice(1, 1)]);
 						const chunk = new Blob(chunklist.slice(0, 2));
 						if(chunk.size < process || edition.date < date || chunk.size === process && edition.date === date) return;
-						listener(true, chunklist.length === 1, chunk, {
+						date = edition.date;
+						process = chunk.size;
+						listener(chunklist.length === 1, chunk, {
 							mtime: edition.mtime,
 						});
 					};
+					onpieces.add(onpiece);
+					if(edition0) pieces0.forEach(([begin, content]) => onpiece(edition0, begin, content));
 				}
 			};
 		});
