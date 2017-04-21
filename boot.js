@@ -837,7 +837,11 @@ const ajax = (() => {
 							(points[k + 1] >= 0 ? chunklist[0].size === points[k + 1] - points[k] + 1 : complete);
 							k += 2
 						) chunklist[0] = new Blob([chunklist[0], ...chunklist.splice(1, 1)]);
-						listener(new Blob(chunklist.slice(0, 2)), chunklist.length === 1);
+						const chunk = new Blob(chunklist.slice(0, 2));
+						if(chunk.size < process || edition.date < date || chunk.size === process && edition.date === date) return;
+						listener(true, chunklist.length === 1, chunk, {
+							mtime: edition.mtime,
+						});
 					};
 				}
 			};
