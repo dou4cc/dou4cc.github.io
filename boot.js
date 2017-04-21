@@ -838,10 +838,11 @@ const ajax = (() => {
 							k += 2
 						) chunklist[0] = new Blob([chunklist[0], ...chunklist.splice(1, 1)]);
 						const chunk = new Blob(chunklist.slice(0, 2));
-						if(chunk.size < process || edition.date < date || chunk.size === process && edition.date === date) return;
+						const process1 = chunklist.length === 1 ? Infinity : chunk.size;
+						if(process1 < process || edition.date < date || process1 === process && edition.date === date) return;
 						date = edition.date;
-						process = chunk.size;
-						listener(chunklist.length === 1, chunk, {
+						process = process1;
+						listener(process === Infinity, chunk, {
 							mtime: edition.mtime,
 						});
 					};
