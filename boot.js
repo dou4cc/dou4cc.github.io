@@ -831,7 +831,7 @@ const ajax = (() => {
 						for(let i = 1, j = k, begin1; i < l && (begin1 = points[j] + chunklist[i] - begin) >= 0; i += 1, j += 2){
 							chunklist[i] = new Blob([chunklist[i], content.slice(
 								begin1, ...points[j + 1] >= 0 ? [points[j + 1] + 1 - begin] : [],
-							))]);
+							)]);
 						}
 						for(;
 							chunklist.length > 1 &&
