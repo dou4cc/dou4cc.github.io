@@ -111,7 +111,7 @@ const db = (() => {
 				"use strict";
 
 				const ports = new Set;
-				addEventListener("connect", ({ports: [...ports1]}) => ports1.forEach(port => {
+				addEventListener("connect", event => event.ports.forEach(port => {
 					ports.add(port);
 					port.addEventListener("message", ({data}) => {
 						if(data instanceof Array) return ports.forEach(port => port.postMessage(data));
@@ -848,7 +848,7 @@ const ajax = (() => {
 						});
 					};
 					onpieces.add(onpiece);
-					if(edition0) pieces0.forEach(([begin, content]) => onpiece(edition0, begin, content));
+					if(edition0) pieces0.forEach(([begin, content]) => run(() => () => onpiece(edition0, begin, content)));
 					return () => onpieces.delete(onpiece);
 				}
 			};
