@@ -9,6 +9,16 @@ const format_uri = uri => {
 };
 library.format_uri = format_uri;
 
+const iota = (() => {
+	const pool = new WeakMap;
+	return object => () => {
+		const n = pool.get(object) || 0;
+		pool.set(object, n + 1);
+		return n;
+	};
+})();
+library.iota = iota;
+
 const cache = f => {
 	let args;
 	let result;
@@ -736,13 +746,36 @@ const ajax = (() => {
 	};
 	const movelist = (mode, ...pointlist) => pointlist.map(pos => [mode = !mode, pos]);
 	const mix = (a, b, mode0, mode1, mode2) => pointlist(mode0, ...movelist(mode1, ...a).concat(movelist(mode2, ...b)));
-	const connect = tube(uri => {
+	const assign = tube(uri => {
 		const cancels = new Set;
 		const file = multi_key_map();
 		const tags = [];
 		let edition0;
 		let pieces0;
 		const onpieces = new Set;
+		const pointlists = new Set;
+		let pointlist0 = [];
+		const pool = new Set;
+		let date0;
+		let tag0;
+		const request = (uri, begin) => {
+			if("body" in Response.prototype){
+				const headers = new Headers({
+					"Cache-Control": "max-age=0",
+					"Range": "bytes=" + begin + "-",
+				});
+				if(tag0) headers.append(...tag0);
+				fetch(new Request(uri, {headers}));
+			}
+		};
+		const update = (date, tag) => {
+			date = Number.isNaN(date = +new Date(date)) ? -Infinity : date;
+			if(!(date0 >= date)){
+				date0 = date;
+				tag0 = tag;
+			}
+			return date;
+		};
 		cancels.add(dir(uri, (dir, tag) => {
 			if(!(tag instanceof Array) || file.get(...tag)) return;
 			const edition = {
@@ -758,8 +791,7 @@ const ajax = (() => {
 			cancels.add(dir((dir, record) => {
 				if(!(record instanceof Array) || records.get(...record)) return;
 				records.set(...record, edition.records.push([...record]));
-				let date = +new Date(record.shift());
-				if((date = edition.date = Math.max(edition.date, Number.isNaN(date) ? -Infinity : date)) > edition0.date){
+				if((edition.date = Math.max(edition.date, update(record.shift(), tag))) > edition0.date){
 					edition0 = edition;
 					pieces0 = pieces;
 				}
@@ -793,7 +825,7 @@ const ajax = (() => {
 						if(pieces.length > 1 || pieces[0][0] > 0 || pieces[0][1].size !== edition.size) return;
 						tags.forEach(tag => {
 							const edition1 = file.get(...tag);
-							if(date <= edition1.date) return;
+							if(edition.date <= edition1.date) return;
 							edition1.records.forEach(record => db.put(...path, uri, tag, record, db.end));
 							edition1.records = [];
 						});
@@ -802,16 +834,14 @@ const ajax = (() => {
 				}
 			}));
 		}));
-		const pointlists = new Set;
-		let pointlist0 = [];
 		const arrange = tube((...pointlist) => {
 			const length = Math.ceil(pointlist.length / 2) + 1;
 			pointlists.add(pointlist);
-			const pointlist1 = pointlist0;
-			pointlist0 = mix(pointlist0, pointlist, false, false, false);
 			if(pointlists.size === 1){
-				pointlist1 = mix(pointlist0, pointlist1, false, false, true);
-				//
+				pointlist0 = pointlist;
+				
+			}else{
+				pointlist0 = mix(pointlist0, pointlist, false, false, false);
 			}
 			return listener => {
 				if(listener){
@@ -860,9 +890,12 @@ const ajax = (() => {
 	});
 	const ajax = tube((uri, ...pointlist) => {
 		let s = 0;
-		pointlist = pointlist.map(a => s += a);
+		pointlist = pointlist.map(a => {
+			if(!(a >= 0)) throw new TypeError;
+			s += a;
+		});
 		const [hell0, resolve] = resolve();
-		const cancel = connect(uri)(arrange => resolve(arrange(...pointlist)));
+		const cancel = assign(uri)(arrange => resolve(arrange(...pointlist)));
 		return listener => {
 			if(listener){
 				const cancel = tickline(arrange => arrange(listener))(hell0);
