@@ -753,21 +753,24 @@ const ajax = (() => {
 		let edition0;
 		let pieces0;
 		const onpieces = new Set;
+		const onfails = new Set;
 		const pointlists = new Set;
 		let pointlist0 = [];
 		const pool = new Set;
 		let date0;
 		let tag0;
-		const request = (uri, begin) => {
-			if("body" in Response.prototype){
-				const headers = new Headers({
-					"Cache-Control": "max-age=0",
-					"Range": "bytes=" + begin + "-",
-				});
-				if(tag0) headers.append(...tag0);
-				fetch(new Request(uri, {headers}));
-			}
-		};
+		const request = "body" in Response.prototype
+		? (uri, begin) => {
+			const headers = new Headers({
+				"Cache-Control": "max-age=0",
+				"Range": "bytes=" + begin + "-",
+			});
+			if(tag0) headers.append(...tag0);
+			fetch(uri, {headers}).then(response => {
+				
+			});
+		}
+		: () => {};
 		const update = (date, tag) => {
 			date = Number.isNaN(date = +new Date(date)) ? -Infinity : date;
 			if(!(date0 >= date)){
@@ -791,7 +794,7 @@ const ajax = (() => {
 			cancels.add(dir((dir, record) => {
 				if(!(record instanceof Array) || records.get(...record)) return;
 				records.set(...record, edition.records.push([...record]));
-				if((edition.date = Math.max(edition.date, update(record.shift(), tag))) > edition0.date){
+				if(!((edition.date = Math.max(edition.date, update(record.shift(), tag))) <= (edition0 || {}).date)){
 					edition0 = edition;
 					pieces0 = pieces;
 				}
