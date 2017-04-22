@@ -772,7 +772,8 @@ const ajax = (() => {
 		}
 		: () => {};
 		const update = (date, tag) => {
-			date = Number.isNaN(date = +new Date(date)) ? -Infinity : date;
+			date = +new Date(date);
+			date = Number.isNaN(date) ? -Infinity : date;
 			if(!(date0 >= date)){
 				date0 = date;
 				tag0 = tag;
