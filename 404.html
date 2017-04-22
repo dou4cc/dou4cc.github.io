@@ -101,7 +101,7 @@
 								}
 							};
 							const [hell, is_hell] = (() => {
-								const hell_set = new WeakSet;
+								const hells = new WeakSet;
 								return [
 									() => {
 										const hell0 = callback => {
@@ -113,7 +113,7 @@
 										};
 										let result;
 										let callbacks = [];
-										hell_set.add(hell0);
+										hells.add(hell0);
 										return [
 											hell0,
 											result1 => {
@@ -125,7 +125,7 @@
 											},
 										];
 									},
-									target => hell_set.has(target),
+									target => hells.has(target),
 								];
 							})();
 							const tickline = (...ticks) => {

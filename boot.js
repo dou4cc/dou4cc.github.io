@@ -183,14 +183,14 @@ const db = (() => {
 			});
 			const hub = self.eval('"use strict"; ' + unescape("${escape(hub_source)}"))(library, hell1);
 
-			const db_set = new Set;
+			const dbs = new Set;
 			const open_db = name => {
 				const symbol = Symbol();
-				db_set.add(symbol);
+				dbs.add(symbol);
 				const cn = indexedDB.open(name);
 				cn.addEventListener("success", () => {
-					db_set.add(cn.result);
-					db_set.delete(symbol);
+					dbs.add(cn.result);
+					dbs.delete(symbol);
 				});
 				return cn;
 			};
@@ -205,8 +205,8 @@ const db = (() => {
 						if(!canceled) close_db(target.db);
 					});
 				}else{
-					db_set.delete(target);
-					if(db_set.size === 0){
+					dbs.delete(target);
+					if(dbs.size === 0){
 						hub.send(...list);
 						tickline(port => {
 							port.postMessage("disconnect");
@@ -637,30 +637,30 @@ const tubeline = (() => {
 				tubes = tubes.map(tube0 => tubeline(tube0));
 				return tube((...condition) => {
 					const listen = listener => {
-						cancel_map.set(listener, () => {
-							cancel_map.delete(listener);
+						cancels.set(listener, () => {
+							cancels.delete(listener);
 							run(() => thunk);
 						});
 						const thunk = thunk1(listener);
 					};
-					const listener_set = new Set;
-					const cancel_map = new Map;
+					const listeners = new Set;
+					const cancels = new Map;
 					const thunk0 = tubes[0](...condition)((...args) => {
 						thunk1 = tubes[1](...args);
-						[...listener_set].forEach(listener => listen(listener));
+						[...listeners].forEach(listener => listen(listener));
 						return () => {
 							thunk1 = null;
-							cancel_map.forEach(cancel => cancel());
+							cancels.forEach(cancel => cancel());
 						};
 					});
 					let thunk1;
 					return listener => {
 						if(listener){
-							listener_set.add(listener);
+							listeners.add(listener);
 							if(thunk1) listen(listener);
 							return () => {
-								listener_set.delete(listener);
-								cancel_map.get(listener)();
+								listeners.delete(listener);
+								cancels.get(listener)();
 							};
 						}
 						thunk0();
@@ -758,7 +758,8 @@ const ajax = (() => {
 			cancels.add(dir((dir, record) => {
 				if(!(record instanceof Array) || records.get(...record)) return;
 				records.set(...record, edition.records.push([...record]));
-				if((edition.date = Math.max(edition.date, +new Date(record.shift()))) > edition0.date){
+				let date = +new Date(record.shift());
+				if((date = edition.date = Math.max(edition.date, Number.isNaN(date) ? -Infinity : date)) > edition0.date){
 					edition0 = edition;
 					pieces0 = pieces;
 				}
@@ -792,7 +793,7 @@ const ajax = (() => {
 						if(pieces.length > 1 || pieces[0][0] > 0 || pieces[0][1].size !== edition.size) return;
 						tags.forEach(tag => {
 							const edition1 = file.get(...tag);
-							if(edition.date < edition1.date) return;
+							if(date <= edition1.date) return;
 							edition1.records.forEach(record => db.put(...path, uri, tag, record, db.end));
 							edition1.records = [];
 						});
