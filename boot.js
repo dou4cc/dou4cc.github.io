@@ -772,7 +772,7 @@ const ajax = (() => {
 				});
 			}
 			: () => {};
-		const update = (date, tag) => {
+		const update0 = (date, tag) => {
 			date = +new Date(date);
 			date = Number.isNaN(date) ? -Infinity : date;
 			if(!(date0 >= date)){
@@ -781,6 +781,12 @@ const ajax = (() => {
 			}
 			return date;
 		};
+		const update1 = date => tags.forEach(tag => {
+			const edition = file.get(...tag);
+			if(date <= edition.date) return;
+			edition.records.forEach(record => db.put(...path, uri, tag, record, db.end));
+			edition.records = [];
+		});
 		cancels.add(dir(uri, (dir, tag) => {
 			if(!(tag instanceof Array) || file.get(...tag)) return;
 			const edition = {
@@ -796,7 +802,7 @@ const ajax = (() => {
 			cancels.add(dir((dir, record) => {
 				if(!(record instanceof Array) || records.get(...record)) return;
 				records.set(...record, edition.records.push([...record]));
-				if(!((edition.date = Math.max(edition.date, update(record.shift(), tag))) <= (edition0 || {}).date)){
+				if(!((edition.date = Math.max(edition.date, update0(record.shift(), tag))) <= (edition0 || {}).date)){
 					edition0 = edition;
 					pieces0 = pieces;
 				}
