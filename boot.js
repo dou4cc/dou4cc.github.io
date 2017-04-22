@@ -848,7 +848,7 @@ const ajax = (() => {
 						});
 					};
 					onpieces.add(onpiece);
-					if(edition0) pieces0.forEach(([begin, content]) => run(() => () => onpiece(edition0, begin, content));
+					if(edition0) pieces0.forEach(([begin, content]) => run(() => () => onpiece(edition0, begin, content)));
 					return () => onpieces.delete(onpiece);
 				}
 			};
