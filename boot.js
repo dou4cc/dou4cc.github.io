@@ -759,18 +759,19 @@ const ajax = (() => {
 		const pool = new Set;
 		let date0;
 		let tag0;
-		const request = "body" in Response.prototype
-		? (uri, begin) => {
-			const headers = new Headers({
-				"Cache-Control": "max-age=0",
-				"Range": "bytes=" + begin + "-",
-			});
-			if(tag0) headers.append(...tag0);
-			fetch(uri, {headers}).then(response => {
-				
-			});
-		}
-		: () => {};
+		const request =
+			"body" in Response.prototype
+			? (uri, begin) => {
+				const headers = new Headers({
+					"Cache-Control": "max-age=0",
+					"Range": "bytes=" + begin + "-",
+				});
+				if(tag0) headers.append(...tag0);
+				fetch(uri, {headers}).then(response => {
+					
+				});
+			}
+			: () => {};
 		const update = (date, tag) => {
 			date = +new Date(date);
 			date = Number.isNaN(date) ? -Infinity : date;
