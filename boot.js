@@ -767,7 +767,7 @@ const ajax = (() => {
 					"Cache-Control": "max-age=0",
 					"Range": "bytes=" + begin + "-",
 				});
-				if(tag0) headers.append(...tag0);
+				if(tag0) headers.set(...tag0);
 				fetch(uri, {headers}).then(response => {
 					
 				});
