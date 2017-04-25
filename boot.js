@@ -778,7 +778,8 @@ const ajax = (() => {
 			date = Number.isNaN(date) ? -Infinity : date;
 			if(!(date0 >= date)){
 				date0 = date;
-				tag0 = tag;
+				[tag, tag0] = [tag0, tag];
+				if(tag && (!tag0 || indexedDB.cmp(tag, tag0) !== 0)) pool.forEach(cn => cn.abort());
 			}
 			return date;
 		};
@@ -790,11 +791,9 @@ const ajax = (() => {
 		});
 		const unfound = date => {
 			if(!(date > date0)) return;
-			date0 = date;
-			tag0 = null;
 			edition0 = null;
 			pieces0 = null;
-			pool.forEach(cn => cn.abort());
+			update0(date);
 			update1(date);
 		};
 		cancels.add(dir(uri, (dir, tag) => {
