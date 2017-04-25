@@ -788,6 +788,15 @@ const ajax = (() => {
 			edition.records.forEach(record => db.put(...path, uri, tag, record, db.end));
 			edition.records = [];
 		});
+		const unfound = date => {
+			if(!(date > date0)) return;
+			date0 = date;
+			tag0 = null;
+			edition0 = null;
+			pieces0 = null;
+			pool.forEach(cn => cn.abort());
+			update1(date);
+		};
 		cancels.add(dir(uri, (dir, tag) => {
 			if(!(tag instanceof Array) || file.get(...tag)) return;
 			const edition = {
