@@ -753,7 +753,7 @@ const ajax = (() => {
 		let edition0;
 		let pieces0;
 		const onpieces = new Set;
-		const onfails = new Set;
+		const onunfounds = new Set;
 		const pointlists = new Set;
 		let pointlist0 = [];
 		const pool = new Set;
@@ -844,12 +844,12 @@ const ajax = (() => {
 			const length = Math.ceil(pointlist.length / 2) + 1;
 			pointlists.add(pointlist);
 			pointlist0 = mix(pointlist0, pointlist, false, false, false);
+			let unfound = -Infinity;
+			const onunfound = () => unfound = date0;
+			onunfounds.add(onunfound);
 			if(count === 0){
 				
 			}
-			let fail = -Infinity;
-			const onfail = () => fail = date0;
-			onfails.add(onfail);
 			return listener => {
 				if(listener){
 					const chunklists = new Map;
@@ -865,14 +865,14 @@ const ajax = (() => {
 						const end = begin + content.size - 1;
 						const l = chunklist.length;
 						let k = 2 * (length - l);
-						for(let i = 1, j = k, begin1; i < l && (begin1 = points[j] + chunklist[i] - begin) >= 0; i += 1, j += 2){
+						for(let i = 1, j = k, begin1; i < l && (begin1 = pointlist[j] + chunklist[i] - begin) >= 0; i += 1, j += 2){
 							chunklist[i] = new Blob([chunklist[i], content.slice(
-								begin1, ...points[j + 1] >= 0 ? [points[j + 1] + 1 - begin] : [],
+								begin1, ...pointlist[j + 1] >= 0 ? [pointlist[j + 1] + 1 - begin] : [],
 							)]);
 						}
 						for(;
 							chunklist.length > 1 &&
-							(points[k + 1] >= 0 ? chunklist[0].size === points[k + 1] - points[k] + 1 : complete);
+							(pointlist[k + 1] >= 0 ? chunklist[0].size === pointlist[k + 1] - pointlist[k] + 1 : complete);
 							k += 2
 						) chunklist[0] = new Blob([chunklist[0], ...chunklist.splice(1, 1)]);
 						const chunk = new Blob(chunklist.slice(0, 2));
@@ -885,19 +885,22 @@ const ajax = (() => {
 						});
 					};
 					onpieces.add(onpiece);
-					const onfail = () => listener();
-					onfails.add(onfail);
+					const onunfound = () => {
+						process = 0;
+						listener();
+					};
+					onunfounds.add(onunfound);
 					if(edition0){
 						pieces0.forEach(([begin, content]) => run(() => () => onpiece(edition0, begin, content)));
-					}else if(fail === date0){
-						run(() => onfail);
+					}else if(unfound === date0){
+						run(() => onunfound);
 					}
 					return () => {
 						onpieces.delete(onpiece);
-						onfails.delete(onfail);
+						onunfounds.delete(onunfound);
 					};
 				}
-				onfails.delete(onfail);
+				onunfounds.delete(onunfound);
 			};
 		});
 		return listener => {
