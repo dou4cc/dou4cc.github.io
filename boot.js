@@ -761,6 +761,12 @@ const ajax = (() => {
 		let date0;
 		let tag0;
 		const request = (uri, begin) => {
+			const unfound = date => {
+				if(!(date > date0)) return;
+				edition0 = null;
+				pieces0 = null;
+				update1(date);
+			};
 			count += 1;
 			if("body" in Response.prototype){
 				const headers = new Headers({
@@ -768,13 +774,16 @@ const ajax = (() => {
 					"Range": "bytes=" + begin + "-",
 				});
 				if(tag0) headers.set(...tag0);
-				fetch(uri, {headers}).then(response => {
-					
+				return fetch(uri, {headers}).then(response => {
+					if(response.status === 404){
+						unfound(update0(response.headers.get("Date")));
+						return response.body.getReader().cancel();
+					}
 				});
 			}
 		};
 		const update0 = (date, tag) => {
-			date = +new Date(date);
+			date = +new Date(date === null ? NaN : date);
 			date = Number.isNaN(date) ? -Infinity : date;
 			if(!(date0 >= date)){
 				date0 = date;
@@ -789,13 +798,6 @@ const ajax = (() => {
 			edition.records.forEach(record => db.put(...path, uri, tag, record, db.end));
 			edition.records = [];
 		});
-		const unfound = date => {
-			if(!(date > date0)) return;
-			edition0 = null;
-			pieces0 = null;
-			update0(date);
-			update1(date);
-		};
 		cancels.add(dir(uri, (dir, tag) => {
 			if(!(tag instanceof Array) || file.get(...tag)) return;
 			const edition = {
