@@ -762,6 +762,7 @@ const ajax = (() => {
 		let tag0;
 		const request = (uri, begin) => {
 			const unfound = date => {
+				date = update0(date);
 				if(!(date > date0)) return;
 				edition0 = null;
 				pieces0 = null;
@@ -775,9 +776,20 @@ const ajax = (() => {
 				});
 				if(tag0) headers.set(...tag0);
 				return fetch(uri, {headers}).then(response => {
+					const headers = response.headers;
 					if(response.status === 404){
-						unfound(update0(response.headers.get("Date")));
+						unfound(headers.get("Date"));
 						return response.body.getReader().cancel();
+					}
+					if(response.status >= 200 && response.status < 300){
+						let tag;
+						tag =
+							(tag = headers.get("ETag")) === null
+							? (tag = headers.get("Last-Modified")) === null
+							? null
+							: ["If-Modified-Since", tag]
+							: ["If-None-Match", tag];
+						if(!tag) return;
 					}
 				});
 			}
