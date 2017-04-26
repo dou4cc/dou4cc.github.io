@@ -274,11 +274,11 @@
 							if(xhr.status >= 200 && xhr.status < 300){
 								cache = {source: xhr.responseText};
 								const ETag = xhr.getResponseHeader("ETag");
-								if(ETag !== null){
-									cache.tag = ["If-None-Match", ETag];
-								}else{
+								if(ETag === null){
 									const Last_Modified = xhr.getResponseHeader("Last-Modified");
-									if(Last_Modified) cache.tag = ["If-Modified-Since", Last_Modified];
+									if(Last_Modified !== null) cache.tag = ["If-Modified-Since", Last_Modified];
+								}else{
+									cache.tag = ["If-None-Match", ETag];
 								}
 							}else if(xhr.status !== 304 && xhr.status !== 404){
 								requestAnimationFrame(check);
