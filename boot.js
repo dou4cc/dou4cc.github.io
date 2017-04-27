@@ -777,9 +777,13 @@ const ajax = (() => {
 				if(tag0) headers.set(...tag0);
 				return fetch(uri, {headers}).then(response => {
 					const headers = response.headers;
+					const date = headers.get("Date");
+					const reader = response.body.getReader();
+					const read = () => reader.read().then(target => {
+					});
 					if(response.status === 404){
-						unfound(headers.get("Date"));
-						return response.body.getReader().cancel();
+						unfound(date);
+						return reader.cancel();
 					}
 					if(response.status >= 200 && response.status < 300){
 						let tag;
@@ -790,6 +794,8 @@ const ajax = (() => {
 							: ["If-Modified-Since", tag]
 							: ["If-None-Match", tag];
 						if(!tag) return;
+						update0(date, tag);
+						read();
 					}
 				});
 			}
