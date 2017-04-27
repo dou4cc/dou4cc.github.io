@@ -779,22 +779,41 @@ const ajax = (() => {
 					const headers = response.headers;
 					const date = headers.get("Date");
 					const reader = response.body.getReader();
-					const read = () => reader.read().then(target => {
-					});
 					if(response.status === 404){
 						unfound(date);
 						return reader.cancel();
 					}
 					if(response.status >= 200 && response.status < 300){
-						let tag;
-						tag =
-							(tag = headers.get("ETag")) === null
-							? (tag = headers.get("Last-Modified")) === null
+						let temp;
+						const tag =
+							(temp = headers.get("ETag")) === null
+							? (temp = headers.get("Last-Modified")) === null
 							? null
-							: ["If-Modified-Since", tag]
-							: ["If-None-Match", tag];
-						if(!tag) return;
+							: ["If-Modified-Since", temp]
+							: ["If-None-Match", temp];
+						if(!tag) return reader.cancel();
 						update0(date, tag);
+						const cn = {
+							begin: 0,
+							end: NaN,
+							process: 0,
+							abort: () => {
+								pool.delete(cn);
+							},
+						};
+						pool.add(cn);
+						if(
+							response.status === 206
+							&& (temp = headers.get("Content-Range"))
+							&& (temp = temp.trim().match(/^bytes\s+(\d+)\s*-\s*(\d+)\s*\/\s*(\d+)$/))
+						){
+							cn.begin = +temp[1];
+							cn.end = +temp[2];
+							const size = +temp[3];
+							if(!(temp = file.get(...tag)) || Number.isNaN(temp.size)) db.put(...path, uri, tag, [date, "size", size]);
+						}
+						const read = () => reader.read().then(target => {
+						});
 						read();
 					}
 				});
