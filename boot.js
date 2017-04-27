@@ -796,6 +796,7 @@ const ajax = (() => {
 						const cn = {
 							begin: 0,
 							end: NaN,
+							stamp: performance.now(),
 							process: 0,
 							abort: () => {
 								pool.delete(cn);
