@@ -818,8 +818,12 @@ const ajax = (() => {
 							cn.end = size - 1;
 						}
 						if(size != null && (!(temp = file.get(...tag)) || Number.isNaN(temp.size))) db.put(...path, uri, tag, [date, "size", size]);
-						const read = () => reader.read().then(target => {
-							
+						const read = () => reader.read().then(result => {
+							if(result.done) return;
+							read();
+							result = result.value;
+							cn.stamp = performance.now();
+							db.put(...path, uri, tag, [date, "piece", cn.begin + cn.progress, cn.begin + (cn.progress += result.length) - 1], result);
 						});
 						read();
 					}
