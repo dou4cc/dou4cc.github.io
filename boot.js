@@ -797,12 +797,14 @@ const ajax = (() => {
 							begin: 0,
 							end: NaN,
 							stamp: performance.now(),
-							process: 0,
+							progress: 0,
 							abort: () => {
 								pool.delete(cn);
+								reader.cancel();
 							},
 						};
 						pool.add(cn);
+						let size;
 						if(
 							response.status === 206
 							&& (temp = headers.get("Content-Range"))
@@ -810,10 +812,14 @@ const ajax = (() => {
 						){
 							cn.begin = +temp[1];
 							cn.end = +temp[2];
-							const size = +temp[3];
-							if(!(temp = file.get(...tag)) || Number.isNaN(temp.size)) db.put(...path, uri, tag, [date, "size", size]);
+							size = +temp[3];
+						}else if((size = headers.get("Content-Length")) !== null){
+							size = +size;
+							cn.end = size - 1;
 						}
+						if(size != null && (!(temp = file.get(...tag)) || Number.isNaN(temp.size))) db.put(...path, uri, tag, [date, "size", size]);
 						const read = () => reader.read().then(target => {
+							
 						});
 						read();
 					}
@@ -902,7 +908,7 @@ const ajax = (() => {
 				if(listener){
 					const chunklists = new Map;
 					let date = -Infinity;
-					let process = 0;
+					let progress = 0;
 					const onpiece = (edition, begin, content) => {
 						const chunklist = chunklists.get(edition) || (() => {
 							const chunklist = new Array(length).map(() => new Blob);
@@ -924,17 +930,17 @@ const ajax = (() => {
 							k += 2
 						) chunklist[0] = new Blob([chunklist[0], ...chunklist.splice(1, 1)]);
 						const chunk = new Blob(chunklist.slice(0, 2));
-						const process1 = chunklist.length === 1 ? Infinity : chunk.size;
-						if(process1 < process || edition.date < date || process1 === process && edition.date === date) return;
+						const progress1 = chunklist.length === 1 ? Infinity : chunk.size;
+						if(progress1 < progess || edition.date < date || progress1 === progress && edition.date === date) return;
 						date = edition.date;
-						process = process1;
-						listener(process === Infinity, chunk, {
+						progress = progress1;
+						listener(progress === Infinity, chunk, {
 							mtime: edition.mtime,
 						});
 					};
 					onpieces.add(onpiece);
 					const onunfound = () => {
-						process = 0;
+						progress = 0;
 						listener();
 					};
 					onunfounds.add(onunfound);
