@@ -780,6 +780,7 @@ const ajax = (() => {
 		let date0 = -Infinity;
 		let edition0;
 		const tags = [];
+		const listeners = new Set;
 		const state = {
 			alive: true,
 			pool: new Set,
@@ -791,9 +792,13 @@ const ajax = (() => {
 					if(edition0 && indexedDB.cmp(tag || 0, edition0.tag) !== 0){
 						state.pool.forEach(cn => cn.abort());
 						if(tag){
-							edition0 = open_edition(tag);
+							edition0 = get_edition(tag);
+							edition0.date = date;
+						}else{
+							edition0 = null;
 						}
 					}
+					if(!edition0) listeners.forEach(listener => listener());
 				}
 				return date;
 			},
