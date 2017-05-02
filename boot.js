@@ -750,10 +750,12 @@ const ajax = (() => {
 	const counts = multi_key_map();
 	const states = new Map;
 	const assign = tube(uri => {
-		const get_count = () => counts.get(uri) || 0;
-		const set_count = () => {
-			counts.set(uri, get_count() + 1);
-			return () => counts.set(uri, get_count() - 1 || undefined);
+		const count = () => {
+			counts.set(uri, (counts.get(uri) || 0) + 1);
+			return () => counts.set(uri, counts.get(uri) - 1 || undefined);
+		};
+		const connect = () => {
+			if(counts.get(uri)) return;
 		};
 		const get_edition = (() => {
 			const editions = multi_key_map();
@@ -776,7 +778,7 @@ const ajax = (() => {
 		})();
 		const pointlists = new Set;
 		let pointlist0 = [];
-		const roll0 = roll();
+		const roll0 = roll(connect);
 		let date0 = -Infinity;
 		let edition0;
 		const tags = [];
