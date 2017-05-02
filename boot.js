@@ -755,7 +755,7 @@ const ajax = (() => {
 			return () => counts.set(uri, counts.get(uri) - 1 || undefined);
 		};
 		const connect = () => {
-			if(counts.get(uri)) return;
+			
 		};
 		const get_edition = (() => {
 			const editions = multi_key_map();
@@ -791,16 +791,18 @@ const ajax = (() => {
 				date = Number.isNaN(date) ? -Infinity : date;
 				if(date > date0){
 					date0 = date;
-					if(edition0 && indexedDB.cmp(tag || 0, edition0.tag) !== 0){
-						state.pool.forEach(cn => cn.abort());
-						if(tag){
-							edition0 = get_edition(tag);
-							edition0.date = date;
-						}else{
-							edition0 = null;
-						}
+					const edition1 = edition0;
+					if(tag){
+						edition0 = get_edition(tag);
+						edition0.date = date;
+					}else{
+						edition0 = null;
+						listeners.forEach(listener => listener());
 					}
-					if(!edition0) listeners.forEach(listener => listener());
+					if(edition1 && edition0 !== edition1){
+						state.pool.forEach(cn => cn.abort());
+						if(edition0 && !counts.get(uri)) connect();
+					}
 				}
 				return date;
 			},
