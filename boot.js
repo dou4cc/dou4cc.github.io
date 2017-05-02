@@ -755,6 +755,9 @@ const ajax = (() => {
 			return () => counts.set(uri, counts.get(uri) - 1 || undefined);
 		};
 		const connect = () => {
+			request(((state.edition || {pointlist1: () => []}).pointlist1()[0] + 1 || pointlist0[0] + 1 || 1) - 1);
+		};
+		const request = begin => {
 			
 		};
 		const get_edition = (() => {
