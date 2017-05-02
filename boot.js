@@ -780,28 +780,28 @@ const ajax = (() => {
 		let pointlist0 = [];
 		const roll0 = roll(connect);
 		let date0 = -Infinity;
-		let edition0;
 		const tags = [];
 		const listeners = new Set;
 		const state = {
 			alive: true,
 			pool: new Set,
+			edition: null,
 			update: (date, tag) => {
 				date = date === null ? NaN : +new Date(date);
 				date = Number.isNaN(date) ? -Infinity : date;
 				if(date > date0){
 					date0 = date;
-					const edition1 = edition0;
+					const edition = state.edition;
 					if(tag){
-						edition0 = get_edition(tag);
-						edition0.date = date;
+						state.edition = get_edition(tag);
+						state.edition.date = date;
 					}else{
-						edition0 = null;
+						state.edition = null;
 						listeners.forEach(listener => listener());
 					}
-					if(edition1 && edition0 !== edition1){
+					if(edition && edition !== state.edition){
 						state.pool.forEach(cn => cn.abort());
-						if(edition0 && !counts.get(uri)) connect();
+						if(tag && !counts.get(uri)) connect();
 					}
 				}
 				return date;
