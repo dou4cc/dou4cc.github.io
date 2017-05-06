@@ -9,16 +9,6 @@ const format_uri = uri => {
 };
 library.format_uri = format_uri;
 
-const iota = (() => {
-	const states = new WeakMap;
-	return ref => () => {
-		const s = states.get(ref) || 0;
-		states.set(ref, s + 1);
-		return s;
-	};
-})();
-library.iota = iota;
-
 const cache = f => {
 	let args;
 	let result;
@@ -707,6 +697,11 @@ const _ajax = (listener, uri, tag, from = 0, to = null) => {
 
 const ajax = (() => {
 	const path = ["cache"];
+	const f = x => {
+		x /= 1e3;
+		x = (Math.max(0, (Math.log(x / 10 + 1.4) - Math.log(1.5)) ** 1.2 * 16) || 0) + (x / 50) ** 0.8;
+		return x * 1e3;
+	};
 	const dir = (() => {
 		const dir = path => (...path1) => {
 			let cancel;
@@ -750,28 +745,72 @@ const ajax = (() => {
 	const counts = multi_key_map();
 	const states = new Map;
 	const assign = tube(uri => {
-		const count = () => {
-			counts.set(uri, (counts.get(uri) || 0) + 1);
-			return () => counts.set(uri, counts.get(uri) - 1 || undefined);
-		};
+		const count = () => counts.set(uri, (counts.get(uri) || 0) + 1);
+		const uncount = () => counts.set(uri, counts.get(uri) - 1 || undefined);
 		const connect = () => {
-			request(((state.edition || {pointlist1: () => []}).pointlist1()[0] + 1 || pointlist0[0] + 1 || 1) - 1);
+			const state = states.get(uri);
+			if(state) request(state, ((state.edition || {pointlist1: () => []}).pointlist1()[0] + 1 || state.pointlist[0] + 1 || 1) - 1);
 		};
-		const request = begin => {
-			
-		};
+		const request = (state, begin, t) => tickline(uncount)(genfn2tick(function*(){
+			const update = (date, tag) => {
+				if(state.update(date, tag) === (t = state.date1)) state.roll(f(t - state.date0), performance.now() - stamp);
+			};
+			count();
+			const stamp = performance.now();
+			const headers = [
+				["Cache-Control", "max-age=0"],
+				["Range", "bytes=" + begin + "-"],
+				...indexedDB.cmp((t = t || 0), (t = state.edition || t)) !== 0 ? [t.tag] : [],
+			];
+			if("body" in Response.prototype){
+				const init = {headers: new Headers()};
+				headers.forEach(header => init.headers.set(...header));
+				const [error, response] = yield prom2tick(fetch(uri, init));
+				state = states.get(uri);
+				if(response){
+					const reader = response.body.getReader();
+					if(state){
+						const headers = response.headers;
+						const date = headers.get("Date");
+						if(response.status === 404) return update(date);
+						if(response.status === 304){
+							update(date, t);
+							if(state.edition.tag
+						}
+						const tag =
+							(t = headers.get("ETag")) === null
+							? (t = headers.get("Last-Modified")) === null
+							? null
+							: ["If-Modified-Since", t]
+							: ["If-None-Match", t];
+						const cn = {
+							begin,
+							end: +String(headers.get("Content-Length")),
+							progress: 0,
+							abort: () => reader.cancel(),
+						};
+						if(response.status === 206){
+							const match = 
+						}
+					}
+					reader.cancel();
+				}
+				connect();
+				return;
+			}
+		})());
 		const get_edition = (() => {
 			const editions = multi_key_map();
 			return tag => editions.get(...tag) || (() => {
 				tags.push(tag);
 				const f = cache(() => {
-					return mix(mix(pointlist0, edition.pointlist0, false, false, false), edition.pointlist0, false, false, true);
+					return mix(mix(state.pointlist, edition.pointlist0, false, false, false), edition.pointlist0, false, false, true);
 				});
 				const edition = {
 					tag,
 					date: -Infinity,
 					pointlist0: [],
-					pointlist1: () => f(...pointlist0, null, ...edition.pointlist0),
+					pointlist1: () => f(...state.pointlist, null, ...edition.pointlist0),
 					records: [],
 					mtime: new Date(NaN),
 				};
@@ -779,40 +818,46 @@ const ajax = (() => {
 				return edition;
 			})();
 		})();
-		const pointlists = new Set;
-		let pointlist0 = [];
-		const roll0 = roll(connect);
-		let date0 = -Infinity;
-		const tags = [];
-		const listeners = new Set;
-		const state = {
-			alive: true,
-			pool: new Set,
-			edition: null,
-			update: (date, tag) => {
-				date = date === null ? NaN : +new Date(date);
-				date = Number.isNaN(date) ? -Infinity : date;
-				if(date > date0){
-					date0 = date;
-					const edition = state.edition;
-					if(tag){
-						state.edition = get_edition(tag);
-						state.edition.date = date;
+		const update = (date, tag) => {
+			date = +new Date(String(date));
+			date = Number.isNaN(date) ? -Infinity : date;
+			if(date > state.date1){
+				state.date1 = date;
+				const edition = state.edition;
+				if(tag){
+					(state.edition = get_edition(tag)).date = date;
+				}else{
+					state.edition = null;
+					listeners.forEach(listener => listener());
+				}
+				if(edition !== state.edition){
+					pool.forEach(cn => cn.abort());
+					pool.clear();
+					if(Number.isNaN(state.date0)){
+						state.date0 = date - 8e3;
 					}else{
-						state.edition = null;
-						listeners.forEach(listener => listener());
-					}
-					if(edition && edition !== state.edition){
-						state.pool.forEach(cn => cn.abort());
-						if(tag && !counts.get(uri)) connect();
+						state.date0 = date;
+						connect();
 					}
 				}
-				return date;
-			},
+			}
+			return date;
+		};
+		const pointlists = new Set;
+		const tags = [];
+		const listeners = new Set;
+		const pool = new Set;
+		const state = {
+			pool,
+			edition: null,
+			pointlist: [],
+			date0: NaN,
+			date1: -Infinity,
+			roll: roll(connect),
+			update,
 		};
 		states.set(uri, state);
 		return listener => {
-			state.alive = false;
 			states.delete(uri);
 		};
 	});
