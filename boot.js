@@ -753,14 +753,14 @@ const ajax = (() => {
 		};
 		const request = (state, begin, t) => tickline(uncount)(genfn2tick(function*(){
 			const update = (date, tag) => {
-				if(state.update(date, tag) === (t = state.date1)) state.roll(f(t - state.date0), performance.now() - stamp);
+				if(state.update(date, tag) === state.date1) state.roll(f(state.date1 - state.date0), performance.now() - stamp);
 			};
 			count();
 			const stamp = performance.now();
 			const headers = [
 				["Cache-Control", "max-age=0"],
 				["Range", "bytes=" + begin + "-"],
-				...indexedDB.cmp((t = t || 0), (t = state.edition || t)) !== 0 ? [t.tag] : [],
+				...indexedDB.cmp((t = t || 0), (t = (state.edition || {tag: t}).tag)) !== 0 ? [t] : [],
 			];
 			if("body" in Response.prototype){
 				const init = {headers: new Headers()};
@@ -775,7 +775,8 @@ const ajax = (() => {
 						if(response.status === 404) return update(date);
 						if(response.status === 304){
 							update(date, t);
-							if(state.edition.tag
+							if(indexedDB.cmp(t, ((t = state.edition) || {tag: 0}).tag) === 0 && t.pointlist1().length > 0){
+							}
 						}
 						const tag =
 							(t = headers.get("ETag")) === null
