@@ -751,16 +751,23 @@ const ajax = (() => {
 			const state = states.get(uri);
 			if(state) request(state, ((state.edition || {pointlist1: () => []}).pointlist1()[0] + 1 || state.pointlist[0] + 1 || 1) - 1);
 		};
-		const request = (state, begin, t) => tickline(uncount)(genfn2tick(function*(){
+		const request = () => tickline(uncount)(genfn2tick(function*(){
 			const update = (date, tag) => {
 				if(state.update(date, tag) === state.date1) state.roll(f(state.date1 - state.date0), performance.now() - stamp);
 			};
-			count();
 			const stamp = performance.now();
+			count();
+			let state = states.get(uri);
+			if(!state) return;
+			const edition = state.edition;
+			const point = edition && edition.pointlist1()[0];
 			const headers = [
 				["Cache-Control", "max-age=0"],
-				["Range", "bytes=" + begin + "-"],
-				...indexedDB.cmp((t = t || 0), (t = (state.edition || {tag: t}).tag)) !== 0 ? [t] : [],
+				["Range", "bytes=" + (point == null ? state.pointlist[0] || 0 : point) + "-"],
+				...edition && point == null ? [[new Map([
+					["ETag", "If-Match"],
+					["Last-Modified", "If-Unmodified-Since"],
+				]).get(edition.tag[0]), edition.tag[1]]] : [],
 			];
 			if("body" in Response.prototype){
 				const init = {headers: new Headers()};
@@ -835,27 +842,32 @@ const ajax = (() => {
 					pool.forEach(cn => cn.abort());
 					pool.clear();
 					if(Number.isNaN(state.date0)){
-						state.date0 = date - 8e3;
+						state.date0 = date - 7e3;
 					}else{
 						state.date0 = date;
-						connect();
+						request();
 					}
 				}
 			}
 			return date;
 		};
+		const poll = offset => {
+			clearTimeout(timer);
+			timer = setTimeout(request, f(state.date1 - state.date0) - offset);
+		};
 		const pointlists = new Set;
 		const tags = [];
 		const listeners = new Set;
 		const pool = new Set;
+		let timer;
 		const state = {
 			pool,
 			edition: null,
 			pointlist: [],
 			date0: NaN,
 			date1: -Infinity,
-			roll: roll(connect),
 			update,
+			poll,
 		};
 		states.set(uri, state);
 		return listener => {
