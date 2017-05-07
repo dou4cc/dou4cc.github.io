@@ -43,7 +43,7 @@
 	<script>
 		"use strict";
 
-		a => function*(...[]){``};
+		a => function*(...[,]){``};
 		document.append();
 		Reflect;
 		Promise;
@@ -264,8 +264,15 @@
 							xhr.open("GET", "/boot.js");
 							xhr.setRequestHeader("Cache-Control", "max-age=0");
 							if(boot.tag){
-								xhr.setRequestHeader(...boot.tag);
-								cache = boot;
+								const [key, value] = boot.tag;
+								const key1 = new Map([
+									["ETag", "If-None-Match"],
+									["Last-Modified", "If-Modified-Since"],
+								]).get(key);
+								if(key1 !== undefined){
+									xhr.setRequestHeader(key1, value);
+									cache = boot;
+								}
 							}
 							xhr.send();
 							setTimeout(([hell0] = hell())[1], 1e4);
@@ -273,12 +280,15 @@
 						xhr.addEventListener("loadend", () => {
 							if(xhr.status >= 200 && xhr.status < 300){
 								cache = {source: xhr.responseText};
-								const ETag = xhr.getResponseHeader("ETag");
-								if(ETag === null){
-									const Last_Modified = xhr.getResponseHeader("Last-Modified");
-									if(Last_Modified !== null) cache.tag = ["If-Modified-Since", Last_Modified];
-								}else{
-									cache.tag = ["If-None-Match", ETag];
+								for(let key of [
+									"ETag,
+									"Last-Modified",
+								]){
+									const value = xhr.getResponseHeader(key);
+									if(value !== null){
+										cache.tag = [key, value];
+										break;
+									}
 								}
 							}else if(xhr.status !== 304 && xhr.status !== 404){
 								requestAnimationFrame(check);
