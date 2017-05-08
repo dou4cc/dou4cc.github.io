@@ -68,7 +68,10 @@ if(Cluster.isMaster){
 			let stats=FS.statSync(path);
 			let etag=stats.mtime.getTime().toString(36);
 			if(stats.isFile()){
-				if('range' in headers&&(headers['if-match']===etag||'if-match' in headers===false&&'if-unmodified-since' in headers===false)){
+				if(headers['if-none-match']===etag){
+					response.writeHead(304);
+					response.end();
+				}else if('range' in headers&&(headers['if-match']===etag||'if-match' in headers===false&&'if-unmodified-since' in headers===false)){
 					let start, end;
 					let matches=headers['range'].match(/^bytes=(\d*)-(\d*)$/);
 					if(matches[1])
@@ -84,9 +87,6 @@ if(Cluster.isMaster){
 						'Content-Length':end-start+1,
 					});
 					FS.createReadStream(path, {start, end, highWaterMark}).pipe(response);
-				}else if(headers['if-none-match']===etag){
-					response.writeHead(304);
-					response.end();
 				}else{
 					extension=Mimes[extension]||'application/'+extension.slice(1);
 					response.setHeader('ETag', etag);
