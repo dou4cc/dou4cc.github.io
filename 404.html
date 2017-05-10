@@ -43,7 +43,7 @@
 	<script>
 		"use strict";
 
-		a => function*(...[]){``};
+		a => function*(...[{a}]){``};
 		document.append();
 		Reflect;
 		Promise;
@@ -234,7 +234,7 @@
 						let lock = false;
 						const update = () => {
 							if(boot.source === source) return;
-							source = boot.source;
+							{source} = boot;
 							if(lock) return;
 							lock = true;
 							genfn2tick(function*(){
