@@ -40,20 +40,6 @@ const clone_list = genfn2tick(function*(list){
 });
 library.clone_list = clone_list;
 
-const roll = poll => {
-	let cancel;
-	return (interval = Infinity, offset = interval) => {
-		(cancel || (() => {}))();
-		const timer = setTimeout(() => {
-			const timer = setInterval(poll, interval);
-			cancel = () => clearInterval(timer);
-			poll();
-		}, interval - offset);
-		cancel = () => clearTimeout(timer);
-	};
-};
-library.roll = roll;
-
 const multi_key_map = () => {
 	const tree = new Map;
 	const symbol = Symbol();
@@ -235,16 +221,16 @@ const db = (() => {
 				close_db(store.transaction);
 				store.openCursor().addEventListener("success", ({target: {result}}) => {
 					if(result){
-						const name = result.value.value;
-						if(name !== undefined){
+						const {value} = result.value;
+						if(value !== undefined){
 							const f1 = () => end(cn.result);
-							const cn = open_db(name);
+							const cn = open_db(value);
 							cn.addEventListener("upgradeneeded", () => {
 								cn.removeEventListener("success", f1);
 								init_store(cn.result);
 								close_db(cn);
 							});
-							cn.addEventListener("success", () => indexedDB.deleteDatabase(name));
+							cn.addEventListener("success", () => indexedDB.deleteDatabase(value));
 							cn.addEventListener("success", f1);
 						}
 						return result.continue();
@@ -368,8 +354,8 @@ const db = (() => {
 			addEventListener("message", ({data, ports: [port]}) => {
 				if(port) resolve0(port);
 				if(!data) return;
-				list = data.list;
-				length = list.length;
+				{list} = data;
+				{length} = list;
 				f(0, data.name);
 			});
 			addEventListener("error", () => tickline(port => port.postMessage("disconnect"))(hell0));
@@ -435,7 +421,7 @@ const db = (() => {
 			genfn2tick(function*(){
 				list = yield clone_list(format(list));
 				if(canceled) return;
-				const length = list.length;
+				const {length} = list;
 				cancel = hub.on(genfn2tick(function*(...list1){
 					if(list1.length < length || !list.every((a, i) => indexedDB.cmp(a, list1[i]) === 0)) return;
 					if(list1.length > length){
@@ -747,64 +733,97 @@ const ajax = (() => {
 	const assign = tube(uri => {
 		const count = () => counts.set(uri, (counts.get(uri) || 0) + 1);
 		const uncount = () => counts.set(uri, counts.get(uri) - 1 || undefined);
-		const connect = () => {
-			const state = states.get(uri);
-			if(state) request(state, ((state.edition || {pointlist1: () => []}).pointlist1()[0] + 1 || state.pointlist[0] + 1 || 1) - 1);
+		const put = (...list) => {
+			db.put(...path, uri, ...list);
 		};
 		const request = () => tickline(uncount)(genfn2tick(function*(){
-			const update = (date, tag) => {
-				if(state.update(date, tag) === state.date1) state.roll(f(state.date1 - state.date0), performance.now() - stamp);
+			const keys = [
+				"ETag",
+				"Last-Modified",
+			];
+			const update = date => {
+				if(state.update(date, tag) === state.date) state.poll(performance.now() - stamp);
 			};
-			const stamp = performance.now();
+			const fallen = () => {
+				clearTimeout(timer);
+				timer = setTimeout(request, (-stamp + (stamp = performance.now())) * 2 || 3000);
+				const {size} = state.edition;
+				for(let {pos, end} of state.pool){
+					if(pos === undefined || end === undefined) continue;
+					if(pos - cn.pos > 2e3 && (end >= cn.end || end === size - 1)) return true;
+				}
+			};
 			count();
 			let state = states.get(uri);
 			if(!state) return;
-			const edition = state.edition;
+			state.poll(0);
+			const {edition} = state;
 			const point = edition && edition.pointlist1()[0];
+			let {tag} = edition || {};
+			const cn = {
+				pos: point == null ? state.pointlist[0] || 0 : point,
+				end: NaN,
+			};
+			let timer;
+			let stamp = NaN;
+			if(edition && fallen()) return;
 			const headers = [
 				["Cache-Control", "max-age=0"],
-				["Range", "bytes=" + (point == null ? state.pointlist[0] || 0 : point) + "-"],
+				["Range", "bytes=" + cn.begin + "-"],
 				...edition && point == null ? [[new Map([
-					["ETag", "If-Match"],
-					["Last-Modified", "If-Unmodified-Since"],
-				]).get(edition.tag[0]), edition.tag[1]]] : [],
+					["ETag", "If-None-Match"],
+					["Last-Modified", "If-Modified-Since"],
+				]).get(tag[0]), tag[1]]] : [],
 			];
 			if("body" in Response.prototype){
 				const init = {headers: new Headers()};
 				headers.forEach(header => init.headers.set(...header));
-				const [error, response] = yield prom2tick(fetch(uri, init));
-				state = states.get(uri);
+				const [, response] = yield prom2tick(fetch(uri, init));
 				if(response){
+					state = states.get(uri);
 					const reader = response.body.getReader();
+					let abort = () => reader.cancel();
 					if(state){
-						const headers = response.headers;
+						const {headers, status} = response;
 						const date = headers.get("Date");
-						if(response.status === 404) return update(date);
-						if(response.status === 304){
-							update(date, t);
-							if(indexedDB.cmp(t, ((t = state.edition) || {tag: 0}).tag) === 0 && t.pointlist1().length > 0){
+						if(status === 404 || status === 304) return update(date);
+						if(status === 206){
+							tag = null;
+							for(let keys of keys){
+								const value = headers.get(key);
+								if(value !== null){
+									tag = [key, value];
+									break;
+								}
 							}
-						}
-						const tag =
-							(t = headers.get("ETag")) === null
-							? (t = headers.get("Last-Modified")) === null
-							? null
-							: ["If-Modified-Since", t]
-							: ["If-None-Match", t];
-						const cn = {
-							begin,
-							end: +String(headers.get("Content-Length")),
-							progress: 0,
-							abort: () => reader.cancel(),
-						};
-						if(response.status === 206){
-							const match = 
+							if(tag) yield tickline(() => state.pool.delete(cn))(genfn2tick(function*(){
+								const match = headers.get("Content-Range").trim().match(/^bytes\s+(\d+)\s*-(\d+)\s*\/\s*(\d+)$/i);
+								cn.pos = +match[1];
+								cn.end = +match[2];
+								cn.abort = abort;
+								state.pool.add(cn);
+								put(tag, [date, "size", +match[3]]);
+								const mtime = headers.get("Last-Modified");
+								if(mtime !== null) put(tag, [date, "mtime", mtime]);
+								const Content_Type = headers.get("Content-Type");
+								if(Content_Type !== null){
+									const [, type, charset] = Content_Type.match(/^([^;]*).*?(?:;\s*charset\s*=([^;]*))?/i);
+									put(tag, [date, "type", type.trim()]);
+									if(charset !== undefined) put(tag, [date, "charset", charset.trim()]);
+								}
+								update(date);
+								if(indexedDB.cmp(tag, (state.edition || {tag: 0}).tag) === 0){
+									while(!fallen()){
+										const [, result] = yield prom2tick(reader.read());
+									}
+								}
+							})());
 						}
 					}
-					reader.cancel();
+					abort();
 				}
-				connect();
-				return;
+				request();
+				return clearTimeout(timer);
 			}
 		})());
 		const get_edition = (() => {
@@ -821,6 +840,8 @@ const ajax = (() => {
 					pointlist1: () => f(...state.pointlist, null, ...edition.pointlist0),
 					records: [],
 					mtime: new Date(NaN),
+					type: "",
+					charset: "",
 				};
 				editions.set(...tag, edition);
 				return edition;
@@ -829,9 +850,9 @@ const ajax = (() => {
 		const update = (date, tag) => {
 			date = +new Date(String(date));
 			date = Number.isNaN(date) ? -Infinity : date;
-			if(date > state.date1){
-				state.date1 = date;
-				const edition = state.edition;
+			if(date > state.date){
+				state.date = date;
+				const {edition} = state;
 				if(tag){
 					(state.edition = get_edition(tag)).date = date;
 				}else{
@@ -841,10 +862,10 @@ const ajax = (() => {
 				if(edition !== state.edition){
 					pool.forEach(cn => cn.abort());
 					pool.clear();
-					if(Number.isNaN(state.date0)){
-						state.date0 = date - 7e3;
+					if(date0 === undefined){
+						date0 = date - 7e3;
 					}else{
-						state.date0 = date;
+						date0 = date;
 						request();
 					}
 				}
@@ -853,24 +874,26 @@ const ajax = (() => {
 		};
 		const poll = offset => {
 			clearTimeout(timer);
-			timer = setTimeout(request, f(state.date1 - state.date0) - offset);
+			timer = setTimeout(request, f(state.date - date0) - offset);
 		};
 		const pointlists = new Set;
 		const tags = [];
 		const listeners = new Set;
 		const pool = new Set;
 		let timer;
+		let date0;
 		const state = {
+			alive: true,
 			pool,
 			edition: null,
 			pointlist: [],
-			date0: NaN,
-			date1: -Infinity,
+			date: -Infinity,
 			update,
 			poll,
 		};
 		states.set(uri, state);
 		return listener => {
+			state.alive = false;
 			states.delete(uri);
 		};
 	});
