@@ -736,7 +736,10 @@ const ajax = (() => {
 		const put = (...list) => {
 			db.put(...path, uri, ...list);
 		};
-		const request = () => tickline(uncount)(genfn2tick(function*(){
+		const request = timer => tickline(() => {
+			uncount();
+			clearTimeout(timer);
+		})(genfn2tick(function*(){
 			const keys = [
 				"ETag",
 				"Last-Modified",
@@ -747,10 +750,17 @@ const ajax = (() => {
 			const fallen = () => {
 				clearTimeout(timer);
 				timer = setTimeout(request, (-stamp + (stamp = performance.now())) * 2 || 3000);
-				const {size} = state.edition;
+				const {size, pointlist1: list} = state.edition;
+				list = list();
+				let point;
+				for(let i = 0, l = list.length; i < l; i += 2) if(list[i] <= cn.pos && !(list[i + 1] < cn.pos)){
+					point = list[i + 1] + 1 || Infinity;
+					break;
+				}
+				if(point === undefined) return;
 				for(let {pos, end} of state.pool){
 					if(pos === undefined || end === undefined) continue;
-					if(pos - cn.pos > 2e3 && (end >= cn.end || end === size - 1)) return true;
+					if(pos <= point && pos - cn.pos > 2e3 && (end >= cn.end || end === size - 1)) return true;
 				}
 			};
 			count();
@@ -759,22 +769,25 @@ const ajax = (() => {
 			state.poll(0);
 			const {edition} = state;
 			const point = edition && edition.pointlist1()[0];
-			let {tag} = edition || {};
 			const cn = {
 				pos: point == null ? state.pointlist[0] || 0 : point,
 				end: NaN,
 			};
-			let timer;
-			let stamp = NaN;
-			if(edition && fallen()) return;
 			const headers = [
 				["Cache-Control", "max-age=0"],
-				["Range", "bytes=" + cn.begin + "-"],
-				...edition && point == null ? [[new Map([
+				["Range", "bytes=" + cn.pos + "-"],
+			];
+			let tag;
+			if(edition && point == null){
+				if(!timer) return;
+				{tag} = edition || {};
+				headers.push([new Map([
 					["ETag", "If-None-Match"],
 					["Last-Modified", "If-Modified-Since"],
-				]).get(tag[0]), tag[1]]] : [],
-			];
+				]).get(tag[0]), tag[1]]);
+			}
+			let stamp = NaN;
+			if(edition && fallen()) return;
 			if("body" in Response.prototype){
 				const init = {headers: new Headers()};
 				headers.forEach(header => init.headers.set(...header));
@@ -786,7 +799,10 @@ const ajax = (() => {
 					if(state){
 						const {headers, status} = response;
 						const date = headers.get("Date");
-						if(status === 404 || status === 304) return update(date);
+						if(status === 404 || status === 304){
+							if(status === 404) abort();
+							return update(date);
+						}
 						if(status === 206){
 							tag = null;
 							for(let keys of keys){
@@ -797,7 +813,7 @@ const ajax = (() => {
 								}
 							}
 							if(tag) yield tickline(() => state.pool.delete(cn))(genfn2tick(function*(){
-								const match = headers.get("Content-Range").trim().match(/^bytes\s+(\d+)\s*-(\d+)\s*\/\s*(\d+)$/i);
+								const match = headers.get("Content-Range").match(/^\s*bytes\s+(\d+)\s*-(\d+)\s*\/\s*(\d+)\s*$/i);
 								cn.pos = +match[1];
 								cn.end = +match[2];
 								cn.abort = abort;
@@ -813,8 +829,13 @@ const ajax = (() => {
 								}
 								update(date);
 								if(indexedDB.cmp(tag, (state.edition || {tag: 0}).tag) === 0){
-									while(!fallen()){
+									while(state.alive && !fallen()){
 										const [, result] = yield prom2tick(reader.read());
+										if(!result || result.done){
+											if(!result) request();
+											return abort = () => {};
+										}
+										put(tag, [date, "piece", cn.pos, (cn.pos += result.value.length) - 1], result.value);
 									}
 								}
 							})());
@@ -823,7 +844,7 @@ const ajax = (() => {
 					abort();
 				}
 				request();
-				return clearTimeout(timer);
+				return;
 			}
 		})());
 		const get_edition = (() => {
@@ -874,7 +895,7 @@ const ajax = (() => {
 		};
 		const poll = offset => {
 			clearTimeout(timer);
-			timer = setTimeout(request, f(state.date - date0) - offset);
+			timer = setTimeout(request, f(state.date - date0) - offset, true);
 		};
 		const pointlists = new Set;
 		const tags = [];
