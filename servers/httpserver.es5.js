@@ -1,20 +1,20 @@
 ﻿'use strict';
-const Cluster=require('cluster');
+var Cluster=require('cluster');
 
 if(Cluster.isMaster){
-	const OS=require('os');
+	var OS=require('os');
 
 	process.title=process.argv.slice(1).join(' ');
 	process.chdir(process.argv[1].match(/^[^\\]+(\\[^\\]+(?=\\[^\\]+\\))*/)[0]);
-	for(let cpu of OS.cpus())
+	for(var cpu of OS.cpus())
 		Cluster.fork();
 }else{
-	const FS=require('fs');
-	const Zlib=require('zlib');
-	const Http=require('http');
-	const Https=require('https');
-	const ChildProcess=require('child_process');
-	const Mimes={
+	var FS=require('fs');
+	var Zlib=require('zlib');
+	var Http=require('http');
+	var Https=require('https');
+	var ChildProcess=require('child_process');
+	var Mimes={
 		'.':'application/octet-stream',
 		'.txt':'text/plain',
 		'.html':'text/html',
@@ -34,15 +34,15 @@ if(Cluster.isMaster){
 		'.mp4':'video/mp4',
 	};
 
-	const argv=process.argv;
-	const maxSize=12*1024*1024;
-	const highWaterMark=5*1024*1024;
-	const dir=argv[1].match(/^[^\\]+(\\[^\\]+(?=\\[^\\]+\\))*/)[0];
-	const page404=dir+'/404.html';
-	const zlibOption={windowBits:15, memLevel:9, level:9};
+	var argv=process.argv;
+	var maxSize=12*1024*1024;
+	var highWaterMark=5*1024*1024;
+	var dir=argv[1].match(/^[^\\]+(\\[^\\]+(?=\\[^\\]+\\))*/)[0];
+	var page404=dir+'/404.html';
+	var zlibOption={windowBits:15, memLevel:9, level:9};
 
 	Http.createServer(function(request, response){
-		let headers=request.headers;
+		var headers=request.headers;
 		if('origin' in headers)
 			response.setHeader('Access-Control-Allow-Origin', '*');
 		if(request.method==='OPTIONS'){
@@ -51,10 +51,10 @@ if(Cluster.isMaster){
 			return;
 		}
 
-		let extension, isDir;
-		let url=decodeURI(request.url);
-		let _path=url.match(/^[^\?]*/)[0];
-		if(_path.endsWith('/')){
+		var extension, isDir;
+		var url=decodeURI(request.url);
+		var _path=url.match(/^[^\?]*/)[0];
+		if(/\/$/.test(_path)){
 			isDir=true;
 			_path+='index.html';
 			extension='.html';
@@ -62,18 +62,18 @@ if(Cluster.isMaster){
 			isDir=false;
 			extension=url.match(/(\.[^.]*)?$/)[0]||'.html';
 		}
-		let path=dir+_path;
+		var path=dir+_path;
 
 		if(FS.existsSync(path)){
-			let stats=FS.statSync(path);
-			let etag=stats.mtime.getTime().toString(36);
+			var stats=FS.statSync(path);
+			var etag=stats.mtime.getTime().toString(36);
 			if(stats.isFile()){
 				if(headers['if-none-match']===etag){
 					response.writeHead(304);
 					response.end();
 				}else if('range' in headers&&(headers['if-match']===etag||'if-match' in headers===false&&'if-unmodified-since' in headers===false)){
-					let start, end;
-					let matches=headers['range'].match(/^bytes=(\d*)-(\d*)$/);
+					var start, end;
+					var matches=headers['range'].match(/^bytes=(\d*)-(\d*)$/);
 					if(matches[1])
 						start=matches[1]-0, end=(matches[2]-0+1||stats.size)-1;
 					else
@@ -83,10 +83,10 @@ if(Cluster.isMaster){
 						response.setHeader('Last-Modified', stats.mtime.toGMTString());
 					response.writeHead(206, {
 						'ETag':etag,
-						'Content-Range':`bytes ${start}-${end}/${stats.size}`,
+						'Content-Range':'bytes '+start+'-'+end+'/'+stats.size,
 						'Content-Length':end-start+1,
 					});
-					FS.createReadStream(path, {start, end, highWaterMark}).pipe(response);
+					FS.createReadStream(path, {start: start, end: end, highWaterMark: highWaterMark}).pipe(response);
 				}else{
 					extension=Mimes[extension]||'application/'+extension.slice(1);
 					response.setHeader('ETag', etag);
@@ -100,7 +100,7 @@ if(Cluster.isMaster){
 							if(error)
 								throw error;
 							if(headers['accept-encoding']&&headers['accept-encoding'].split(/\s*,\s*/g).indexOf('deflate')>=0){
-								let zip=Zlib.deflateSync(buffer, zlibOption);
+								var zip=Zlib.deflateSync(buffer, zlibOption);
 								if(zip.length+27<stats.size){
 									response.writeHead(200, {'Content-Encoding':'deflate'});
 									response.end(zip);
@@ -112,25 +112,25 @@ if(Cluster.isMaster){
 						});
 					}else{
 						response.writeHead(200, {'Content-Length':stats.size});
-						FS.createReadStream(path, {highWaterMark}).pipe(response);
+						FS.createReadStream(path, {highWaterMark: hignWaterMark}).pipe(response);
 					}
 				}
-				let date=new Date();
-				console.log(`${_path}·${date.getHours()}:${date.getMinutes()}:${date.getSeconds()} ${date.getMonth()+1}/${date.getDate()}`);
+				var date=new Date();
+				console.log(_path+'·'+date.getHours()+':'+date.getMinutes()+':'+date.getSeconds()+' '+(date.getMonth()+1)+'/'+date.getDate());
 				return;
 			}
 		}else if(isDir){
 			response.writeHead(404, {'Content-Type':'text/html'});
-			response.end(`<html><script>location.replace(encodeURI(unescape('index.html${escape(url.match(/(\?(.|\n)*)?$/)[0])}')))</script></html>`);
+			response.end("<html><script>location.replace(encodeURI(unescape('index.html"+escape(url.match(/(\?(.|\n)*)?$/)[0])+"')))</script></html>");
 			return;
 		}
 		if(FS.existsSync(page404)){
-			let stats=FS.statSync(page404);
+			var stats=FS.statSync(page404);
 			if(stats.size<maxSize){
 				FS.readFile(page404, function(error, buffer){
 					if(error)
 						throw error;
-					let zip=Zlib.deflateSync(buffer, zlibOption);
+					var zip=Zlib.deflateSync(buffer, zlibOption);
 					if(zip.length+27<stats.size){
 						response.writeHead(404, {'Content-Encoding':'deflate', 'Content-Type':'text/html'});
 						response.end(zip);
@@ -141,10 +141,10 @@ if(Cluster.isMaster){
 				});
 			}else{
 				response.writeHead(404, {'Content-Length':stats.size, 'Content-Type':'text/html'});
-				FS.createReadStream(page404, {highWaterMark}).pipe(response);
+				FS.createReadStream(page404, {highWaterMark: highWaterMark}).pipe(response);
 			}
-			let date=new Date();
-			console.log(`/404.html·${date.getHours()}:${date.getMinutes()}:${date.getSeconds()} ${date.getMonth()+1}/${date.getDate()}`);
+			var date=new Date();
+			console.log('/404.html·'+date.getHours()+':'+date.getMinutes()+':'+date.getSeconds()+' '+(date.getMonth()+1)+'/'+date.getDate());
 
 		}else{
 			response.writeHead(404, {'Content-Type':'application/octet-stream'});

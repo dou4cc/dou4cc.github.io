@@ -778,15 +778,14 @@ const ajax = (() => {
 				state.pool.add(cn);
 			};
 			const Last_Modified = (date, value) => {
-				if(value !== null) put(tag, [date, "mtime", value]);
+				if(value !== null) put(tag, [date, "mtime", +new Date(value)]);
 			};
 			const Content_Type = (date, value) => {
-				const keys = [
-					"type",
-					"charset",
-				];
 				if(value !== null) value.match(/^([^;]*).*?(?:;\s*charset\s*=([^;]*))?/i).slice(1).forEach((a, i) => {
-					if(a !== undefined) put(tag, [date, keys[i], a.trim()]);
+					if(a !== undefined) put(tag, [date, [
+						"type",
+						"charset",
+					][i], a.trim()]);
 				});
 			};
 			const piece = (date, buffer) => put(tag, [date, "piece", cn.pos, (cn.pos += buffer.length) - 1], buffer);
@@ -880,7 +879,7 @@ const ajax = (() => {
 				pointlist0: [],
 				pointlist1: () => f(...state.pointlist, null, ...edition.pointlist0),
 				records: [],
-				mtime: new Date(NaN),
+				mtime: NaN,
 				type: null,
 				charset: null,
 			};
@@ -933,36 +932,28 @@ const ajax = (() => {
 			const edition = get_edition(tag);
 			records.set(...tag, null, ...record, edition.records.push([...record]));
 			edition.date = Math.max(edition.date, update(record.shift(), tag));
-			switch(record.shift()){
-			case "size":
-				edition.size = record.shift();
-				break;
-			case "mtime":
-				edition.mtime = new Date(record.shift());
-				break;
-			case "type":
-				edition.type = record.shift();
-				break;
-			case "charset":
-				edition.charset = record.shift();
-				break;
+			const flag = record.shift();
+			switch(flag){
 			case "piece":
 				return content => {
 					if(content === db.end) return;
-					content = new Blob([content]);
-					const begin = record.shift();
-					const end = record.shift();
-					const list0 = edition.pointlist0;
-					const list1 = edition.pointlist0 = mix(list0, [begin, end], false, false, false);
-					const pieces = [];
+					const {pointlist0, pieces} = edition;
+					const list = edition.pointlist0 = mix(pointlist0, [begin, end], false, false, false);
 					let i = 0;
-					for(; i < list1.length && list0[i] === list1[i] && list0[i + 1] === list1[i + 1]; i += 2){
-						pieces.push(edition.pieces.shift());
-					}
-					let j = Math.ceil(list1.length / 2);
-					
-					edition.pieces = pieces;
+					let j = 0;
+					const p0 = () => i < pointlist0.length && j < list.length;
+					const p1 = () => pointlist0[i] === list[i] && pointlist0[i + 1] === list[i + 1];
+					for(; p0() && p1(); i += 2, j += 2);
+					for(j += 2; p0() && !p1(); i += 2);
+					const k = j / 2 - 1;
+					pieces.splice(k, i / 2 - k, new Blob([
+						pieces[k].slice(0, Math.min(0, record[0] - pointlist0[i - 1] - 1)),
+						content,
+						pieces[i / 2 - 1].slice(Math.max(0, record[1] - pointlist0[i - 2] + 1)),
+					]));
 				};
+			default:
+				[edition[flag]] = record;
 			}
 			edition.records.pop();
 		};
