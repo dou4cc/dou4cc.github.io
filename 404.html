@@ -234,7 +234,7 @@
 						let lock = false;
 						const update = () => {
 							if(boot.source === source) return;
-							{source} = boot;
+							({source}) = boot;
 							if(lock) return;
 							lock = true;
 							genfn2tick(function*(){
