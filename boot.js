@@ -354,8 +354,8 @@ const db = (() => {
 			addEventListener("message", ({data, ports: [port]}) => {
 				if(port) resolve0(port);
 				if(!data) return;
-				({list}) = data;
-				({length}) = list;
+				({list} = data);
+				({length} = list);
 				f(0, data.name);
 			});
 			addEventListener("error", () => tickline(port => port.postMessage("disconnect"))(hell0));
@@ -805,7 +805,7 @@ const ajax = (() => {
 			let tag;
 			if(edition && point == null){
 				if(!timer) return;
-				({tag}) = edition || {};
+				({tag} = edition || {});
 				headers.push([new Map([
 					["ETag", "If-None-Match"],
 					["Last-Modified", "If-Modified-Since"],
@@ -844,7 +844,7 @@ const ajax = (() => {
 								Content_Range(date, headers.get("Content-Range"));
 								Last_Modified(date, headers.get("Last-Modified"));
 								Content_Type(date, headers.get("Content-Type"));
-								({edition}) = state;
+								({edition} = state);
 								if(indexedDB.cmp(tag, (edition || {tag: 0}).tag) === 0){
 									while(state.alive && !fallen()){
 										const [, result] = yield prom2tick(reader.read());
@@ -999,7 +999,7 @@ const ajax = (() => {
 			if(!counts.get(uri)) request(true);
 			let date;
 			const listener0 = (...args) => {
-				if(args.length === 0) ({date}) = state;
+				if(args.length === 0) ({date} = state);
 			};
 			listeners.add(listener0);
 			const length = Math.ceil(pointlist.length / 2) + 1;
