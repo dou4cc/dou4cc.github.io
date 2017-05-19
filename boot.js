@@ -899,7 +899,7 @@ const ajax = (() => {
 						cancel();
 						cancels.delete(cancel);
 						if(content) thunk(content);
-					}));
+					});
 					cancels.add(cancel);
 				}
 			}));
@@ -918,7 +918,7 @@ const ajax = (() => {
 					if(edition.records.size === 0) edition.pieces.forEach((piece, i) => {
 						const record = [date1, "piece", edition.pointlist0[i * 2], edition.pointlist0[i * 2 + 1]];
 						const reader = new FileReader;
-						reader.addEventListener("load", () => put(tag, record, new Uint8Array(reader.result));
+						reader.addEventListener("load", () => put(tag, record, new Uint8Array(reader.result)));
 						reader.readAsArrayBuffer(piece);
 						put(tag, record);
 						pool.add({abort: () => {
