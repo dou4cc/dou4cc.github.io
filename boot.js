@@ -989,7 +989,7 @@ const ajax = (() => {
 						listeners.forEach(listener => listener(edition, list[k * 2], pieces[k]));
 					}
 					if(date < date1) return put(tag, record0, db.end);
-					if(size > 0 && (pieces[0] || {}).size !== size || !(date > date1)) return;
+					if(size !== 0 && (pieces[0] || {}).size !== size || !(date > date1)) return;
 					date1 = date;
 					tags.forEach(tag => {
 						const edition = editions.get(...tag);
