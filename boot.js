@@ -22,7 +22,7 @@ const cache = f => {
 library.cache = cache;
 
 const clone = source => {
-	if(source === null || new Set(["undefined", "boolean", "number", "string"]).has(typeof source)) return source;
+	if(source === null || new Set(["undefined", "boolean", "number", "string", "symbol"]).has(typeof source)) return source;
 	const [hell0, resolve] = hell();
 	const {port1, port2: port0} = new MessageChannel;
 	port1.addEventListener("message", ({data}) => resolve(data));
@@ -419,7 +419,7 @@ const db = (() => {
 			let cancel;
 			let canceled = false;
 			genfn2tick(function*(){
-				list = yield clone_list(format(list));
+				list = format(yield clone_list(list));
 				if(canceled) return;
 				const {length} = list;
 				cancel = hub.on(genfn2tick(function*(...list1){
