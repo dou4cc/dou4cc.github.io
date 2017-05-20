@@ -883,7 +883,8 @@ const ajax = (() => {
 				date: -Infinity,
 				pointlist0: [],
 				pointlist1: () => f(edition.size, ...state.pointlist, NaN, ...edition.pointlist0),
-				records: new Set,
+				records0: new Set,
+				records1: new Set,
 				pieces: [],
 				size: NaN,
 				mtime: NaN,
@@ -892,16 +893,12 @@ const ajax = (() => {
 			};
 			editions.set(...tag, edition);
 			cancels.add(dir(tag, (dir, record) => {
-				if(!record) return;
+				if(!record || hash.get(...tag, false, ...record)) return;
+				hash.set(...tag, false, ...record, true);
 				const thunk = store(tag, record);
-				if(thunk){
-					const cancel = dir((dir, content) => {
-						cancel();
-						cancels.delete(cancel);
-						if(content) thunk(content);
-					});
-					cancels.add(cancel);
-				}
+				if(thunk) cancels.add(dir((dir, content) => {
+					if(content) thunk(content);
+				}));
 			}));
 			return edition;
 		})();
@@ -915,17 +912,23 @@ const ajax = (() => {
 				if(tag){
 					const edition = state.edition = get_edition(tag);
 					edition.date = date;
-					if(edition.records.size === 0) edition.pieces.forEach((piece, i) => {
-						const record = [date1, "piece", edition.pointlist0[i * 2], edition.pointlist0[i * 2 + 1]];
-						const reader = new FileReader;
-						reader.addEventListener("load", () => put(tag, record, new Uint8Array(reader.result)));
-						reader.readAsArrayBuffer(piece);
-						put(tag, record);
-						pool.add({abort: () => {
-							try{
-								reader.abort();
-							}catch(error){}
-						}});
+					let list = [];
+					edition.records1.forEach(([, , ...range]) => list = mix(list, range, false, false, false));
+					if(list.length > 0) edition.pieces.forEach((piece, i) => {
+						const begin = edition.pointlist0[i * 2];
+						const range = mix(mix([begin, begin + piece.size - 1], list, false, false, false), list, false, false, true);
+						for(let i = 0; i < range.length; i += 2){
+							const record = [date1, "piece", range[i], range[i + 1]];
+							put(tag, record);
+							const reader = new FileReader;
+							reader.addEventListener("load", () => put(tag, record, new Uint8Array(reader.result)));
+							reader.readAsArrayBuffer(piece.slice(record[2] - begin, record[3] - begin + 1));
+							pool.add({abort: () => {
+								try{
+									reader.abort();
+								}catch(error){}
+							}});
+						}
 					});
 					listeners.forEach(listener => listener(edition, 0, new Blob));
 				}else{
@@ -956,15 +959,19 @@ const ajax = (() => {
 			const flag = record.shift();
 			switch(flag){
 			case "piece":
-				if(!hash.get(...tag, null, ...record1)){
-					edition.records.add(record1);
-					hash.set(...tag, null, ...record1, record1);
+				let record0 = hash.get(...tag, true, ...record1);
+				if(!record0){
+					record0 = record1;
+					edition.records0.add(record0);
+					hash.set(...tag, true, ...record0, record0);
 				}
 				return content => {
-					if(hash.get(...tag, null, ...record1, null)) return;
-					hash.set(...tag, null, ...record1, null, true);
-					if(content === db.end) return edition.records.delete(hash.get(...tag, null, ...record1));
-					const {pointlist0, pieces} = edition;
+					const {pointlist0, pieces, records0, records1, date, size} = edition;
+					if(content === db.end){
+						records0.delete(record0);
+						return records1.delete(record0);
+					}
+					records1.add(record0);
 					const list = edition.pointlist0 = mix(pointlist0, [begin, end], false, false, false);
 					let i = 0;
 					let j = 0;
@@ -981,12 +988,12 @@ const ajax = (() => {
 						]));
 						listeners.forEach(listener => listener(edition, list[k * 2], pieces[k]));
 					}
-					if(edition.date < date1) return put(tag, record1, db.end);
-					if(pieces[0].size !== edition.size || !(edition.date > date1)) return;
-					date1 = edition.date;
+					if(date < date1) return put(tag, record0, db.end);
+					if(pieces[0].size !== size || !(date > date1)) return;
+					date1 = date;
 					tags.forEach(tag => {
 						const edition = editions.get(...tag);
-						if(edition.date < date1) edition.records.forEach(record => put(tag, record, db.end));
+						if(edition.date < date) edition.records0.forEach(record => put(tag, record, db.end));
 					});
 				};
 			default:
@@ -1071,6 +1078,9 @@ const ajax = (() => {
 					return () => listeners.delete(listener0);
 				}
 				listeners.delete(listener0);
+				pointlists.delete(pointlist);
+				state.pointlist = [];
+				pointlists.forEach(list => state.pointlist = mix(state.pointlist, list, false, false, false));
 			};
 		});
 		const pointlists = new Set;
