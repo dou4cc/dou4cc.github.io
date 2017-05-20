@@ -718,19 +718,18 @@ const ajax = (() => {
 		const dir = (() => {
 			const dir = path => (...path1) => {
 				let cancel;
-				let canceled = false;
 				const listener = path1.pop();
 				path1 = clone_list(path1);
 				genfn2tick(function*(){
-					path = (yield path).concat(yield path1);
-					if(canceled) return;
-					cancel = db.on(...path, (...path1) => {
+					path1 = (yield path).concat(yield path1);
+					if(cancel === null) return;
+					cancel = db.on(...path1, (...path1) => {
 						listener(dir(tickline(path1 => path.concat(path1))(clone_list(path1))), ...path1);
 					});
 				})();
 				return () => {
-					canceled = true;
-					if(cancel) cancel();
+					if(cancel) return cancel();
+					cancel = null;
 				};
 			};
 			return dir(path);
