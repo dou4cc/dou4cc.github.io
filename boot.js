@@ -405,7 +405,6 @@ const db = (() => {
 							result.continue();
 							run(() => () => listener(unformat(result.key)));
 						});
-						
 					});
 				};
 				const cn = indexedDB.open(name);
