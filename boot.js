@@ -715,6 +715,10 @@ const ajax = (() => {
 	const states = new Map;
 	const assign = tube(uri => {
 		const path = ["cache", 0, uri];
+		const poll = offset => {
+			clearTimeout(timer);
+			return timer = setTimeout(request, f(state.date - date0) - offset, true);
+		};
 		const dir = (() => {
 			const dir = path => (...path1) => {
 				let cancel;
@@ -952,10 +956,6 @@ const ajax = (() => {
 				}
 			}
 			return date;
-		};
-		const poll = offset => {
-			clearTimeout(timer);
-			return timer = setTimeout(request, f(state.date - date0) - offset, true);
 		};
 		const store = (tag, record) => {
 			const record1 = [...record];
