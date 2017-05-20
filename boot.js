@@ -1098,7 +1098,9 @@ const ajax = (() => {
 		let timer;
 		let date0;
 		let date1;
-		const cancels = new Set([dir((dir, tag) => get_edition(tag))]);
+		const cancels = new Set([dir((dir, tag) => {
+			if(tag) get_edition(tag);
+		})]);
 		const state = {
 			alive: true,
 			pool,
