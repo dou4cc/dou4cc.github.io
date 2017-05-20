@@ -817,7 +817,7 @@ const ajax = (() => {
 			if("body" in Response.prototype){
 				const init = {headers: new Headers()};
 				headers.forEach(header => init.headers.set(...header));
-				const [, response] = yield prom2tick(fetch(uri, init));
+				const [, response] = yield prom2hell(fetch(uri, init));
 				if(response){
 					state = states.get(uri);
 					const reader = response.body.getReader();
@@ -847,7 +847,7 @@ const ajax = (() => {
 								({edition} = state);
 								if(indexedDB.cmp(tag, (edition || {tag: 0}).tag) === 0){
 									while(state.alive && !fallen()){
-										const [, result] = yield prom2tick(reader.read());
+										const [, result] = yield prom2hell(reader.read());
 										if(!result || result.done){
 											const list = edition.pointlist1();
 											if(!result || list.length > 0) request();
