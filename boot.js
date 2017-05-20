@@ -789,7 +789,7 @@ const ajax = (() => {
 				});
 			};
 			const piece = (date, buffer) => put(tag, [date, "piece", cn.pos, (cn.pos += buffer.length) - 1], buffer);
-			const unmodified = () => {
+			const unmodified = date => () => {
 				if(update(date)) put(tag, [date]);
 			};
 			counts.set(uri, (counts.get(uri) || 0) + 1);
@@ -832,7 +832,7 @@ const ajax = (() => {
 							abort();
 							return () => update(date);
 						}
-						if(status === 304) return unmodified;
+						if(status === 304) return unmodified(date);
 						if(status === 206){
 							tag = null;
 							for(let key of keys){
