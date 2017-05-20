@@ -1129,7 +1129,7 @@ const ajax = (() => {
 			cancel();
 		};
 	});
-	return tube((uri, ...rest) => listener => {
+	return tubeline((uri, ...rest) => listener => {
 		if(listener) listener(format_uri(uri), ...rest);
 	}, ajax);
 })();
