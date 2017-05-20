@@ -1118,7 +1118,7 @@ const ajax = (() => {
 			point += Math.floor(d);
 			return point;
 		});
-		const [hell0, resolve] = resolve();
+		const [hell0, resolve] = hell();
 		const cancel = assign(uri)(arrange => resolve(arrange(...pointlist)));
 		return listener => {
 			if(listener){
