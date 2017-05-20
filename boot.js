@@ -947,7 +947,7 @@ const ajax = (() => {
 						date0 = date - 7e3;
 					}else{
 						date0 = date;
-						request();
+						request(true);
 					}
 				}
 			}
