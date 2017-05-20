@@ -35,7 +35,7 @@ library.clone = clone;
 
 const clone_list = genfn2tick(function*(list){
 	list = list.map(a => clone(a));
-	for(let i = list.length - 1; i >= 0; i -= 1) list[i] = yield clone(list[i]);
+	for(let i = list.length - 1; i >= 0; i -= 1) list[i] = yield list[i];
 	return list;
 });
 library.clone_list = clone_list;
@@ -631,6 +631,7 @@ const tubeline = (() => {
 						});
 						const thunk = thunk1(listener);
 					};
+					let thunk1;
 					const listeners = new Set;
 					const cancels = new Map;
 					const thunk0 = tubes[0](...condition)((...args) => {
@@ -641,7 +642,6 @@ const tubeline = (() => {
 							cancels.forEach(cancel => cancel());
 						};
 					});
-					let thunk1;
 					return listener => {
 						if(listener){
 							listeners.add(listener);
@@ -714,7 +714,7 @@ const ajax = (() => {
 	const counts = multi_key_map();
 	const states = new Map;
 	const assign = tube(uri => {
-		const path = ["cache", uri];
+		const path = ["cache", 0, uri];
 		const dir = (() => {
 			const dir = path => (...path1) => {
 				let cancel;
@@ -831,7 +831,7 @@ const ajax = (() => {
 						}
 						if(status === 206){
 							tag = null;
-							for(let keys of keys){
+							for(let key of keys){
 								const value = headers.get(key);
 								if(value !== null){
 									tag = [key, value];
@@ -853,7 +853,7 @@ const ajax = (() => {
 											if(!result || list.length > 0) request();
 											return;
 										}
-										piece(result.value);
+										piece(date, result.value);
 										let i = 2;
 										const list = edition.pointlist1();
 										for(; i < list.length && list[i] <= cn.pos; i += 2);
@@ -972,7 +972,7 @@ const ajax = (() => {
 						return records1.delete(record0);
 					}
 					records1.add(record0);
-					const list = edition.pointlist0 = mix(pointlist0, [begin, end], false, false, false);
+					const list = edition.pointlist0 = mix(pointlist0, record, false, false, false);
 					let i = 0;
 					let j = 0;
 					const p0 = () => i < pointlist0.length && j < list.length;
@@ -989,7 +989,7 @@ const ajax = (() => {
 						listeners.forEach(listener => listener(edition, list[k * 2], pieces[k]));
 					}
 					if(date < date1) return put(tag, record0, db.end);
-					if(pieces[0].size !== size || !(date > date1)) return;
+					if(size > 0 && (pieces[0] || {}).size !== size || !(date > date1)) return;
 					date1 = date;
 					tags.forEach(tag => {
 						const edition = editions.get(...tag);
