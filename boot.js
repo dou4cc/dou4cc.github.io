@@ -381,6 +381,7 @@ const db = (() => {
 		on: (...list) => {
 			const listener = list.pop();
 			if(!listener) return () => {};
+			let length;
 			const f = (i, name) => {
 				if(canceled) return;
 				const f1 = () => {
@@ -421,7 +422,7 @@ const db = (() => {
 			genfn2tick(function*(){
 				list = format(yield clone_list(list));
 				if(canceled) return;
-				const {length} = list;
+				({length} = list);
 				cancel = hub.on(genfn2tick(function*(...list1){
 					if(list1.length < length || !list.every((a, i) => indexedDB.cmp(a, list1[i]) === 0)) return;
 					if(list1.length > length){
