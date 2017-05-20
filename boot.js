@@ -723,8 +723,8 @@ const ajax = (() => {
 				genfn2tick(function*(){
 					path1 = (yield path).concat(yield path1);
 					if(cancel === null) return;
-					cancel = db.on(...path1, (...path1) => {
-						listener(dir(tickline(path1 => path.concat(path1))(clone_list(path1))), ...path1);
+					cancel = db.on(...path1, (...path) => {
+						listener(dir(tickline(path => path1.concat(path))(clone_list(path))), ...path);
 					});
 				})();
 				return () => {
