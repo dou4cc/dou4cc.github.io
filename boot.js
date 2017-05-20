@@ -752,7 +752,7 @@ const ajax = (() => {
 				"Last-Modified",
 			];
 			const update = date => {
-				if(state.update(date, tag) === state.date) state.poll(performance.now() - stamp);
+				if(state.update(date, tag) === state.date) return state.poll(performance.now() - stamp);
 			};
 			const fallen = () => {
 				clearTimeout(timer);
@@ -789,6 +789,9 @@ const ajax = (() => {
 				});
 			};
 			const piece = (date, buffer) => put(tag, [date, "piece", cn.pos, (cn.pos += buffer.length) - 1], buffer);
+			const unmodified = () => {
+				if(update(date)) put(tag, [date]);
+			};
 			counts.set(uri, (counts.get(uri) || 0) + 1);
 			let state = states.get(uri);
 			if(!state) return;
@@ -825,10 +828,11 @@ const ajax = (() => {
 					if(state){
 						const {headers, status} = response;
 						const date = headers.get("Date");
-						if(status === 404 || status === 304){
-							if(status === 404) abort();
+						if(status === 404){
+							abort();
 							return () => update(date);
 						}
+						if(status === 304) return unmodified;
 						if(status === 206){
 							tag = null;
 							for(let key of keys){
@@ -838,7 +842,9 @@ const ajax = (() => {
 									break;
 								}
 							}
-							if(tag) return yield tickline(() =>  state.pool.delete(cn))(genfn2tick(function*(){
+							if(tag) return yield tickline(() => {
+								state.pool.delete(cn);
+							})(genfn2tick(function*(){
 								cn.abort = abort;
 								update(date);
 								Content_Range(date, headers.get("Content-Range"));
@@ -950,13 +956,14 @@ const ajax = (() => {
 		};
 		const poll = offset => {
 			clearTimeout(timer);
-			timer = setTimeout(request, f(state.date - date0) - offset, true);
+			return timer = setTimeout(request, f(state.date - date0) - offset, true);
 		};
 		const store = (tag, record) => {
 			const record1 = [...record];
 			const edition = editions.get(...tag);
 			edition.date = Math.max(edition.date, update(record.shift(), tag));
 			const flag = record.shift();
+			if(!flag) return;
 			switch(flag){
 			case "piece":
 				let record0 = hash.get(...tag, true, ...record1);
