@@ -988,7 +988,7 @@ const ajax = (() => {
 							content,
 							...pieces[n] ? [pieces[n].slice(Math.max(0, record[1] - pointlist0[i - 2] + 1))] : [],
 						]));
-						listeners.forEach(listener => listener(edition, list[k * 2], pieces[k]));
+						listeners.forEach(listener => listener(edition, list[m * 2], pieces[m]));
 					}
 					if(date < date1) return put(tag, record0, db.end);
 					if(size !== 0 && (pieces[0] || {}).size !== size || !(date > date1)) return;
