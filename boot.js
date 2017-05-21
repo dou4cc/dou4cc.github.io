@@ -984,9 +984,9 @@ const ajax = (() => {
 						const m = j / 2 - 1;
 						const n = i / 2 - m;
 						pieces.splice(m, n, new Blob([
-							...pieces[m] ? [pieces[m].slice(0, Math.min(0, record[0] - pointlist0[j - 1] - 1))] : [],
+							pieces[m] ? pieces[m].slice(0, Math.min(0, record[0] - pointlist0[j - 1] - 1)) : "",
 							content,
-							...pieces[n] ? [pieces[n].slice(Math.max(0, record[1] - pointlist0[i - 2] + 1))] : [],
+							pieces[n] ? pieces[n].slice(Math.max(0, record[1] - pointlist0[i - 2] + 1)) : "",
 						]));
 						listeners.forEach(listener => listener(edition, list[m * 2], pieces[m]));
 					}
@@ -1055,9 +1055,10 @@ const ajax = (() => {
 						for(; p(); f0(), f1()) f2();
 						list.splice(1, n);
 						k -= n * 2;
+						t = pointlist[k + 1];
 						const chunk = new Blob([
 							list[0],
-							pointlist[k + 1] === undefined ? list[1] : list[1].slice(0, pointlist[k + 1] - pointlist[k] + 1),
+							t === undefined ? list[1] || "" : list[1].slice(0, t - pointlist[k] + 1),
 						]);
 						const progress = list.length > 1 ? chunk.size : Infinity;
 						if(progress < progress0 || date < date0 || progress === progress0 && date === date0) return;
