@@ -201,9 +201,7 @@ const db = (() => {
 					}
 					return target.close();
 				}
-				return () => {
-					canceled = true;
-				};
+				return () => canceled = true;
 			};
 
 			let list;
@@ -382,26 +380,27 @@ const db = (() => {
 			const listener = list.pop();
 			if(!listener) return () => {};
 			let length;
+			let cancel;
 			const f = (i, name) => {
-				if(canceled) return;
+				if(cancel === null) return;
 				const f1 = () => {
-					if(canceled) return cn.result.close();
+					if(cancel === null) return cn.result.close();
 					const store = cn.result.transaction(["store"], "readonly").objectStore("store");
 					store.transaction.addEventListener("complete", () => cn.result.close());
 					store.get("end").addEventListener("success", ({target: {result}}) => {
-						if(canceled) return;
+						if(cancel === null) return;
 						if(result){
 							if(i === length) return run(() => () => listener(end));
 							if(i === length - 1 && indexedDB.cmp(list[i], "end") === 0) run(() => listener);
 							return;
 						}
 						if(i < length) return store.get(list[i]).addEventListener("success", ({target: {result}}) => {
-							if(!result || canceled) return;
+							if(!result || cancel === null) return;
 							if(i === length - 1 && indexedDB.cmp(list[i], result.key) === 0) run(() => listener);
 							if(result.value !== undefined) f(i + 1, result.value);
 						});
 						store.openKeyCursor(null, "prev").addEventListener("success", ({target: {result}}) => {
-							if(!result || canceled) return;
+							if(!result || cancel === null) return;
 							result.continue();
 							run(() => () => listener(unformat(result.key)));
 						});
@@ -416,17 +415,15 @@ const db = (() => {
 					if(i > 0) indexedDB.deleteDatabase(name);
 				});
 			};
-			let cancel;
-			let canceled = false;
 			genfn2tick(function*(){
 				list = format(yield clone_list(list));
-				if(canceled) return;
+				if(cancel === null) return;
 				({length} = list);
 				cancel = hub.on(genfn2tick(function*(...list1){
 					if(list1.length < length || !list.every((a, i) => indexedDB.cmp(a, list1[i]) === 0)) return;
 					if(list1.length > length){
 						const a = yield clone(unformat(list1[length]));
-						if(canceled) return;
+						if(cancel === null) return;
 						return run(() => () => listener(a));
 					}
 					run(() => listener);
@@ -435,8 +432,8 @@ const db = (() => {
 				f(0, name);
 			})();
 			return () => {
-				canceled = true;
 				if(cancel) tickline(cancel => cancel())(cancel);
+				cancel = null;
 			};
 		},
 	};
@@ -684,11 +681,6 @@ const _ajax = (listener, uri, tag, from = 0, to = null) => {
 };
 
 const ajax = (() => {
-	const f = x => {
-		x /= 1e3;
-		x = (Math.max(0, (Math.log(x / 10 + 1.4) - Math.log(1.5)) ** 1.2 * 16) || 0) + (x / 50) ** 0.8;
-		return x * 1e3;
-	};
 	const pointlist = (mode, ...movelist) => {
 		let n = 0;
 		let pos = [];
@@ -717,7 +709,9 @@ const ajax = (() => {
 		const path = ["cache", 0, uri];
 		const poll = offset => {
 			clearTimeout(timer);
-			return timer = setTimeout(request, f(state.date - date0) - offset, true);
+			const x = (state.date - date0) / 1e3;
+			x = (Math.max(0, (Math.log(x / 10 + 1.4) - Math.log(1.5)) ** 1.2 * 16) || 0) + (x / 50) ** 0.8 * 1e3;
+			return timer = setTimeout(request, x - offset, true);
 		};
 		const dir = (() => {
 			const dir = path => (...path1) => {
@@ -732,7 +726,7 @@ const ajax = (() => {
 					});
 				})();
 				return () => {
-					if(cancel) return cancel();
+					if(cancel) cancel();
 					cancel = null;
 				};
 			};
@@ -745,11 +739,7 @@ const ajax = (() => {
 			const thunk = state.store(tag, record);
 			if(thunk && chain.length > 0) thunk(...chain);
 		};
-		const request = timer => tickline(then => {
-			counts.set(uri, counts.get(uri) - 1 || undefined);
-			if(then) then();
-			clearTimeout(timer);
-		})(genfn2tick(function*(){
+		const request = end => tickline(then => end(then))(genfn2tick(function*(){
 			const keys = [
 				"ETag",
 				"Last-Modified",
@@ -796,7 +786,15 @@ const ajax = (() => {
 				if(update(date)) put(tag, [date]);
 			};
 			counts.set(uri, (counts.get(uri) || 0) + 1);
+			let tag = end;
 			let state = states.get(uri);
+			let timer = setTimeout(request, 3e3);
+			end = then => {
+				end = null;
+				counts.set(uri, counts.get(uri) - 1 || undefined);
+				clearTimeout(timer);
+				if(then) then();
+			};
 			if(!state) return;
 			let {edition} = state;
 			const point = edition && edition.pointlist1()[0];
@@ -808,9 +806,8 @@ const ajax = (() => {
 				["Cache-Control", "max-age=0"],
 				["Range", "bytes=" + cn.pos + "-"],
 			];
-			let tag;
 			if(edition && point == null){
-				if(!timer) return;
+				if(!tag) return;
 				({tag} = edition || {});
 				headers.push([new Map([
 					["ETag", "If-None-Match"],
@@ -818,7 +815,6 @@ const ajax = (() => {
 				]).get(tag[0]), tag[1]]);
 			}
 			let stamp = performance.now();
-			timer = setTimeout(request, 3e3);
 			state.poll(0);
 			if("body" in Response.prototype){
 				const init = {headers: new Headers()};
@@ -845,10 +841,8 @@ const ajax = (() => {
 									break;
 								}
 							}
-							if(tag) return yield tickline(() => {
-								state.pool.delete(cn);
-							})(genfn2tick(function*(){
-								cn.abort = abort;
+							if(tag) return !(yield tickline(() => state.pool.delete(cn))(genfn2tick(function*(){
+								cn.abort = end(abort);
 								update(date);
 								Content_Range(date, headers.get("Content-Range"));
 								Last_Modified(date, headers.get("Last-Modified"));
@@ -857,9 +851,9 @@ const ajax = (() => {
 								if(indexedDB.cmp(tag, (edition || {tag: 0}).tag) === 0){
 									while(state.alive && !fallen()){
 										const [, result] = yield prom2hell(reader.read());
+										if(end === null) yield hell()[0];
 										if(!result || result.done){
-											const list = edition.pointlist1();
-											if(!result || list.length > 0) request();
+											if(!result || edition.pointlist1().length > 0) request();
 											return;
 										}
 										piece(date, result.value);
@@ -870,7 +864,7 @@ const ajax = (() => {
 									}
 								}
 								abort();
-							})());
+							})()));
 						}
 					}
 					abort();
