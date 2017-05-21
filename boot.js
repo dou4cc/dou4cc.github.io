@@ -843,7 +843,7 @@ const ajax = (() => {
 								}
 							}
 							if(tag) return !(yield tickline(() => state.pool.delete(cn))(genfn2tick(function*(){
-								cn.abort = end(abort);
+								cn.abort = () => end(abort);
 								update(date);
 								Content_Range(date, headers.get("Content-Range"));
 								Last_Modified(date, headers.get("Last-Modified"));
