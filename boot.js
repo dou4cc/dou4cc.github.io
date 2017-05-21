@@ -711,7 +711,7 @@ const ajax = (() => {
 			clearTimeout(timer);
 			let x = (state.date - date0) / 1e3;
 			if(Number.isNaN(x)) return true;
-			x = (Math.max(0, (Math.log(x / 10 + 1.4) - Math.log(1.5)) ** 1.2 * 16) || 0) + (x / 50) ** 0.8 * 1e3;
+			x = ((Math.max(0, (Math.log(x / 10 + 1.4) - Math.log(1.5)) ** 1.2 * 16) || 0) + (x / 50) ** 0.8) * 1e3;
 			return timer = setTimeout(request, x - offset, true);
 		};
 		const dir = (() => {
