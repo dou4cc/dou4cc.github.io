@@ -974,18 +974,19 @@ const ajax = (() => {
 					}
 					records1.add(record0);
 					const list = edition.pointlist0 = mix(pointlist0, record, false, false, false);
-					let i = 0;
-					let j = 0;
-					const p0 = () => i < pointlist0.length && j < list.length;
-					const p1 = () => pointlist0[i] === list[i] && pointlist0[i + 1] === list[i + 1];
-					for(; p0() && p1(); i += 2, j += 2);
-					for(j += 2; p0() && !p1(); i += 2);
-					const k = j / 2 - 1;
-					if(k < pieces.length){
-						pieces.splice(k, i / 2 - k, new Blob([
-							pieces[k].slice(0, Math.min(0, record[0] - pointlist0[j - 1] - 1)),
+					if(indexedDB.cmp(pointlist0, list) !== 0){
+						let i = 0;
+						let j = 0;
+						const p0 = () => i < pointlist0.length && j < list.length;
+						const p1 = () => pointlist0[i] === list[i] && pointlist0[i + 1] === list[i + 1];
+						for(; p0() && p1(); i += 2, j += 2);
+						for(j += 2; p0() && !p1(); i += 2);
+						const m = j / 2 - 1;
+						const n = i / 2 - m;
+						pieces.splice(m, n, new Blob([
+							...pieces[m] ? [pieces[m].slice(0, Math.min(0, record[0] - pointlist0[j - 1] - 1))] : [],
 							content,
-							pieces[i / 2 - 1].slice(Math.max(0, record[1] - pointlist0[i - 2] + 1)),
+							...pieces[n] ? [pieces[n].slice(Math.max(0, record[1] - pointlist0[i - 2] + 1))] : [],
 						]));
 						listeners.forEach(listener => listener(edition, list[k * 2], pieces[k]));
 					}
