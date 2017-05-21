@@ -854,7 +854,7 @@ const ajax = (() => {
 										const [, result] = yield prom2hell(reader.read());
 										if(end === null) yield hell()[0];
 										if(!result || result.done){
-											if(!result || edition.pointlist1().length > 0) request();
+											if(!counts.get(uri) && edition.pointlist1().length > 0) request();
 											return;
 										}
 										piece(date, result.value);
