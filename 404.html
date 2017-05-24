@@ -15,7 +15,7 @@
 <body>
 	<table><tr><td>
 		<div id="not-supported">
-			请用<a href="https://www.google.cn/intl/zh-CN/chrome/browser/canary.html">Chrome Canary</a>（仅支持Windows/macOS/Android，安装和更新需翻<!---->墙）或<a href="https://download-chromium.appspot.com">Chromium</a>（不能自动更新，需翻<!---->墙）浏览本站，并启用下列实验选项：<br>
+			请用<a href="https://www.google.cn/intl/zh-CN/chrome/browser/canary.html">Chrome Canary</a>（仅支持Windows/macOS/Android，安装和更新需翻<!---->墙）或<a href="https://download-chromium.appspot.com/">Chromium</a>（不能自动更新，需翻<!---->墙）浏览本站，并启用下列实验选项：<br>
 			- chrome://flags/#enable-javascript-harmony<br>
 			- chrome://flags/#enable-experimental-web-platform-features<br>
 			<br>
@@ -27,10 +27,8 @@
 		<div id="not-found" style="display: none">
 		   	404 Not Found</div>
 	</td></tr></table>
-	<script>
-		"use strict";
-		
-		window.onerror = function(){
+	<script>"use strict";
+		this.onerror = function(){
 			document.title = "不支持";
 			var hash = document.location.hash.slice(1);
 			var uri0 = document.location.href;
@@ -40,13 +38,10 @@
 			if(document.location.href !== hash) history.replaceState(null, null, uri0);
 		};
 	</script>
-	<script>
-		"use strict";
-
+	<script>"use strict";
 		a => function*(...[{a}]){``};
-		document.append();
+		Promise.resolve(document.append(), );
 		Reflect;
-		Promise;
 
 		onerror = null;
 		if(top === self){
@@ -56,19 +51,12 @@
 				if(!hash.startsWith(document.location.origin)) throw null;
 				const uri0 = document.location.href;
 				history.replaceState(null, null, hash);
-				if(document.location.href !== hash){
-					history.replaceState(null, null, uri0);
-					throw null;
-				}
-				if(localStorage.length === 0) localStorage.setItem(`
-					"use strict";
-
+				if(document.location.href !== hash) throw history.replaceState(null, null, uri0);
+				if(localStorage.length === 0) localStorage.setItem(`"use strict";
 					if(top !== self) throw null;
 					Reflect;
 					onload = null;
-					[...document.childNodes].forEach(node => {
-						if(!(node instanceof DocumentType)) node.remove();
-					});
+					[...document.childNodes].forEach(node => node instanceof DocumentType || node.remove());
 					const meta = document.createElement("meta");
 					meta.setAttribute("charset", "utf-8");
 					const head = document.createElement("head");
@@ -95,105 +83,94 @@
 									}
 								};
 								try{
-									run(thunk());
-								}catch(error){
-									Promise.resolve().then(() => run(() => thunk()()));
-								}
+									return run(thunk());
+								}catch(error){}
+								Promise.resolve().then(() => run(() => thunk()()));
 							};
-							const [hell, is_hell] = (() => {
-								const hells = new WeakSet;
-								return [
-									() => {
-										const hell0 = callback => {
-											if(callbacks){
-												callbacks.push(callback);
-												return;
-											}
-											run(() => () => callback(result));
-										};
-										let result;
-										let callbacks = [];
-										hells.add(hell0);
-										return [
-											hell0,
-											result1 => {
-												if(!callbacks) return;
-												result = result1;
-												const callbacks1 = callbacks;
-												callbacks = null;
-												callbacks1.forEach(hell0);
-											},
-										];
-									},
-									target => hells.has(target),
-								];
-							})();
+							const hell = () => {
+								const hell0 = callback => {
+									if(callbacks){
+										callbacks.push(callback);
+										return;
+									}
+									run(() => () => callback(result));
+								};
+								let result;
+								let callbacks = [];
+								hells.add(hell0);
+								return [hell0, result1 => {
+									if(!callbacks) return;
+									result = result1;
+									const callbacks1 = callbacks;
+									callbacks = null;
+									callbacks1.forEach(hell0);
+								}];
+							};
+							const is_hell = target => hells.has(target);
 							const tickline = (...ticks) => {
 								switch(ticks.length){
 								case 0:
 									return target => {
-										if(is_hell(target)){
-											let target1;
-											target(target => target1 = [tickline()(target)]);
-											if(target1) return target1[0];
-											const [hell0, resolve] = hell();
-											target(target => {
-												target = tickline()(target);
-												if(is_hell(target)) return target(resolve);
-												resolve(target);
-											});
-											return hell0;
-										}
-										return target;
+										if(!is_hell(target)) return target;
+										let target1;
+										target(target => target1 = [tickline()(target)]);
+										if(target1) return target1[0];
+										const [, resolve] = [target1] = hell();
+										target(target => {
+											target = tickline()(target);
+											if(is_hell(target)) return target(resolve);
+											resolve(target);
+										});
+										return target1;
 									};
 								case 1:
 									return target => {
+										target = tickline()(target);
 										if(is_hell(target)){
 											const [hell0, resolve] = hell();
-											target(target => resolve(tickline()(ticks[0](target))));
+											target(target => resolve(tickline()((0, ticks[0])(target))));
 											return tickline()(hell0);
 										}
 										try{
-											return tickline()(ticks[0](target));
+											return tickline()((0, ticks[0])(target));
 										}catch(error){
 											setTimeout(() => {
 												throw error;
 											});
-											return hell()[0];
 										}
+										return hell()[0];
 									};
 								case 2: 
 									return target => tickline(ticks[1])(tickline(ticks[0])(target));
-								default:
-									return tickline(ticks[0], tickline(...ticks.slice(1)));
 								}
+								return tickline(ticks.shift(), tickline(...ticks));
 							};
 							const gen2tick = gen => tickline(target => {
 								target = gen.next(target);
 								return target.done ? target.value : gen2tick(gen)(target.value);
 							});
-							const genfn2tick = genfn => function(...args){
-								return gen2tick(genfn.call(this, ...args))();
+							const genfn2tick = genfn => function(){
+								return gen2tick(genfn.apply(this, arguments))();
 							};
-							const prom2hell = (() => {
-								const dp = new WeakMap;
-								return promise => dp.get(promise) || (() => {
-									const [hell0, resolve] = hell();
-									Promise.resolve(promise).then(result => resolve([null, result]), error => resolve([error]));
-									dp.set(promise, hell0);
-									return hell0;
-								})();
+							const prom2hell = promise => dp.get(promise) || (() => {
+								const [hell0, resolve] = hell();
+								Promise.resolve(promise).then(
+									result => resolve([null, result]),
+									error => resolve([error]),
+								);
+								dp.set(promise, hell0);
+								return hell0;
 							})();
+							const hells = new WeakSet;
+							const dp = new WeakMap;
 
 							({run, hell, is_hell, tickline, gen2tick, genfn2tick, prom2hell});
 						\`;
-						const library = self.eval('"use strict"; ' + library_source);
+						const library = self.eval('"use strict";' + library_source);
 						const {run, hell, is_hell, tickline, gen2tick, genfn2tick, prom2hell} = library;
 
+						const blocker = event => crash && event.stopImmediatePropagation();
 						let crash = false;
-						const blocker = event => {
-							if(crash) event.stopImmediatePropagation();
-						};
 						addEventListener("unload", blocker);
 						addEventListener("beforeunload", blocker);
 						addEventListener("error", event => {
@@ -201,7 +178,7 @@
 								if(crash) return;
 								crash = true;
 								localStorage.setItem(setup, JSON.stringify({source: \`
-									const {run, hell, is_hell, tickline, gen2tick, genfn2tick, prom2hell} = library;
+									const {hell, tickline} = library;
 
 									const pre = document.createElement("pre");
 									const button = document.createElement("button");
@@ -218,38 +195,33 @@
 									pre.append(code);
 									document.body.append(pre, button);
 									button.focus();
-									return genfn2tick(function*(){
-										yield hell0;
+									return () => tickline(() => {
 										pre.remove();
 										button.remove();
-									});
+									})(hell0);
 								\`}));
 								history.go(0);
 							});
 							event.prevent_reload = () => clearTimeout(timer);
 						});
 
+						const update = genfn2tick(function*(){
+							if(source === ({source} = boot) || lock) return;
+							lock = true;
+							yield (cancel || (() => {}))();
+							Function('"use strict";' + source);
+							document.title = "Loading";
+							cancel = self.eval('"use strict"; (library, library_source) => {' + source + "}")(library, library_source);
+							lock = false;
+						});
 						let source;
 						let cancel;
 						let lock = false;
-						const update = () => {
-							if(boot.source === source) return;
-							({source} = boot);
-							if(lock) return;
-							lock = true;
-							genfn2tick(function*(){
-								yield (cancel || (() => {}))();
-								Function('"use strict";' + source);
-								document.title = "Loading";
-								cancel = self.eval('"use strict"; (library, library_source) => {' + source + "}")(library, library_source);
-								lock = false;
-							})();
-						};
+						let boot = localStorage.getItem(setup);
 						addEventListener("storage", () => {
 							boot = JSON.parse(localStorage.getItem(setup));
 							update();
 						});
-						let boot = localStorage.getItem(setup);
 						if(boot){
 							boot = JSON.parse(boot);
 							update();
@@ -257,55 +229,49 @@
 							boot = {};
 						}
 
-						let cache;
-						let hell0;
-						const xhr = new XMLHttpRequest;
 						const check = () => {
 							xhr.open("GET", "/boot.js");
 							xhr.setRequestHeader("Cache-Control", "max-age=0");
 							if(boot.tag){
-								const [key, value] = boot.tag;
-								const key1 = new Map([
+								let [key] = [, t] = boot.tag;
+								key = new Map([
 									["ETag", "If-None-Match"],
 									["Last-Modified", "If-Modified-Since"],
 								]).get(key);
-								if(key1 !== undefined){
-									xhr.setRequestHeader(key1, value);
-									cache = boot;
+								if(key !== undefined){
+									xhr.setRequestHeader(key, t);
+									t = boot;
 								}
 							}
 							xhr.send();
 							setTimeout(([hell0] = hell())[1], 1e4);
 						};
-						xhr.addEventListener("loadend", () => {
-							if(xhr.status >= 200 && xhr.status < 300){
-								cache = {source: xhr.responseText};
-								for(let key of [
-									"ETag",
-									"Last-Modified",
-								]){
+						let t;
+						let hell0;
+						const xhr = new XMLHttpRequest;
+						xhr.addEventListener("loadend", ({target: {status}}) => {
+							if(status >= 200 && status < 300){
+								t = {source: xhr.responseText};
+								for(let key of ["ETag", "Last-Modified"]){
 									const value = xhr.getResponseHeader(key);
 									if(value !== null){
-										cache.tag = [key, value];
+										t.tag = [key, value];
 										break;
 									}
 								}
-							}else if(xhr.status !== 304 && xhr.status !== 404){
-								requestAnimationFrame(check);
-								return;
+							}else if(status !== 304 && status !== 404){
+								return requestAnimationFrame(check);
 							}
-							cache.date = xhr.getResponseHeader("Date") || NaN;
-							if(!(new Date(cache.date) <= new Date(boot.date))){
-								localStorage.setItem(setup, JSON.stringify(cache));
-								boot = cache;
+							t.date = xhr.getResponseHeader("Date") || NaN;
+							if(!(new Date(t.date) <= new Date(boot.date))){
+								localStorage.setItem(setup, JSON.stringify(t));
+								boot = t;
 								update();
 							}
-							cache = null;
+							t = null;
 							hell0(() => requestAnimationFrame(check));
 						});
-						xhr.addEventListener("progress", () => {
-							if(new Date(xhr.getResponseHeader("Date") || NaN) <= new Date(boot.date)) check();
-						});
+						xhr.addEventListener("progress", () => new Date(xhr.getResponseHeader("Date") || NaN) <= new Date(boot.date) && check());
 						check();
 					}).catch(error => setTimeout(() => {
 						throw error;
@@ -315,15 +281,15 @@
 				`, "");
 				history.go(0);
 			}catch(error){
-				document.title = "";
-				document.querySelector("#not-supported").style.display = "none";
-				document.querySelector("#not-found").style.display = "";
-				const xhr = new XMLHttpRequest;
 				const check = () => requestAnimationFrame(() => {
 					xhr.open("GET", document.location);
 					xhr.setRequestHeader("Range", "bytes=0-0");
 					xhr.send();
 				});
+				document.title = "";
+				document.querySelector("#not-supported").style.display = "none";
+				document.querySelector("#not-found").style.display = "";
+				const xhr = new XMLHttpRequest;
 				xhr.addEventListener("readystatechange", () => {
 					if(!xhr.status) return;
 					if(xhr.status === 404) return check();
