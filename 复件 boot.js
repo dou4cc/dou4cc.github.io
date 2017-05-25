@@ -387,9 +387,12 @@ const db = (() => {
 				({length} = list);
 				cancel = hub.on(genfn2tick(function*(...list1){
 					if(list1.length < length || !list.every((a, i) => indexedDB.cmp(a, list1[i]) === 0)) return;
-					if(list1.length === length) return run(() => listener);
-					const a = yield clone(unformat(list1[length]));
-					if(cancel) run(() => () => listener(a));
+					if(list1.length > length){
+						const a = yield clone(unformat(list1[length]));
+						if(cancel === null) return;
+						return run(() => () => listener(a));
+					}
+					run(() => listener);
 				}));
 				yield cancel;
 				f(0, name);
@@ -407,7 +410,7 @@ const tube = (() => {
 	const dp = new WeakMap;
 	return source => dp.get(source) || (() => {
 		const states = multi_key_map();
-		const tube = (...condition) => {
+		const tube0 = (...condition) => {
 			const sync = () => {
 				state = states.get(...condition);
 				if(state) return state.handle_num += 1;
@@ -422,7 +425,7 @@ const tube = (() => {
 					pool: new Set,
 				};
 				states.set(...condition, state);
-				run(() => () => resolve(source(...condition)));
+				resolve(source(...condition));
 			};
 			const unsync = () => {
 				state.handle_num -= 1;
@@ -439,12 +442,8 @@ const tube = (() => {
 						const [hell0, resolve] = hell();
 						setTimeout(resolve);
 						yield (cancel || (() => {}))();
-						solution1 = solution;
-						try{
-							cancel = listener(...solution);
-						}catch(error){
-							cancel = hell()[0];
-						}
+						solution1 = solution;	
+						cancel = listener(...solution);
 						yield hell0;
 						update();
 					});
@@ -466,6 +465,9 @@ const tube = (() => {
 					];
 				};
 				const f1 = used => genfn2tick(function*(){
+					if(used) return;
+					used = true;
+					const tick = cancel();
 					const listen = listener1 => {
 						clearTimeout(timer);
 						state.pool.delete(listen);
@@ -473,9 +475,6 @@ const tube = (() => {
 						if(solution) listener(...solution);
 						return f1();
 					};
-					if(used) return;
-					used = true;
-					const tick = cancel();
 					state.pool.add(listen);
 					const timer = setTimeout(genfn2tick(function*(){
 						state.pool.delete(listen);
@@ -501,18 +500,20 @@ const tube = (() => {
 			return listener => {
 				if(listener){
 					if(!state.alive) sync();
-					if(state.listener_num === 0) return listen(listener);
-					for(let thunk of state.pool) return thunk(listener);
-					const [hell0, resolve] = hell();
-					let timer = setTimeout(() => {
-						timer = 0;
-						for(let thunk of state.pool) return resolve(thunk(listener));
-						resolve(listen(listener));
-					});
-					return genfn2tick(function*(){
-						if(timer) return clearTimeout(timer);
-						yield (yield hell0)();
-					});
+					if(state.listener_num > 0){
+						for(let thunk of state.pool) return thunk(listener);
+						const [hell0, resolve] = hell();
+						let timer = setTimeout(() => {
+							timer = 0;
+							for(let thunk of state.pool) return resolve(thunk(listener));
+							resolve(listen(listener));
+						});
+						return genfn2tick(function*(){
+							if(timer) return clearTimeout(timer);
+							yield (yield hell0)();
+						});
+					}
+					return listen(listener);
 				}
 				setTimeout(() => {
 					if(used) return;
@@ -521,9 +522,9 @@ const tube = (() => {
 				});
 			};
 		};
-		dp.set(tube, tube);
-		dp.set(source, tube);
-		return tube;
+		dp.set(tube0, tube0);
+		dp.set(source, tube0);
+		return tube0;
 	})();
 })();
 library.tube = tube;
@@ -567,7 +568,7 @@ const tubeline = (() => {
 					});
 				})();
 			case 2:
-				tubes = tubes.map(tube => tubeline(tube));
+				tubes = tubes.map(tube0 => tubeline(tube0));
 				return tube((...condition) => {
 					const listen = listener => {
 						cancels.set(listener, () => {
@@ -606,81 +607,59 @@ const tubeline = (() => {
 })();
 library.tubeline = tubeline;
 
-const ajax = (() => {
-	const m2p = (b0, mlist) => {
-		let n = 0;
-		const plist = [];
-		mlist.slice().sort(([b1, p1], [b2, p2]) => p1 - p2 || b0 ^ b1 - b0 ^ b2).forEach(([b, p]) => {
-			if(n === 0) plist.unshift(p);
-			n += (b ^ b0) - .5;
-			if(n !== 0) return;
-			if(plist[0] < p) return plist.unshift(p);
-			plist.shift();
-		});
-		return plist.reverse();
+const _ajax = (listener, uri, tag, from = 0, to = null) => {
+	const xhr = (piped, from, to) => {
+		const xhr0 = new XMLHttpRequest;
+		if(piped){
+			xhr0.overrideMimeType("text/plain; charset=x-user-defined");
+		}else{
+			xhr0.responseType = "arraybuffer";
+		}
+		xhr0.open('GET', uri);
+		if(tag) xhr0.setRequestHeader(...tag);
+		xhr0.setRequestHeader("Cache-Control", "max-age=0");
+		xhr0.setRequestHeader("Range", "bytes=" + from + (to === null ? "" : "-" + to));
+		return xhr0;
 	};
-	const p2m = (b, plist) => plist.map(p => [b = !b, p]);
-	const gmt2num = cache(date => Number.isNaN(date = +new Date(date)) ? -Infinity : date);
+	uri = format_uri(uri);
+	const xhr0 = xhr(true, from, to);
+	
+};
 
-	const states = new Map;
-	const counts = multi_key_map();
-	const assign = tube(uri => {
-		const request = end => tickline(f => end(f))(genfn2tick(function*(edition){
-			end = then => {
-				end = null;
-				counts.set(uri, counts.get(uri) - 1 || undefined);
-				clearTimeout(timer);
-				if(then) then();
-			};
-			const update = () => {
-				state.update(date, (edition || {}).tag);
-				if(state.date === gmt2num(date)) state.roll(performance.now() - stamp);
-			};
-			const keep = () => put(edition.tag, [date]);
-			const keys = ["ETag", "Last-Modified"];
-			counts.set(uri, counts.get(uri) + 1 || 1);
-			let state = states.get(uri);
-			let timer = setTimeout(request, 3e3);
-			if(!state || edition && (edition !== state.edition || edition.plist1().length === 0)) return;
-			({edition} = state);
-			const cn = {p: (edition && edition.plist1()[0] + 1 || state.plist[0] + 1 || 1) - 1};
-			const headers = [
-				["Cache-Control", "max-age=0"],
-				["Range", "bytes=" + cn.pos + "-"],
-			];
-			if(edition && edition.plist1().length === 0) headers.push([
-				["If-None-Match", "If-Modified-Since"][keys.indexOf(edition.key[0])],
-				edition.tag[1],
-			]);
-			let stamp = performance.now();
-			state.roll(0);
-			let date;
-			if("body" in Response.prototype){
-				const init = {headers: new Headers()};
-				headers.forEach(header => init.headers.set(...header));
-				const [, response] = yield prom2hell(fetch(uri, init));
-				if(response){
-					state = state.get(uri);
-					const reader = response.body.getReader();
-					const abort = () => reader.cancel();
-					if(state){
-						const {headers, status} = response;
-						date = headers.get("Date");
-						if(status === 404){
-							edition = null;
-							abort();
-							return update;
-						}
-						if(status === 304) return keep;
-					}
-					abort();
+const ajax = (() => {
+	const pointlist = (mode, ...movelist) => {
+		let n = 0;
+		let pos = [];
+		const result = [];
+		movelist.sort(([mode0, pos0], [mode1, pos1]) => pos0 - pos1).forEach(([mode1, pos1]) => {
+			if(n > 0){
+				if(mode ^ mode1){
+					n -= 1;
+					return pos = [pos1];
 				}
-				request();
-				return;
+				return n += 1;
 			}
-			ReadableStream;
-		})(end));
-		const path = ["cache", uri];
+			if(pos1 > pos[0] || mode ^ mode1) result.push(...pos, pos1);
+			mode = mode1;
+			n = 1;
+		});
+		if(n === 0) result.push(...pos);
+		return result;
+	};
+	const movelist = (mode, ...pointlist) => pointlist.map(pos => [mode = !mode, pos]);
+	const mix = (a, b, mode0, mode1, mode2) => pointlist(mode0, ...movelist(mode1, ...a).concat(movelist(mode2, ...b)));
+
+	const counts = multi_key_map();
+	const states = new Map;
+	const assign = tube(uri => {
+		const path = ["cache", 0, uri];
+		const poll = offset => {
+			clearTimeout(timer);
+			let x = (state.date - date0) / 1e3;
+			if(Number.isNaN(x)) return true;
+			x = ((Math.max(0, (Math.log(x / 10 + 1.4) - Math.log(1.5)) ** 1.2 * 16) || 0) + (x / 50) ** 0.8) * 1e3;
+			return timer = setTimeout(request, x - offset, true);
+		};
 		const dir = (() => {
 			const dir = path => (...path1) => {
 				let cancel;
@@ -688,8 +667,10 @@ const ajax = (() => {
 				path1 = clone_list(path1);
 				genfn2tick(function*(){
 					path1 = (yield path).concat(yield path1);
-					if(cancel !== null) cancel = db.on(...path1, (...path) =>
-						listener(dir(tickline(path => path1.concat(path))(clone_list(path))), ...path));
+					if(cancel === null) return;
+					cancel = db.on(...path1, (...path) => {
+						listener(dir(tickline(path => path1.concat(path))(clone_list(path))), ...path);
+					});
 				})();
 				return () => {
 					if(cancel) cancel();
@@ -698,45 +679,410 @@ const ajax = (() => {
 			};
 			return dir(path);
 		})();
+		const put = (tag, record, ...chain) => {
+			db.put(...path, tag, record, ...chain);
+			const state = states.get(uri);
+			if(!state) return;
+			const thunk = state.store(tag, record);
+			if(thunk && chain.length > 0) thunk(...chain);
+		};
+		const request = end => tickline(then => end(then))(genfn2tick(function*(){
+			const keys = [
+				"ETag",
+				"Last-Modified",
+			];
+			const update = date => {
+				if(state.update(date, tag) === state.date) return state.poll(performance.now() - stamp);
+			};
+			const fallen = () => {
+				clearTimeout(timer);
+				timer = setTimeout(request, (-stamp + (stamp = performance.now())) * 2);
+				const {size} = edition;
+				const list = edition.pointlist1();
+				let point;
+				for(let i = 0; i < list.length; i += 2) if(list[i] <= cn.pos && !(list[i + 1] < cn.pos)){
+					point = list[i + 1] + 1 || Infinity;
+					break;
+				}
+				if(point === undefined) return;
+				for(let {pos, end} of state.pool){
+					if(pos === undefined || end === undefined) continue;
+					if(pos <= point && pos - cn.pos > 2e3 && (end >= cn.end || end === size - 1)) return true;
+				}
+			};
+			const Content_Range = (date, value) => {
+				const match = value.match(/^\s*bytes\s+(\d+)\s*-(\d+)\s*\/\s*(\d+)\s*$/i);
+				put(tag, [date, "size", +match[3]]);
+				cn.pos = +match[1];
+				cn.end = +match[2];
+				state.pool.add(cn);
+			};
+			const Last_Modified = (date, value) => {
+				if(value !== null) put(tag, [date, "mtime", +new Date(value)]);
+			};
+			const Content_Type = (date, value) => {
+				if(value !== null) value.match(/^([^;]*).*?(?:;\s*charset\s*=([^;]*))?/i).slice(1).forEach((a, i) => {
+					if(a !== undefined) put(tag, [date, [
+						"type",
+						"charset",
+					][i], a.trim()]);
+				});
+			};
+			const piece = (date, buffer) => put(tag, [date, "piece", cn.pos, (cn.pos += buffer.length) - 1], buffer);
+			const unmodified = date => () => {
+				if(update(date)) put(tag, [date]);
+			};
+			counts.set(uri, (counts.get(uri) || 0) + 1);
+			let tag = end;
+			let state = states.get(uri);
+			let timer = setTimeout(request, 3e3);
+			end = then => {
+				end = null;
+				counts.set(uri, counts.get(uri) - 1 || undefined);
+				clearTimeout(timer);
+				if(then) then();
+			};
+			if(!state) return;
+			let {edition} = state;
+			const point = edition && edition.pointlist1()[0];
+			const cn = {
+				pos: point == null ? state.pointlist[0] || 0 : point,
+				end: NaN,
+			};
+			const headers = [
+				["Cache-Control", "max-age=0"],
+				["Range", "bytes=" + cn.pos + "-"],
+			];
+			if(edition && point == null){
+				if(!tag) return;
+				({tag} = edition || {});
+				headers.push([new Map([
+					["ETag", "If-None-Match"],
+					["Last-Modified", "If-Modified-Since"],
+				]).get(tag[0]), tag[1]]);
+			}
+			let stamp = performance.now();
+			state.poll(0);
+			if("body" in Response.prototype){
+				const init = {headers: new Headers()};
+				headers.forEach(header => init.headers.set(...header));
+				const [, response] = yield prom2hell(fetch(uri, init));
+				if(response){
+					state = states.get(uri);
+					const reader = response.body.getReader();
+					const abort = () => reader.cancel();
+					if(state){
+						const {headers, status} = response;
+						const date = headers.get("Date");
+						if(status === 404){
+							abort();
+							return () => update(date);
+						}
+						if(status === 304) return unmodified(date);
+						if(status === 206){
+							tag = null;
+							for(let key of keys){
+								const value = headers.get(key);
+								if(value !== null){
+									tag = [key, value];
+									break;
+								}
+							}
+							if(tag) return !(yield tickline(() => state.pool.delete(cn))(genfn2tick(function*(){
+								cn.abort = () => end(abort);
+								update(date);
+								Content_Range(date, headers.get("Content-Range"));
+								Last_Modified(date, headers.get("Last-Modified"));
+								Content_Type(date, headers.get("Content-Type"));
+								({edition} = state);
+								if(indexedDB.cmp(tag, (edition || {tag: 0}).tag) === 0){
+									while(state.alive && !fallen()){
+										const [, result] = yield prom2hell(reader.read());
+										if(end === null) yield hell()[0];
+										if(!result || result.done){
+											if(!counts.get(uri) && edition.pointlist1().length > 0) request();
+											return;
+										}
+										piece(date, result.value);
+										let i = 2;
+										const list = edition.pointlist1();
+										for(; i < list.length && list[i] <= cn.pos; i += 2);
+										if(i < list.length && list[i - 1] < cn.pos) request();
+									}
+								}
+								abort();
+							})()));
+						}
+					}
+					abort();
+				}
+				request();
+				return;
+			}
+			ReadableStream;
+		})());
+		const get_edition = tag => editions.get(...tag) || (() => {
+			tags.push(tag);
+			const f = cache(size => {
+				const list = mix(mix(state.pointlist, edition.pointlist0, false, false, false), edition.pointlist0, false, false, true);
+				if(Number.isNaN(size)) return list;
+				return mix([0, size - 1], mix(mix(list, [0, size - 1], false, false, false), list, false, false, true), false, false, true);
+			});
+			const edition = {
+				tag,
+				date: -Infinity,
+				pointlist0: [],
+				pointlist1: () => f(edition.size, ...state.pointlist, NaN, ...edition.pointlist0),
+				records0: new Set,
+				records1: new Set,
+				pieces: [],
+				size: NaN,
+				mtime: NaN,
+				type: null,
+				charset: null,
+			};
+			editions.set(...tag, edition);
+			cancels.add(dir(tag, (dir, record) => {
+				if(!record || hash.get(...tag, false, ...record)) return;
+				hash.set(...tag, false, ...record, true);
+				const thunk = store(tag, record);
+				if(thunk) cancels.add(dir((dir, content) => {
+					if(content) thunk(content);
+				}));
+			}));
+			return edition;
+		})();
+		const update = (date, tag) => {
+			const date1 = date;
+			date = +new Date(date);
+			date = Number.isNaN(date) ? -Infinity : date;
+			if(date > state.date){
+				state.date = date;
+				const {edition} = state;
+				if(tag){
+					const edition = state.edition = get_edition(tag);
+					edition.date = date;
+					let list = [];
+					edition.records1.forEach(([, , ...range]) => list = mix(list, range, false, false, false));
+					if(list.length > 0) edition.pieces.forEach((piece, i) => {
+						const begin = edition.pointlist0[i * 2];
+						const range = mix(mix([begin, begin + piece.size - 1], list, false, false, false), list, false, false, true);
+						for(let i = 0; i < range.length; i += 2){
+							const record = [date1, "piece", range[i], range[i + 1]];
+							put(tag, record);
+							const reader = new FileReader;
+							reader.addEventListener("load", () => put(tag, record, new Uint8Array(reader.result)));
+							reader.readAsArrayBuffer(piece.slice(record[2] - begin, record[3] - begin + 1));
+							pool.add({abort: () => {
+								try{
+									reader.abort();
+								}catch(error){}
+							}});
+						}
+					});
+					listeners.forEach(listener => listener(edition, 0, new Blob));
+				}else{
+					state.edition = null;
+					listeners.forEach(listener => listener());
+				}
+				if(edition !== state.edition){
+					pool.forEach(cn => cn.abort());
+					pool.clear();
+					if(date0 === undefined){
+						date0 = date - 7e3;
+					}else{
+						date0 = date;
+						request(true);
+					}
+				}
+			}
+			return date;
+		};
+		const store = (tag, record) => {
+			const record1 = [...record];
+			const edition = editions.get(...tag);
+			edition.date = Math.max(edition.date, update(record.shift(), tag));
+			const flag = record.shift();
+			if(!flag) return;
+			switch(flag){
+			case "piece":
+				let record0 = hash.get(...tag, true, ...record1);
+				if(!record0){
+					record0 = record1;
+					edition.records0.add(record0);
+					hash.set(...tag, true, ...record0, record0);
+				}
+				return content => {
+					const {pointlist0, pieces, records0, records1, date, size} = edition;
+					if(content === db.end){
+						records0.delete(record0);
+						return records1.delete(record0);
+					}
+					records1.add(record0);
+					const list = edition.pointlist0 = mix(pointlist0, record, false, false, false);
+					if(indexedDB.cmp(pointlist0, list) !== 0){
+						let i = 0;
+						let j = 0;
+						const p0 = () => i < pointlist0.length && j < list.length;
+						const p1 = () => pointlist0[i] === list[i] && pointlist0[i + 1] === list[i + 1];
+						for(; p0() && p1(); i += 2, j += 2);
+						for(j += 2; p0() && !p1(); i += 2);
+						const m = j / 2 - 1;
+						const n = i / 2 - m;
+						pieces.splice(m, n, new Blob([
+							pieces[m] ? pieces[m].slice(0, Math.min(0, record[0] - pointlist0[j - 1] - 1)) : "",
+							content,
+							pieces[n] ? pieces[n].slice(Math.max(0, record[1] - pointlist0[i - 2] + 1)) : "",
+						]));
+						listeners.forEach(listener => listener(edition, list[m * 2], pieces[m]));
+					}
+					if(date < date1) return put(tag, record0, db.end);
+					if(size !== 0 && (pieces[0] || {}).size !== size || !(date > date1)) return;
+					date1 = date;
+					tags.forEach(tag => {
+						const edition = editions.get(...tag);
+						if(edition.date < date) edition.records0.forEach(record => put(tag, record, db.end));
+					});
+				};
+			default:
+				[edition[flag]] = record;
+			}
+		};
+		const arrange = tube((...pointlist) => {
+			pointlists.add(pointlist);
+			state.pointlist = mix(state.pointlist, pointlist, false, false, false);
+			if(!counts.get(uri)) request(true);
+			let date;
+			const listener0 = (...args) => {
+				if(args.length === 0) ({date} = state);
+			};
+			listeners.add(listener0);
+			const length = Math.ceil(pointlist.length / 2) + 1;
+			return listener => {
+				if(listener){
+					let progress0 = 0;
+					let date0 = -Infinity;
+					const lists = new Map;
+					const listener0 = (...args) => {
+						if(args.length === 0){
+							date0 = state.date;
+							progress0 = 0;
+							return listener(new Date(date0));
+						}
+						const [edition, begin, piece] = args;
+						const list = lists.get(edition) || (() => {
+							const list = new Array(length).fill(new Blob);
+							lists.set(edition, list);
+							return list;
+						})();
+						const {tag, date, size, mtime, type, charset} = edition;
+						const l = list.length;
+						let i = 1;
+						let j = (length - l) * 2;
+						let k = j;
+						let t;
+						let n = 0;
+						const f0 = () => {
+							i += 1;
+							j += 2;
+						};
+						const f1 = () => t = begin - pointlist[j];
+						const f2 = () => list[i] = new Blob([list[i].slice(0, t), piece]);
+						const p = () => i < l && t <= list[i].size;
+						for(; i < l && f1() > list[i].size; f0());
+						if(i === 1){
+							for(; p(); f0(), f1()){
+								t = (pointlist[j + 1] + 1 || size) - pointlist[j];
+								if(!(f2().size >= t)) break;
+								list[0] = new Blob([list[0], list[i].slice(0, t)]);
+							}
+							n = i - 1;
+						}
+						for(; p(); f0(), f1()) f2();
+						list.splice(1, n);
+						k -= n * 2;
+						t = pointlist[k + 1];
+						const chunk = new Blob([
+							list[0],
+							t === undefined ? list[1] || "" : list[1].slice(0, t - pointlist[k] + 1),
+						]);
+						const progress = list.length > 1 ? chunk.size : Infinity;
+						if(progress < progress0 || date < date0 || progress === progress0 && date === date0) return;
+						date0 = date;
+						progress0 = progress;
+						const properties = {};
+						if(!Number.isNaN(size)) properties.size = size;
+						if(!Number.isNaN(mtime)) properties.mtime = new Date(mtime);
+						if(type !== null) properties.type = type;
+						if(charset !== null) properties.charset = charset;
+						listener(new Date(date), chunk, progress === Infinity, [...tag], properties);
+					};
+					listeners.add(listener0);
+					const {edition} = state;
+					if(edition){
+						edition.pieces.forEach((piece, i) => listener0(edition, edition.pointlist0[i * 2], piece));
+					}else if(date === state.date){
+						listener0();
+					}
+					return () => listeners.delete(listener0);
+				}
+				listeners.delete(listener0);
+				pointlists.delete(pointlist);
+				state.pointlist = [];
+				pointlists.forEach(list => state.pointlist = mix(state.pointlist, list, false, false, false));
+			};
+		});
+		const pointlists = new Set;
+		const tags = [];
+		const editions = multi_key_map();
+		const listeners = new Set;
+		const pool = new Set;
+		const hash = multi_key_map();
 		let timer;
 		let date0;
 		let date1;
+		const cancels = new Set([dir((dir, tag) => {
+			if(tag) get_edition(tag);
+		})]);
 		const state = {
-			plist: [],
-			date: -Infinity,
+			alive: true,
+			pool,
 			edition: null,
-			pool: new Set,
-			roll: offset => {
-				clearTimeout(timer);
-				let x = (state.date - date0) / 1e3;
-				if(Number.isNaN(x)) return;
-				x = (Math.max(0, (Math.log(x / 10 + 1.4) - Math.log(1.5)) ** 1.2 * 16) || 0) + (x / 50) ** 0.8;
-				return timer = setTimeout(request, x / 1e3 - offset);
-			},
+			pointlist: [],
+			date: -Infinity,
+			update,
+			store,
+			poll,
 		};
 		states.set(uri, state);
 		return listener => {
 			if(listener) return listener(arrange);
-			states.delete(uri, state);
-			state.plist = [];
-			cancels.forEach(f => f());
+			states.delete(uri);
+			state.alive = false;
+			cancels.forEach(cancel => cancel());
 		};
 	});
-	const ajax = tube((uri, ...list) => {
-		let p = 0;
-		list = list.map(d => p += Math.floor(d));
+	const ajax = tube((uri, ...pointlist) => {
+		let point = 0;
+		pointlist = pointlist.map(d => {
+			if(!(d >= 0)) throw new TypeError;
+			point += Math.floor(d);
+			return point;
+		});
 		const [hell0, resolve] = hell();
-		const cancel = assign(uri)(arrange => resolve(arrange(...list)));
+		const cancel = assign(uri)(arrange => resolve(arrange(...pointlist)));
 		return listener => {
 			if(listener){
-				const cancel = tickline(f => f(listener))(hell0);
-				return () => tickline(f => f())(cancel);
+				const cancel = tickline(arrange => arrange(listener))(hell0);
+				return () => tickline(cancel => cancel())(cancel);
 			}
-			tickline(f => f())(hell0);
+			tickline(arrange => arrange())(hell0);
 			cancel();
 		};
 	});
-	return (uri, ...rest) => ajax(format_uri(uri), ...rest);
+	return tubeline((uri, ...rest) => listener => {
+		if(listener) listener(format_uri(uri), ...rest);
+	}, ajax);
 })();
 library.ajax = ajax;
 

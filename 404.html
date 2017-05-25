@@ -88,22 +88,19 @@
 								Promise.resolve().then(() => run(() => thunk()()));
 							};
 							const hell = () => {
-								const hell0 = callback => {
-									if(callbacks){
-										callbacks.push(callback);
-										return;
-									}
-									run(() => () => callback(result));
+								const hell = callback => {
+									if(!callbacks) return run(() => () => callback(result));
+									callbacks.push(callback);
 								};
 								let result;
 								let callbacks = [];
-								hells.add(hell0);
-								return [hell0, result1 => {
+								hells.add(hell);
+								return [hell, result1 => {
 									if(!callbacks) return;
 									result = result1;
 									const callbacks1 = callbacks;
 									callbacks = null;
-									callbacks1.forEach(hell0);
+									callbacks1.forEach(hell);
 								}];
 							};
 							const is_hell = target => hells.has(target);
@@ -365,7 +362,7 @@
 
 		div a:focus,
 		div a:hover{
-			background-color: rgba(0, 0, 0, 0.17);
+			background-color: rgba(0, 0, 0, .17);
 		}
 
 		body{
