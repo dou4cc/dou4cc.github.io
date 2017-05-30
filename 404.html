@@ -40,7 +40,7 @@
 	</script>
 	<script>"use strict";
 		a => function*(...[{a}]){``};
-		Promise.resolve(document.append(), );
+		Promise.resolve(document.append());
 		Reflect;
 
 		onerror = null;
@@ -151,10 +151,7 @@
 							};
 							const prom2hell = promise => dp.get(promise) || (() => {
 								const [hell0, resolve] = hell();
-								Promise.resolve(promise).then(
-									result => resolve([null, result]),
-									error => resolve([error]),
-								);
+								Promise.resolve(promise).then(result => resolve([null, result]), error => resolve([error]));
 								dp.set(promise, hell0);
 								return hell0;
 							})();
@@ -174,7 +171,7 @@
 							const timer = setTimeout(() => {
 								if(crash) return;
 								crash = true;
-								localStorage.setItem(setup, JSON.stringify({source: \`
+								if((localStorage || {}).setItem) localStorage.setItem(setup, JSON.stringify({source: \`
 									const {hell, tickline} = library;
 
 									const pre = document.createElement("pre");
@@ -230,13 +227,13 @@
 							xhr.open("GET", "/boot.js");
 							xhr.setRequestHeader("Cache-Control", "max-age=0");
 							if(boot.tag){
-								let [key] = [, t] = boot.tag;
-								key = new Map([
+								const [, value] = [t] = boot.tag;
+								t = new Map([
 									["ETag", "If-None-Match"],
 									["Last-Modified", "If-Modified-Since"],
-								]).get(key);
-								if(key !== undefined){
-									xhr.setRequestHeader(key, t);
+								]).get(t);
+								if(t !== undefined){
+									xhr.setRequestHeader(t, value);
 									t = boot;
 								}
 							}
@@ -251,10 +248,9 @@
 								t = {source: xhr.responseText};
 								for(let key of ["ETag", "Last-Modified"]){
 									const value = xhr.getResponseHeader(key);
-									if(value !== null){
-										t.tag = [key, value];
-										break;
-									}
+									if(value === null) continue;
+									t.tag = [key, value];
+									break;
 								}
 							}else if(status !== 304 && status !== 404){
 								return requestAnimationFrame(check);
