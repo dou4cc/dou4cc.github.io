@@ -670,6 +670,11 @@ const ajax = (() => {
 					return edition && put(edition, [date]);
 				}
 				if(status === 206) for(let t of keys){
+					const end2 = () => {
+						t = true;
+						state.pool.delete(cn);
+						end();
+					};
 					const value = header(t);
 					if(value === null) continue;
 					edition = state.get_edition([t, value]);
@@ -684,17 +689,16 @@ const ajax = (() => {
 					state.update(date, edition);
 					if(state.date === gmt2num(date)) state.roll(performance.now() - stamp);
 					if(state.edition !== edition || !p()) return end1();
-					t = false;          
+					t = false;
 					cn.abort = () => {
-						t = true;
-						state.pool.delete(cn);
-						end1();
+						abort();
+						end2();
 					};
 					state.pool.add(cn);
 					return then(buffer => {
 						if(t) return;
 						if(!buffer){
-							cn.abort();
+							end2();
 							return counts.get(uri) || request(edition);
 						}
 						put(edition, [date, "piece", cn.p, (cn.p += buffer.length) - 1], buffer);
@@ -784,12 +788,12 @@ const ajax = (() => {
 					if(edition && Math.sign(progress1 - progress) + Math.sign(edition1.date - edition.date) < 1) return;
 					edition = edition1;
 					progress = progress1;
-					const properties = {};
-					if(!Number.isNaN(edition.size)) properties.size = edition.size;
-					if(!Number.isNaN(edition.mtime)) properties.mtime = new Date(edition.mtime);
-					if(edition.type !== null) properties.type = edition.type;
-					if(edition.charset !== null) properties.charset = edition.charset;
-					listener1(t, progress === Infinity, edition.tag.slice(), properties);
+					const info = {};
+					if(!Number.isNaN(edition.size)) info.size = edition.size;
+					if(!Number.isNaN(edition.mtime)) info.mtime = new Date(edition.mtime);
+					if(edition.type !== null) info.type = edition.type;
+					if(edition.charset !== null) info.charset = edition.charset;
+					listener1(t, progress === Infinity, edition.tag.slice(), info);
 				};
 				listeners.add(listener);
 				if(edition){
