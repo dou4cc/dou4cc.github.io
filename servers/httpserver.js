@@ -73,7 +73,7 @@ if(Cluster.isMaster){
 					response.end();
 				}else if('range' in headers&&(headers['if-match']===etag||'if-match' in headers===false&&'if-unmodified-since' in headers===false)){
 					let start, end;
-					let matches=headers['range'].match(/^bytes=(\d*)-(\d*)$/);
+					let matches=headers['range'].match(/^bytes=(\d+)-(\d+)?$/);
 					if(matches[1])
 						start=matches[1]-0, end=(matches[2]-0+1||stats.size)-1;
 					else

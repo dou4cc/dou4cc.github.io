@@ -40,7 +40,7 @@
 	</script>
 	<script>"use strict";
 		a => function*(...[{a}]){``};
-		Promise.resolve(document.append());
+		Promise.resolve(document.append(), );
 		Reflect;
 
 		onerror = null;
@@ -151,7 +151,10 @@
 							};
 							const prom2hell = promise => dp.get(promise) || (() => {
 								const [hell0, resolve] = hell();
-								Promise.resolve(promise).then(result => resolve([null, result]), error => resolve([error]));
+								Promise.resolve(promise).then(
+									result => resolve([null, result]),
+									error => resolve([error]),
+								);
 								dp.set(promise, hell0);
 								return hell0;
 							})();

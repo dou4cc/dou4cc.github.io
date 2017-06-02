@@ -612,19 +612,23 @@ const ajax = (() => {
 		let n = 0;
 		const plist = [];
 		mlist.sort(cmp).forEach(([p, b]) => {
-			if(n !== 0 && (n += b - .5) !== 0) return;
-			if(plist[0] < p) return plist.unshift(p);
-			plist.shift();
+			const n0 = n;
+			n += b - .5;
+			if(n0 !== 0 && n !== 0) return;
+			if(plist[0] === p) return plist.shift();
+			plist.unshift(p);
 		});
 		return plist.reverse();
 	};
 	const p2m = (b, plist) => plist.map(p => [p, b = !b]);
 	const gmt2num = cache(date => Number.isNaN(date = +new Date(date)) ? -Infinity : date);
 
+	let canceled = false;
 	const states = new Map;
 	const counts = multi_key_map();
 	const assign = tube(uri => {
 		const put = (edition, record, ...rest) => {
+			if(canceled) return;
 			db.put(...path, edition.tag, record, ...rest);
 			let t = states.get(uri);
 			if(!t) return;
@@ -679,23 +683,22 @@ const ajax = (() => {
 					if(t !== null) t.match(/^([^;]*).*?(?:;\s*charset\s*=([^;]*))?/i).slice(1).forEach((a, i) => a === undefined || put(edition, [date, ["type", "charset"][i], a.trim()]));
 					state.update(date, edition);
 					if(state.date === gmt2num(date)) state.roll(performance.now() - stamp);
-					if(state.edition === edition || !p()) return end1();
-					t = false;
+					if(state.edition !== edition || !p()) return end1();
+					t = false;          
 					cn.abort = () => {
 						t = true;
+						state.pool.delete(cn);
 						end1();
 					};
 					state.pool.add(cn);
 					return then(buffer => {
 						if(t) return;
 						if(!buffer){
-							end();
+							cn.abort();
 							return counts.get(uri) || request(edition);
 						}
 						put(edition, [date, "piece", cn.p, (cn.p += buffer.length) - 1], buffer);
-						if(p()) return;
-						cn.pool.delete(cn);
-						cn.abort();
+						if(!p()) cn.abort();
 					});
 				}
 				return abort();
@@ -730,7 +733,7 @@ const ajax = (() => {
 					const abort = () => reader.cancel();
 					if(!(yield then(abort, status, key => headers.get(key), genfn2tick(function*(push){
 						let result;
-						while(result = (yield prom2hell(reader.read()))[1]) push(result.value);
+						while(result = ((yield prom2hell(reader.read()))[1] || {}).value) push(result);
 						push();
 					})))) return;
 				}
@@ -761,7 +764,7 @@ const ajax = (() => {
 				const listener = (...t) => {
 					if(t.length === 0){
 						edition = null;
-						return listener1(new Date(date));
+						return listener1();
 					}
 					const [edition1, begin, piece] = t;
 					t = lists.get(edition1);
@@ -772,9 +775,9 @@ const ajax = (() => {
 						t = begin - plist[k];
 						if(t <= list[j].size) list[j] = new Blob([list[j].slice(0, t), piece]);
 					}
-					for(; list[1] && !((t = plist[i + 1] - plist[i] + 1) > list[1].size); i += 2) list[0] = new Blob([
+					for(; list[1] && (t = plist[i + 1] - plist[i] + 1) <= list[1].size; i += 2) list[0] = new Blob([
 						list[0],
-						list.splice(1, 1).slice(0, t || undefined),
+						list.splice(1, 1)[0].slice(0, t || undefined),
 					]);
 					t = new Blob([list[0], list[1] || ""]);
 					const progress1 = list[1] ? t.size : Infinity;
@@ -786,7 +789,7 @@ const ajax = (() => {
 					if(!Number.isNaN(edition.mtime)) properties.mtime = new Date(edition.mtime);
 					if(edition.type !== null) properties.type = edition.type;
 					if(edition.charset !== null) properties.charset = edition.charset;
-					listener1(new Date(edition1.date), t, progress === Infinity, edition.tag.slice(), properties);
+					listener1(t, progress === Infinity, edition.tag.slice(), properties);
 				};
 				listeners.add(listener);
 				if(edition){
@@ -837,7 +840,7 @@ const ajax = (() => {
 				const f = cache(size => {
 					let t = p2m(true, m2p(p2m(true, edition.plist0).concat(p2m(true, state.plist)))).concat(p2m(false, edition.plist0));
 					if(Number.isNaN(size)) return m2p(t);
-					t = t.concat(p2m(true, [0, size]));
+					t = t.concat(p2m(true, [0, size - 1]));
 					return m2p(t.concat(p2m(false, m2p(t))));
 				});
 				edition = {
@@ -905,7 +908,7 @@ const ajax = (() => {
 				if(flag !== "piece") return flag && ([edition[flag]] = list);
 				edition.records0.add(record);
 				return buffer => {
-					const {date, plist0, record1, pieces} = edition;
+					const {date, plist0, records1, pieces} = edition;
 					if(buffer === db.end){
 						edition.records0.delete(record);
 						return records1.delete(record);
@@ -922,7 +925,7 @@ const ajax = (() => {
 						const n = i / 2 - m;
 						pieces.splice(m, n, new Blob([
 							pieces[m] ? pieces[m].slice(0, Math.min(0, record[2] - plist0[j - 1] - 1)) : "",
-							content,
+							buffer,
 							pieces[n] ? pieces[n].slice(Math.max(0, record[3] - plist0[i - 2] + 1)) : "",
 						]));
 						listeners.forEach(f => f(edition, list[m * 2], pieces[m]));
@@ -956,6 +959,7 @@ const ajax = (() => {
 			cancel();
 		};
 	});
+	cancels.add(() => canceled = true);
 	return (uri, ...rest) => ajax(format_uri(uri), ...rest);
 })();
 library.ajax = ajax;
