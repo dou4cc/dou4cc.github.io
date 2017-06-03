@@ -964,7 +964,7 @@ const ajax = (() => {
 		};
 	});
 	cancels.add(() => canceled = true);
-	return (uri, ...rest) => ajax(format_uri(uri), ...rest);
+	return (uri, ...rest) => ajax(format_url(uri), ...rest);
 })();
 library.ajax = ajax;
 
