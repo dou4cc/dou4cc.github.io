@@ -779,7 +779,7 @@ const ajax = (() => {
 						t = begin - plist[k];
 						if(t <= list[j].size) list[j] = new Blob([list[j].slice(0, t), piece]);
 					}
-					for(; list[1] && (t = plist[i + 1] - plist[i] + 1) <= list[1].size; i += 2) list[0] = new Blob([
+					for(; list[1] && (t = (plist[i + 1] + 1 || edition1.size) - plist[i]) <= list[1].size; i += 2) list[0] = new Blob([
 						list[0],
 						list.splice(1, 1)[0].slice(0, t || undefined),
 					]);
