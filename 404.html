@@ -29,11 +29,11 @@
 		this.onerror = function(){
 			document.title = "不支持";
 			var hash = document.location.hash.slice(1);
-			var uri0 = document.location.href;
+			var url0 = document.location.href;
 			var reg = /^[^:]+:\/+[^/]+\//;
-			if((uri0.match(reg) || [0])[0] !== (hash.match(reg) || [1])[0]) return;
+			if((url0.match(reg) || [0])[0] !== (hash.match(reg) || [1])[0]) return;
 			history.replaceState(null, null, hash);
-			if(document.location.href !== hash) history.replaceState(null, null, uri0);
+			if(document.location.href !== hash) history.replaceState(null, null, url0);
 		};
 	</script>
 	<script>"use strict";
@@ -47,9 +47,9 @@
 				document.title = "Loading";
 				const hash = document.location.hash.slice(1);
 				if(!hash.startsWith(document.location.origin)) throw null;
-				const uri0 = document.location.href;
+				const url0 = document.location.href;
 				history.replaceState(null, null, hash);
-				if(document.location.href !== hash) throw history.replaceState(null, null, uri0);
+				if(document.location.href !== hash) throw history.replaceState(null, null, url0);
 				if(localStorage.length === 0) localStorage.setItem(`"use strict";
 					if(top !== self) throw null;
 					Reflect;
@@ -63,7 +63,7 @@
 					html.append(head, document.createElement("body"));
 					document.append(html);
 					Promise.resolve().then(() => {
-						history.replaceState(null, null, uri0);
+						history.replaceState(null, null, url0);
 						try{
 							Reflect.deleteProperty(self, "a");
 						}catch(error){}
@@ -253,7 +253,9 @@
 									t.tag = [key, value];
 									break;
 								}
-							}else if(status !== 304 && status !== 404){
+							}else if(status === 404){
+								t = {source: 'document.title = ""'};
+							}else if(status !== 304){
 								return requestAnimationFrame(check);
 							}
 							t.date = xhr.getResponseHeader("Date") || NaN;
@@ -270,7 +272,7 @@
 					}).catch(error => setTimeout(() => {
 						throw error;
 					}));
-					const uri0 = document.location.href.slice(document.location.origin.length);
+					const url0 = document.location.href.slice(document.location.origin.length);
 					history.replaceState(null, null, "a");
 				`, "");
 				history.go(0);

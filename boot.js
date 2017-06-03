@@ -4,12 +4,12 @@ const cancels = new Set;
 
 const cmp = ([a], [b]) => a - b;
 
-const format_uri = uri => {
+const format_url = url => {
 	const iframe = document.createElement("iframe");
-	iframe.src = uri;
+	iframe.src = url;
 	return iframe.src;
 };
-library.format_uri = format_uri;
+library.format_url = format_url;
 
 const same_list = (a, b) => a && a.length === b.length && a.every((a, i) => a === b[i] || Object.is(a, b[i]));
 library.same_list = same_list;
@@ -95,10 +95,10 @@ const db = (() => {
 			return () => port.removeEventListener("message", onmessage);
 		})(port),
 	})`;
-	const [hub_uri, hub] = (() => {
+	const [hub_url, hub] = (() => {
 		const onunload = () => worker && worker.port.postMessage("disconnect");
 		const make = () => {
-			uri = URL.createObjectURL(new Blob([`"use strict";
+			url = URL.createObjectURL(new Blob([`"use strict";
 				const ports = new Set;
 				addEventListener("connect", event => event.ports.forEach(port => {
 					ports.add(port);
@@ -112,29 +112,29 @@ const db = (() => {
 					port.postMessage("connected");
 				}));
 			`], {type: "text/javascript"}));
-			sessionStorage.setItem(key, uri);
+			sessionStorage.setItem(key, url);
 		};
 		const onerror = () => {
 			worker.removeEventListener("error", onerror);
-			if(uri === (uri = sessionStorage.getItem(key))) make();
+			if(url === (url = sessionStorage.getItem(key))) make();
 			connect();
 		};
 		const connect = () => {
-			worker = new SharedWorker(uri);
+			worker = new SharedWorker(url);
 			worker.port.addEventListener("message", ({data}) => {
 				if(data !== "connected") return;
 				worker.removeEventListener("error", onerror);
-				resolve(uri);
+				resolve(url);
 			});
 			worker.port.start();
 		};
-		const key = "hub-uri";
+		const key = "hub-url";
 		let worker;
 		addEventListener("unload", onunload);
-		let uri = sessionStorage.getItem(key);
+		let url = sessionStorage.getItem(key);
 		const [hell0, resolve] = hell();
 		try{
-			if(!uri) throw null;
+			if(!url) throw null;
 			connect();
 			worker.addEventListener("error", onerror);
 		}catch(error){
@@ -148,9 +148,9 @@ const db = (() => {
 		}));
 		return [hell0, self.eval('"use strict";' + hub_source)(library, tickline(() => worker.port)(hell0))];
 	})();
-	const put_uri = (() => {
-		const onunload = () => URL.revokeObjectURL(uri);
-		const uri = URL.createObjectURL(new Blob([`"use strict";
+	const put_url = (() => {
+		const onunload = () => URL.revokeObjectURL(url);
+		const url = URL.createObjectURL(new Blob([`"use strict";
 			const {hell, tickline} = self.eval('"use strict";' + unescape("${escape(library_source)}"));
 
 			const open_db = name => {
@@ -332,15 +332,15 @@ const db = (() => {
 			onunload();
 			removeEventListener("unload", onunload);
 		});
-		return uri;
+		return url;
 	})();
 	return {
 		end,
 		put: (...list) => {
 			if(list.length === 0) return;
 			list = format(list);
-			const worker = new Worker(put_uri);
-			if(!is_hell(tickline(uri => worker.postMessage(list, [new SharedWorker(uri).port]))(hub_uri))) return;
+			const worker = new Worker(put_url);
+			if(!is_hell(tickline(url => worker.postMessage(list, [new SharedWorker(url).port]))(hub_url))) return;
 			worker.postMessage(list);
 			list = null;
 		},
@@ -793,7 +793,7 @@ const ajax = (() => {
 					if(!Number.isNaN(edition.mtime)) info.mtime = new Date(edition.mtime);
 					if(edition.type !== null) info.type = edition.type;
 					if(edition.charset !== null) info.charset = edition.charset;
-					listener1(t, progress === Infinity, edition.tag.slice(), info);
+					listener1(t, progress === Infinity, edition.tag.join(": "), info);
 				};
 				listeners.add(listener);
 				if(edition){
