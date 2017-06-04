@@ -1,7 +1,6 @@
 ﻿const {run, hell, is_hell, tickline, gen2tick, genfn2tick, prom2hell} = library;
 library = Object.create(library);
 const cancels = new Set;
-let canceled = false;
 
 const cmp = ([a], [b]) => a - b;
 
@@ -338,7 +337,7 @@ const db = (() => {
 	return {
 		end,
 		put: (...list) => {
-			if(list.length === 0 || canceled) return;
+			if(list.length === 0) return;
 			list = format(list);
 			const worker = new Worker(put_url);
 			if(!is_hell(tickline(url => worker.postMessage(list, [new SharedWorker(url).port]))(hub_url))) return;
@@ -347,7 +346,7 @@ const db = (() => {
 		},
 		on: (...list) => {
 			const f = (i, name) => {
-				if(cancel === null || canceled) return;
+				if(cancel === null) return;
 				const f1 = () => {
 					if(cancel === null) return cn.result.close();
 					const store = cn.result.transaction(["store"], "readonly").objectStore("store");
@@ -608,9 +607,369 @@ const tubeline = (() => {
 })();
 library.tubeline = tubeline;
 
+const ajax = (() => {
+	const m2p = mlist => {
+		let n = 0;
+		const plist = [];
+		mlist.sort(cmp).forEach(([p, b]) => {
+			const n0 = n;
+			n += b - .5;
+			if(n0 !== 0 && n !== 0) return;
+			if(plist[0] === p) return plist.shift();
+			plist.unshift(p);
+		});
+		return plist.reverse();
+	};
+	const p2m = (b, plist) => plist.map(p => [p, b = !b]);
+	const gmt2num = cache(date => Number.isNaN(date = +new Date(date)) ? -Infinity : date);
+
+	let canceled = false;
+	const states = new Map;
+	const counts = multi_key_map();
+	const assign = tube(uri => {
+		const put = (edition, record, ...rest) => {
+			if(canceled) return;
+			db.put(...path, edition.tag, record, ...rest);
+			let t = states.get(uri);
+			if(!t) return;
+			t = t.store(edition, record);
+			if(rest[0]) t(...rest);
+		};
+		const request = genfn2tick(function*(edition){
+			const end = () => {
+				counts.set(uri, counts.get(uri) - 1 || undefined);
+				clearTimeout(timer);
+			};
+			const p = () => {
+				clearTimeout(timer);
+				const list = edition.plist1();
+				if(list.length === 0) return;
+				for(let i = 2; i < list.length; i += 2) if(list[i - 1] < cn.p && list[i] > cn.p && list[i] - cn.p > 800){
+					for(let {p, end} of state.pool){
+						if(p === undefined || end === undefined) continue;
+						if(p <= list[i] && p - cn.p > 2e3 && end >= cn.end) return;
+					}
+					request(edition);
+					break;
+				}
+				return timer = setTimeout(request, (-stamp + (stamp = performance.now())) * 2, edition);
+			};
+			const then = (abort, status, header, then) => {
+				const end1 = () => {
+					abort();
+					end();
+				};
+				state = states.get(uri);
+				if(!state) return abort();
+				const date = header("Date");
+				if(status === 304 || (edition = null, status === 404)){
+					end1();
+					state.update(date, edition);
+					if(state.date !== gmt2num(date)) return;
+					state.roll(performance.now() - stamp);
+					return edition && put(edition, [date]);
+				}
+				if(status === 206) for(let t of keys){
+					const end2 = () => {
+						t = true;
+						state.pool.delete(cn);
+						end();
+					};
+					const value = header(t);
+					if(value === null) continue;
+					edition = state.get_edition([t, value]);
+					t = header("Content-Range").match(/^\s*bytes\s+(\d+)\s*-(\d+)\s*\/\s*(\d+)\s*$/i);
+					put(edition, [date, "size", +t[3]]);
+					cn.p = +t[1];
+					cn.end = +t[2];
+					t = header("Last-Modified");
+					if(t !== null) put(edition, [date, "mtime", +new Date(t)]);
+					t = header("Content-Type");
+					if(t !== null) t.match(/^([^;]*).*?(?:;\s*charset\s*=([^;]*))?/i).slice(1).forEach((a, i) => a === undefined || put(edition, [date, ["type", "charset"][i], a.trim()]));
+					state.update(date, edition);
+					if(state.date === gmt2num(date)) state.roll(performance.now() - stamp);
+					if(state.edition !== edition || !p()) return end1();
+					t = false;
+					cn.abort = () => {
+						abort();
+						end2();
+					};
+					state.pool.add(cn);
+					return then(buffer => {
+						if(t) return;
+						if(!buffer){
+							end2();
+							return counts.get(uri) || request(edition);
+						}
+						put(edition, [date, "piece", cn.p, (cn.p += buffer.length) - 1], buffer);
+						if(!p()) cn.abort();
+					});
+				}
+				return abort();
+			};
+			let state = states.get(uri);
+			if(!state || edition && (edition !== state.edition || edition.plist1().length === 0)) return;
+			const keys = ["ETag", "Last-Modified"];
+			counts.set(uri, counts.get(uri) + 1 || 1);
+			({edition} = state);
+			const cn = {p: (edition && edition.plist1()[0] + 1 || state.plist[0] + 1 || 1) - 1};
+			const headers = () => {
+				const headers = [
+					["Cache-Control", "max-age=0"],
+					["Range", "bytes=" + cn.p + "-"],
+				];
+				if(edition && edition.plist1().length === 0) headers.push([
+					["If-None-Match", "If-Modified-Since"][keys.indexOf(edition.tag[0])],
+					edition.tag[1],
+				]);
+				return headers;
+			};
+			let stamp = performance.now();
+			let timer = setTimeout(request, 3e3);
+			state.roll(0);
+			if("body" in Response.prototype){
+				const init = {headers: new Headers()};
+				headers().forEach(header => init.headers.set(...header));
+				const [, response] = yield prom2hell(fetch(uri, init));
+				if(response){
+					const {body, status, headers} = response;
+					const reader = body.getReader();
+					const abort = () => reader.cancel();
+					if(!(yield then(abort, status, key => headers.get(key), genfn2tick(function*(push){
+						let result;
+						while(result = ((yield prom2hell(reader.read()))[1] || {}).value) push(result);
+						push();
+					})))) return;
+				}
+			}else{
+				ReadableStream;
+			}
+			end();
+			request();
+		});
+		const arrange = tube((...plist) => {
+			const mlist = p2m(true, plist);
+			mlists.add(mlist);
+			state.plist = m2p(p2m(true, state.plist).concat(mlist));
+			if(!counts.get(uri)) request();
+			let date;
+			const listener = (...args) => args.length === 0 && ({date} = state);
+			listeners.add(listener);
+			const length = Math.ceil(plist.length / 2) + 1;
+			return listener1 => {
+				if(!listener1){
+					listeners.delete(listener);
+					mlists.delete(mlist);
+					state.plist = m2p([].concat(...mlists));
+				}
+				let {edition} = state;
+				let progress = 0;
+				const lists = new Map;
+				const listener = (...t) => {
+					if(t.length === 0){
+						edition = null;
+						return listener1();
+					}
+					const [edition1, begin, piece] = t;
+					t = lists.get(edition1);
+					if(!t) lists.set(edition1, t = new Array(length).fill(new Blob));
+					const list = t;
+					let i = (length - list.length) * 2;
+					for(let j = 1, k = i; list[j] && !(begin > plist[k + 1]); j += 1, k += 2){
+						t = begin - plist[k];
+						if(t <= list[j].size) list[j] = new Blob([list[j].slice(0, t), piece]);
+					}
+					for(; list[1] && (t = (plist[i + 1] + 1 || edition1.size) - plist[i]) <= list[1].size; i += 2) list[0] = new Blob([
+						list[0],
+						list.splice(1, 1)[0].slice(0, t || undefined),
+					]);
+					t = new Blob([list[0], list[1] || ""]);
+					const progress1 = list[1] ? t.size : Infinity;
+					if(edition && Math.sign(progress1 - progress) + Math.sign(edition1.date - edition.date) < 1) return;
+					edition = edition1;
+					progress = progress1;
+					const info = {};
+					if(!Number.isNaN(edition.size)) info.size = edition.size;
+					if(!Number.isNaN(edition.mtime)) info.mtime = new Date(edition.mtime);
+					if(edition.type !== null) info.type = edition.type;
+					if(edition.charset !== null) info.charset = edition.charset;
+					listener1(t, progress === Infinity, edition.tag.join(": "), info);
+				};
+				listeners.add(listener);
+				if(edition){
+					edition.pieces.forEach((piece, i) => listener(edition, edition.plist0[i * 2], piece));
+				}else if(date === state.date){
+					listener();
+				}
+				return () => listeners.delete(listener);
+			};
+		});
+		const path = ["cache", uri];
+		const dir = (() => {
+			const dir = path => (...path1) => {
+				let cancel;
+				const listener = path1.pop();
+				path1 = clone_list(path1);
+				genfn2tick(function*(){
+					path1 = (yield path).concat(yield path1);
+					if(cancel !== null) cancel = db.on(...path1, (...path) => listener(dir(tickline(path => path1.concat(path))(clone_list(path))), ...path));
+				})();
+				return () => {
+					if(cancel) cancel();
+					cancel = null;
+				};
+			};
+			return dir(path);
+		})();
+		let timer;
+		let date0;
+		let date1;
+		const editions = [];
+		const mlists = new Set;
+		const listeners = new Set;
+		const dot = multi_key_map();
+		const cancels = new Set([dir((dir, tag) => tag && state.get_edition(tag))]);
+		const state = {
+			plist: [],
+			date: -Infinity,
+			pool: new Set,
+			roll: offset => {
+				clearTimeout(timer);
+				let x = (state.date - date0) / 1e3;
+				if(Number.isNaN(x)) return;
+				x = (Math.max(0, (Math.log(x / 10 + 1.4) - Math.log(1.5)) ** 1.2 * 16) || 0) + (x / 50) ** 0.8;
+				return timer = setTimeout(request, x * 1e3 - offset);
+			},
+			get_edition: edition => dot.get(...edition) || (() => {
+				const f = cache(size => {
+					let t = p2m(true, m2p(p2m(true, edition.plist0).concat(p2m(true, state.plist)))).concat(p2m(false, edition.plist0));
+					if(Number.isNaN(size)) return m2p(t);
+					t = t.concat(p2m(true, [0, size - 1]));
+					return m2p(t.concat(p2m(false, m2p(t))));
+				});
+				edition = {
+					tag: edition,
+					date: -Infinity,
+					plist0: [],
+					plist1: () => f(edition.size, ...edition.plist0, NaN, ...state.plist),
+					records0: new Set,
+					records1: new Set,
+					pieces: [],
+					size: NaN,
+					mtime: NaN,
+					type: null,
+					charset: null,
+				};
+				editions.push(edition);
+				dot.set(...edition.tag, edition);
+				cancels.add(dir(edition.tag, (dir, record) => {
+					if(!record) return;
+					const thunk = state.store(tag, record);
+					state.update(record[0], edition);
+					if(thunk) cancels.add(dir((dir, buffer) => buffer && thunk(buffer)));
+				}));
+				return edition;
+			})(),
+			update: (gmt, edition) => {
+				const date = gmt2num(gmt);
+				if(date <= state.date) return;
+				state.date = date;
+				if(state.edition === (state.edition = edition)) return edition || listeners.forEach(f => f());
+				state.pool.forEach(cn => cn.abort());
+				state.pool.clear();
+				if(date0 === undefined){
+					date0 = date - 7e3;
+				}else{
+					date0 = date;
+					request();
+				}
+				if(!edition) return listeners.forEach(f => f());
+				listeners.forEach(f => f(edition, 0, new Blob));
+				const list = [].concat(...[...edition.records1].map(([, , ...range]) => p2m(true, range)));
+				if(list.length > 0) editions.pieces.forEach((piece, i) => {
+					const begin = edition.plist0[i * 2];
+					const ranges = m2p(p2m(false, m2p(p2m(true, begin, begin + piece.size - 1).concat(list))).concat(p2m(true, m2p(list))));
+					for(let i = ranges.length - 1; i > 0; i -= 2){
+						const record = [gmt, "piece", ranges[i - 1], ranges[i]];
+						put(edition, record);
+						const reader = new FileReader;
+						const cn = {abort: () => reader.abort()};
+						reader.addEventListener("loadend", () => state.pool.delete(cn));
+						reader.addEventListener("load", () => put(edition, record, new Uint8Array(reader.result)));
+						reader.readAsArrayBuffer(piece.slice(record[2] - begin, record[3] - begin + 1));
+						state.pool.add(cn);
+					}
+				});
+			},
+			store: (edition, list) => {
+				const record = dot.get(edition, ...list) || (() => {
+					const record = list.slice();
+					dot.set(edition, ...list, record);
+					return record;
+				})();
+				edition.date = Math.max(edition.date, gmt2num(list.shift()));
+				const flag = list.shift();
+				if(flag !== "piece") return flag && ([edition[flag]] = list);
+				edition.records0.add(record);
+				return buffer => {
+					const {date, plist0, records1, pieces} = edition;
+					if(buffer === db.end){
+						edition.records0.delete(record);
+						return records1.delete(record);
+					}
+					records1.add(record);
+					if(!same_list(plist0, list = edition.plist0 = m2p(p2m(false, list).concat(p2m(false, plist0))))){
+						let i = 0;
+						let j = 0;
+						const p0 = () => i < plist0.length && j < list.length;
+						const p1 = () => plist0[i] === list[i] && plist0[i + 1] === list[i + 1];
+						for(; p0() && p1(); i += 2, j += 2);
+						for(j += 2; p0() && !p1(); i += 2);
+						const m = j / 2 - 1;
+						const n = i / 2 - m;
+						pieces.splice(m, n, new Blob([
+							pieces[m] ? pieces[m].slice(0, Math.min(0, record[2] - plist0[j - 1] - 1)) : "",
+							buffer,
+							pieces[n] ? pieces[n].slice(Math.max(0, record[3] - plist0[i - 2] + 1)) : "",
+						]));
+						listeners.forEach(f => f(edition, list[m * 2], pieces[m]));
+					}
+					if(date < date1) return put(edition, record, db.end);
+					if(edition.size !== (pieces[0] || {}).size) return;
+					date1 = date;
+					editions.forEach(edition => edition.date < date && edition.records0.forEach(record => put(edition, record, db.end)));
+				};
+			},
+		};
+		states.set(uri, state);
+		return listener => {
+			if(listener) return listener(arrange);
+			states.delete(uri, state);
+			state.plist = [];
+			cancels.forEach(f => f());
+		};
+	});
+	const ajax = tube((uri, ...list) => {
+		let p = 0;
+		list = list.map(d => p += Math.floor(d));
+		const [hell0, resolve] = hell();
+		const cancel = assign(uri)(arrange => resolve(arrange(...list)));
+		return listener => {
+			if(listener){
+				const cancel = tickline(f => f(listener))(hell0);
+				return () => tickline(f => f())(cancel);
+			}
+			tickline(f => f())(hell0);
+			cancel();
+		};
+	});
+	cancels.add(() => canceled = true);
+	return (uri, ...rest) => ajax(format_url(uri), ...rest);
+})();
+library.ajax = ajax;
+
 self.library = library;
 
 return genfn2tick(function*(){
-	canceled = true;
 	for(let cancel of [...cancels].reverse()) yield cancel();
 });
