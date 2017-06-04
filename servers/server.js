@@ -36,14 +36,17 @@ http.createServer(async (request, response) => {
 	}
 	let pathname;
 	let pathname1;
+	let fd;
 	try{
 		url = decodeURI(url);
 		[pathname] = url.match(/[^?]*/u);
 		pathname1 = pathname.endsWith("/") ? pathname + "index.html" : pathname;
 		const filename = path + pathname1;
-		const fd = await util.promisify(fs.open)(filename, "r");
+		fd = await util.promisify(fs.open)(filename, "r");
 		const stat = await util.promisify(fs.stat)(filename);
+		if(!stat.isFile()) throw null;
 		const tag = (+stat.ctime).toString(36);
+		response.on("end", () => fs.close(fd));
 		if(headers["if-none-match"] === tag){
 			response.writeHead(304);
 			return response.end();
@@ -67,12 +70,15 @@ http.createServer(async (request, response) => {
 		}
 		if(pathname1.endsWith(".html")) response.setHeader("Content-Type", "text/html");
 		response.writeHead(status);
-		fs.createReadStream(filename, options).pipe(response).on("error", () => response.end());
-		response.on("end", () => fs.close(fd));
-		return log(filename);
+		try{
+			fs.createReadStream(filename, options).pipe(response).on("error", () => response.end());
+			return log(filename);
+		}catch(error){}
+		return response.end();
 	}catch(error){}
+	if(typeof fd === "number") fs.close(fd);
+	const filename = path + "/404.html";
 	try{
-		const filename = path + "/404.html";
 		const content =
 			pathname === pathname1
 			? await util.promisify(fs.readFile)(filename)
