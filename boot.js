@@ -78,6 +78,7 @@ library.multi_key_map = multi_key_map;
 
 const db = (() => {
 	const format = list => {
+		list = list.slice();
 		for(let i = 0; i < list.length; i += 1) if((list[i] = list[i] === end ? "end" : [list[i]]) === "end"){
 			list.splice(i + 1, list.length);
 			break;
@@ -86,6 +87,72 @@ const db = (() => {
 		return list;
 	};
 	const unformat = a => indexedDB.cmp(a, "end") === 0 ? end : a[0];
+	const put = (...list) => {
+		if(list.length === 0 || canceled) return;
+		list = format(list);
+		const worker = new Worker(put_url);
+		if(!is_hell(tickline(url => worker.postMessage(list, [new SharedWorker(url).port]))(hub_url))) return;
+		worker.postMessage(list);
+		list = null;
+	};
+	const on = (...list) => {
+		const f = (i, name) => {
+			if(cancel === null || canceled) return;
+			const f1 = () => {
+				if(cancel === null) return cn.result.close();
+				const store = cn.result.transaction(["store"], "readonly").objectStore("store");
+				store.transaction.addEventListener("complete", () => cn.result.close());
+				store.get("end").addEventListener("success", ({target: {result}}) => {
+					if(cancel === null) return;
+					if(result){
+						if(i === length) return run(() => () => listener(end));
+						if(i === length - 1 && indexedDB.cmp(list[i], "end") === 0) run(() => listener);
+						return;
+					}
+					if(i < length) return store.get(list[i]).addEventListener("success", ({target: {result}}) => {
+						if(!result || cancel === null) return;
+						if(i === length - 1 && indexedDB.cmp(list[i], result.key) === 0) run(() => listener);
+						if(result.value) f(i + 1, result.value);
+					});
+					store.openKeyCursor(null, "prev").addEventListener("success", ({target: {result}}) => {
+						if(!result || cancel === null) return;
+						result.continue();
+						run(() => () => listener(unformat(result.key)));
+					});
+				});
+			};
+			const cn = indexedDB.open(name);
+			cn.addEventListener("success", f1);
+			cn.addEventListener("upgradeneeded", () => {
+				cn.removeEventListener("success", f1);
+				cn.addEventListener("success", () => cn.result.close());
+				cn.result.createObjectStore("store", {keyPath: "key"});
+				if(i > 0) indexedDB.deleteDatabase(name);
+			});
+		};
+		const listener = list.pop();
+		if(!listener) return () => {};
+		let length;
+		let cancel;
+		format(list);
+		genfn2tick(function*(){
+			list = format(yield clone_list(list));
+			if(cancel === null) return;
+			({length} = list);
+			cancel = hub.on(genfn2tick(function*(...list1){
+				if(list1.length < length || !list.every((a, i) => indexedDB.cmp(a, list1[i]) === 0)) return;
+				if(list1.length === length) return run(() => listener);
+				const a = yield clone(unformat(list1[length]));
+				if(cancel) run(() => () => listener(a));
+			}));
+			yield cancel;
+			f(0, name);
+		})();
+		return () => {
+			if(cancel) tickline(f => f())(cancel);
+			cancel = null;
+		};
+	};
 	const name = ".";
 	const end = Symbol();
 	const hub_source = `({tickline}, port) => ({
@@ -335,75 +402,7 @@ const db = (() => {
 		});
 		return url;
 	})();
-	return {
-		end,
-		put: (...list) => {
-			if(list.length === 0 || canceled) return;
-			list = format(list);
-			const worker = new Worker(put_url);
-			if(!is_hell(tickline(url => worker.postMessage(list, [new SharedWorker(url).port]))(hub_url))) return;
-			worker.postMessage(list);
-			list = null;
-		},
-		on: (...list) => {
-			const f = (i, name) => {
-				if(cancel === null || canceled) return;
-				const f1 = () => {
-					if(cancel === null) return cn.result.close();
-					const store = cn.result.transaction(["store"], "readonly").objectStore("store");
-					store.transaction.addEventListener("complete", () => cn.result.close());
-					store.get("end").addEventListener("success", ({target: {result}}) => {
-						if(cancel === null) return;
-						if(result){
-							if(i === length) return run(() => () => listener(end));
-							if(i === length - 1 && indexedDB.cmp(list[i], "end") === 0) run(() => listener);
-							return;
-						}
-						if(i < length) return store.get(list[i]).addEventListener("success", ({target: {result}}) => {
-							if(!result || cancel === null) return;
-							if(i === length - 1 && indexedDB.cmp(list[i], result.key) === 0) run(() => listener);
-							if(result.value) f(i + 1, result.value);
-						});
-						store.openKeyCursor(null, "prev").addEventListener("success", ({target: {result}}) => {
-							if(!result || cancel === null) return;
-							result.continue();
-							run(() => () => listener(unformat(result.key)));
-						});
-					});
-				};
-				const cn = indexedDB.open(name);
-				cn.addEventListener("success", f1);
-				cn.addEventListener("upgradeneeded", () => {
-					cn.removeEventListener("success", f1);
-					cn.addEventListener("success", () => cn.result.close());
-					cn.result.createObjectStore("store", {keyPath: "key"});
-					if(i > 0) indexedDB.deleteDatabase(name);
-				});
-			};
-			const listener = list.pop();
-			if(!listener) return () => {};
-			let length;
-			let cancel;
-			format(list);
-			genfn2tick(function*(){
-				list = format(yield clone_list(list));
-				if(cancel === null) return;
-				({length} = list);
-				cancel = hub.on(genfn2tick(function*(...list1){
-					if(list1.length < length || !list.every((a, i) => indexedDB.cmp(a, list1[i]) === 0)) return;
-					if(list1.length === length) return run(() => listener);
-					const a = yield clone(unformat(list1[length]));
-					if(cancel) run(() => () => listener(a));
-				}));
-				yield cancel;
-				f(0, name);
-			})();
-			return () => {
-				if(cancel) tickline(f => f())(cancel);
-				cancel = null;
-			};
-		},
-	};
+	return {end, put, on};
 })();
 library.db = db;
 
