@@ -76,7 +76,7 @@ http.createServer(async (request, response) => {
 		}catch(error){}
 		return response.end();
 	}catch(error){}
-	if(typeof fd === "number") fs.close(fd);
+	if(fd !== undefined) fs.close(fd);
 	const filename = path + "/404.html";
 	try{
 		const content =
