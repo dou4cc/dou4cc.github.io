@@ -1,0 +1,12 @@
+pages:
+  stage: deploy
+  script:
+  - rm -rf .git
+  - mkdir .git
+  - mv `ls --color=never -A | grep -v .git` .git
+  - mv .git public
+  artifacts:
+    paths:
+    - public
+  only:
+  - master
