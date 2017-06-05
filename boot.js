@@ -48,7 +48,7 @@ library.clone_list = clone_list;
 
 const multi_key_map = () => {
 	const dot = new Map;
-	const f = (node, keys) => node && keys.length > 0 ? f(node.get(keys.shift()), keys) : node;
+	const f = (node, keys) => node && keys.length ? f(node.get(keys.shift()), keys) : node;
 	return {
 		set: (...keys) => {
 			const [value] = keys.splice(-1, 1, dot);
@@ -60,7 +60,7 @@ const multi_key_map = () => {
 						if(!child || !f(child)) return;
 					}
 					parent.delete(key);
-					return parent.size === 0;
+					return !parent.size;
 				}
 				if(key !== dot) return f(parent.get(key) || (() => {
 					const child = new Map;
@@ -76,26 +76,26 @@ const multi_key_map = () => {
 };
 library.multi_key_map = multi_key_map;
 
-const db = (() => {
+const local_db = (() => {
 	const format = list => {
-		list = list.slice();
-		for(let i = 0; i < list.length; i += 1) if((list[i] = list[i] === end ? "end" : [list[i]]) === "end"){
-			list.splice(i + 1, list.length);
+		list = list.map(a => a === end ? "end" : [a]);
+		indexedDB.cmp(list, list);
+		for(let i = 0; i < list.length; i += 1) if(list[i] === "end"){
+			list = list.slice(0, i + 1);
 			break;
 		}
-		indexedDB.cmp(list, list);
 		return list;
 	};
-	const unformat = a => indexedDB.cmp(a, "end") === 0 ? end : a[0];
-	const put = (...list) => {
-		if(list.length === 0 || canceled) return;
+	const unformat = a => indexedDB.cmp(a, "end") ? a[0] : end;
+	const put = list => {
+		if(!list.length || canceled) return;
 		list = format(list);
 		const worker = new Worker(put_url);
 		if(!is_hell(tickline(url => worker.postMessage(list, [new SharedWorker(url).port]))(hub_url))) return;
 		worker.postMessage(list);
 		list = null;
 	};
-	const on = (...list) => {
+	const on = (list, listener) => {
 		const f = (i, name) => {
 			if(cancel === null || canceled) return;
 			const f1 = () => {
@@ -106,12 +106,12 @@ const db = (() => {
 					if(cancel === null) return;
 					if(result){
 						if(i === length) return run(() => () => listener(end));
-						if(i === length - 1 && indexedDB.cmp(list[i], "end") === 0) run(() => listener);
+						if(i === length - 1 && !indexedDB.cmp(list[i], "end")) run(() => listener);
 						return;
 					}
 					if(i < length) return store.get(list[i]).addEventListener("success", ({target: {result}}) => {
 						if(!result || cancel === null) return;
-						if(i === length - 1 && indexedDB.cmp(list[i], result.key) === 0) run(() => listener);
+						if(i === length - 1 && !indexedDB.cmp(list[i], result.key)) run(() => listener);
 						if(result.value) f(i + 1, result.value);
 					});
 					store.openKeyCursor(null, "prev").addEventListener("success", ({target: {result}}) => {
@@ -127,22 +127,19 @@ const db = (() => {
 				cn.removeEventListener("success", f1);
 				cn.addEventListener("success", () => cn.result.close());
 				cn.result.createObjectStore("store", {keyPath: "key"});
-				if(i > 0) indexedDB.deleteDatabase(name);
+				if(i) indexedDB.deleteDatabase(name);
 			});
 		};
-		const listener = list.pop();
-		if(!listener) return () => {};
 		let length;
 		let cancel;
-		format(list);
 		genfn2tick(function*(){
-			list = format(yield clone_list(list));
+			list = format(yield list);
 			if(cancel === null) return;
 			({length} = list);
-			cancel = hub.on(genfn2tick(function*(...list1){
-				if(list1.length < length || !list.every((a, i) => indexedDB.cmp(a, list1[i]) === 0)) return;
-				if(list1.length === length) return run(() => listener);
-				const a = yield clone(unformat(list1[length]));
+			cancel = hub.on(genfn2tick(function*(){
+				if(arguments.length < length || list.some((a, i) => indexedDB.cmp(a, arguments[i]))) return;
+				if(arguments.length === length) return run(() => listener);
+				const a = yield clone(unformat(arguments[length]));
 				if(cancel) run(() => () => listener(a));
 			}));
 			yield cancel;
@@ -153,6 +150,19 @@ const db = (() => {
 			cancel = null;
 		};
 	};
+	const path = path0 => ({
+		path: (...path1) => {
+			format(path1);
+			return path(tickline(path => tickline(path0 => path0.concat(path))(path0))(clone_list(path1)));
+		},
+		put: (...path1) => {
+			path0 = tickline()(path0);
+			if(!is_hell(path0)) return put(path0.concat(path1));
+			if(path1.length) return path(path0).path(...path1).put();
+			tickline(path => put(path))(path0);
+		},
+		on: listener => on(path0, listener),
+	});
 	const name = ".";
 	const end = Symbol();
 	const hub_source = `({tickline}, port) => ({
@@ -239,7 +249,7 @@ const db = (() => {
 				}else{
 					target.close();
 					dbs.delete(target);
-					if(dbs.size > 0) return;
+					if(dbs.size) return;
 					hub.send(...list);
 					tickline(port => {
 						port.postMessage("disconnect");
@@ -329,7 +339,7 @@ const db = (() => {
 					const aborts = [cancel, abort];
 					const tick = hub.on((...list1) => {
 						if(list1.length <= i) return;
-						for(let j = i; j >= 0; j -= 1) if(indexedDB.cmp(list[j], list1[j]) !== 0) return;
+						for(let j = i; j >= 0; j -= 1) if(indexedDB.cmp(list[j], list1[j])) return;
 						abort();
 						then(result => result && f(i, result.value));
 					});
@@ -342,7 +352,7 @@ const db = (() => {
 				const f1 = () => {
 					const f2 = () => store.get("end").addEventListener("success", ({target: {result}}) => {
 						if(result) return tickline(port => port.postMessage("disconnect"))(hell0);
-						if(indexedDB.cmp(key, "end") !== 0) return get(store, ({target: {result}}) => {
+						if(indexedDB.cmp(key, "end")) return get(store, ({target: {result}}) => {
 							if(!result || !result.value){
 								if(!result) put(store);
 								return next(cancel, db);
@@ -361,7 +371,7 @@ const db = (() => {
 					const store = open_store(db);
 					const cancel = close_db(store.transaction);
 					if(i === 1) return f2();
-					store.count().addEventListener("success", ({target: {result}}) => result > 0 && f2());
+					store.count().addEventListener("success", ({target: {result}}) => result && f2());
 				};
 				const key = list[i];
 				i += 1;
@@ -402,9 +412,9 @@ const db = (() => {
 		});
 		return url;
 	})();
-	return {end, put, on};
+	return {end, db: path([])};
 })();
-library.db = db;
+library.local_db = local_db;
 
 const tube = (() => {
 	const dp = new WeakMap;
@@ -417,8 +427,8 @@ const tube = (() => {
 				const [hell0, resolve] = hell();
 				state = {
 					alive: true,
-					thunk: genfn2tick(function*(...args){
-						if(yield hell0 || args.length > 0) return (yield hell0)(...args);
+					thunk: genfn2tick(function*(){
+						if(yield hell0 || arguments.length) return (yield hell0)(...arguments);
 					}),
 					handle_num: 1,
 					listener_num: 0,
@@ -429,7 +439,7 @@ const tube = (() => {
 			};
 			const unsync = () => {
 				state.handle_num -= 1;
-				if(state.handle_num > 0) return;
+				if(state.handle_num) return;
 				state.alive = false;
 				states.set(...condition, undefined);
 				state.thunk();
@@ -484,7 +494,7 @@ const tube = (() => {
 						state.listener_num -= 1;
 						yield (yield thunk || (() => {}))();
 						listener_num -= 1;
-						if(listener_num === 0) unsync();
+						if(!listener_num) unsync();
 					}));
 					yield tick;
 				});
@@ -503,7 +513,7 @@ const tube = (() => {
 			return listener => {
 				if(listener){
 					if(!state.alive) sync();
-					if(state.listener_num === 0) return listen(listener);
+					if(!state.listener_num) return listen(listener);
 					for(let thunk of state.pool) return thunk(listener);
 					const [hell0, resolve] = hell();
 					let timer = setTimeout(() => {
@@ -549,7 +559,7 @@ const tubeline = (() => {
 								used = true;
 								listener(performance.now(), ...solution);
 							});
-							if(!used && solutions.length > 0) listener(...solutions.pop());
+							if(!used && solutions.length) listener(...solutions.pop());
 							return thunk1;
 						};
 					});

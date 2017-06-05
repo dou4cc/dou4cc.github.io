@@ -66,7 +66,7 @@ if(Cluster.isMaster){
 
 		if(FS.existsSync(path)){
 			var stats=FS.statSync(path);
-			var etag=stats.ctime.getTime().toString(36);
+			var etag=stats.ctime.getTime().toString(36)+'.'+stats.size.toString(36);
 			if(stats.isFile()){
 				if(headers['if-none-match']===etag){
 					response.writeHead(304);

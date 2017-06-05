@@ -8,7 +8,7 @@ const http = require("http");
 
 const log = (...messages) => {
 	const date = new Date;
-	console.log(date.getHours().toString().padStart(2, "0") + ":" + date.getMinutes().toString().padStart(2, "0") + ":" + date.getSeconds().toString().padStart(2, "0") + " " + messages.join(" "));
+	console.log([[date.getHours(), date.getMinutes(), date.getSeconds()].map(a => a.toString().padStart(2, "0")).join(":")].concat(messages).join(" "));
 };
 
 const port = process.argv[2] || 8080;
@@ -18,7 +18,7 @@ if(cluster.isMaster){
 	let date0;
 	setInterval(() => {
 		const date = new Date;
-		if(date0 !== (date0 = date.getFullYear() + "/" + (date.getMonth() + 1).toString().padStart(2, "0") + "/" + date.getDate().toString().padStart(2, "0"))) console.log(date0);
+		if(date0 !== (date0 = [date.getFullYear(), (date.getMonth() + 1).toString().padStart(2, "0"), date.getDate().toString().padStart(2, "0")].join("/"))) console.log(date0);
 	});
 	process.title = process.argv.slice(1).join(" ");
 	process.chdir(path);
@@ -45,7 +45,7 @@ http.createServer(async (request, response) => {
 		fd = await util.promisify(fs.open)(filename, "r");
 		const stat = await util.promisify(fs.stat)(filename);
 		if(!stat.isFile()) throw null;
-		const tag = (+stat.ctime).toString(36);
+		const tag = [(+stat.ctime).toString(36), stat.size.toString(36)].join(".");
 		response.on("end", () => fs.close(fd));
 		if(headers["if-none-match"] === tag){
 			response.writeHead(304);
