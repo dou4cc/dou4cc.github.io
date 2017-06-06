@@ -150,18 +150,18 @@ const local_db = (() => {
 			cancel = null;
 		};
 	};
-	const path = path0 => ({
+	const db = path => ({
 		path: (...path1) => {
 			format(path1);
-			return path(tickline(path => tickline(path0 => path0.concat(path))(path0))(clone_list(path1)));
+			return db(tickline(path1 => tickline(path => path.concat(path1))(path))(clone_list(path1)));
 		},
 		put: (...path1) => {
-			path0 = tickline()(path0);
-			if(!is_hell(path0)) return put(path0.concat(path1));
-			if(path1.length) return path(path0).path(...path1).put();
-			tickline(path => put(path))(path0);
+			path = tickline()(path);
+			if(!is_hell(path)) return put(path.concat(path1));
+			if(path1.length) return db(path).path(...path1).put();
+			tickline(path => put(path))(path);
 		},
-		on: listener => on(path0, listener),
+		on: listener => on(path, listener),
 	});
 	const name = ".";
 	const end = Symbol();
@@ -412,7 +412,7 @@ const local_db = (() => {
 		});
 		return url;
 	})();
-	return {end, db: path([])};
+	return {end, db: db([])};
 })();
 library.local_db = local_db;
 

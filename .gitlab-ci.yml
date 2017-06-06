@@ -1,4 +1,4 @@
-pages:
+﻿pages:
   stage: deploy
   script:
   - rm -rf .git
