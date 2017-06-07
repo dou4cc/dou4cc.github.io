@@ -5,17 +5,15 @@ let canceled = false;
 
 const cmp = ([a], [b]) => a - b;
 
-const format_url = url => {
+const format_url = library.format_url = url => {
 	const iframe = document.createElement("iframe");
 	iframe.src = url;
 	return iframe.src;
 };
-library.format_url = format_url;
 
-const same_list = (a, b) => a && a.length === b.length && a.every((a, i) => a === b[i] || Object.is(a, b[i]));
-library.same_list = same_list;
+const same_list = library.same_list = (a, b) => a && a.length === b.length && a.every((a, i) => a === b[i] || Object.is(a, b[i]));
 
-const cache = f => {
+const cache = library.cache = f => {
 	let args;
 	let result;
 	return (...args1) => {
@@ -25,10 +23,9 @@ const cache = f => {
 		return result;
 	};
 };
-library.cache = cache;
 
-const clone = source => {
-	if(source == null || new Set(["boolean", "number", "string", "symbol"]).has(typeof source)) return source;
+const clone = library.clone = source => {
+	if(source == null || new Set(["boolean", "number", "string"]).has(typeof source)) return source;
 	const [hell0, resolve] = hell();
 	const {port1, port2} = new MessageChannel;
 	port1.addEventListener("message", ({data}) => resolve(data));
@@ -37,16 +34,14 @@ const clone = source => {
 	port2.postMessage(source);
 	return hell0;
 };
-library.clone = clone;
 
-const clone_list = genfn2tick(function*(list){
+const clone_list = library.clone_list = genfn2tick(function*(list){
 	list = list.map(a => clone(a));
 	for(let i = list.length - 1; i >= 0; i -= 1) list[i] = yield list[i];
 	return list;
 });
-library.clone_list = clone_list;
 
-const multi_key_map = () => {
+const multi_key_map = library.multi_key_map = () => {
 	const dot = new Map;
 	const f = (node, keys) => node && keys.length ? f(node.get(keys.shift()), keys) : node;
 	return {
@@ -74,19 +69,15 @@ const multi_key_map = () => {
 		get: (...keys) => f(dot, keys.concat(dot)),
 	};
 };
-library.multi_key_map = multi_key_map;
 
-const local_db = (() => {
+const local_db = library.local_db = (() => {
 	const format = list => {
-		list = list.map(a => a === end ? "end" : [a]);
+		list = list.map(a => a === null ? "end" : [a]);
 		indexedDB.cmp(list, list);
-		for(let i = 0; i < list.length; i += 1) if(list[i] === "end"){
-			list = list.slice(0, i + 1);
-			break;
-		}
+		for(let i = 0; i < list.length; i += 1) if(list[i] === "end") return list.slice(0, i + 1);
 		return list;
 	};
-	const unformat = a => indexedDB.cmp(a, "end") ? a[0] : end;
+	const unformat = a => indexedDB.cmp(a, "end") ? a[0] : null;
 	const put = list => {
 		if(!list.length || canceled) return;
 		list = format(list);
@@ -105,7 +96,7 @@ const local_db = (() => {
 				store.get("end").addEventListener("success", ({target: {result}}) => {
 					if(cancel === null) return;
 					if(result){
-						if(i === length) return run(() => () => listener(end));
+						if(i === length) return run(() => () => listener(null));
 						if(i === length - 1 && !indexedDB.cmp(list[i], "end")) run(() => listener);
 						return;
 					}
@@ -164,7 +155,6 @@ const local_db = (() => {
 		on: listener => on(path, listener),
 	});
 	const name = ".";
-	const end = Symbol();
 	const hub_source = `({tickline}, port) => ({
 		send: (...list) => tickline(port => port.postMessage(list))(port),
 		on: listener => tickline(port => {
@@ -412,11 +402,23 @@ const local_db = (() => {
 		});
 		return url;
 	})();
-	return {end, db: db([])};
+	return db([]);
 })();
-library.local_db = local_db;
 
-const tube = (() => {
+const log_db = library.log_db = (db, level) => {
+	const cancels = new Set;
+	let line = -Infinity;
+	cancels.add(db.on(id0 => {
+		if(d0 == null) return;
+		if(id0 <= line) return db.put(id0, null);
+		cancels.add(db.path(id0).on(id1 => id1 === null && (line = Math.max(line, id0))));
+	}));
+	return {
+		close: () => cancels.forEach(f => f()),
+	};
+};
+
+const tube = library.tube = (() => {
 	const dp = new WeakMap;
 	return source => dp.get(source) || (() => {
 		const states = multi_key_map();
@@ -538,9 +540,8 @@ const tube = (() => {
 		return tube;
 	})();
 })();
-library.tube = tube;
 
-const tubeline = (() => {
+const tubeline = library.tubeline = (() => {
 	const dp = new WeakMap;
 	return (...tubes) => {
 		const tubeline0 = (() => {
@@ -615,7 +616,6 @@ const tubeline = (() => {
 		return tubeline0;
 	};
 })();
-library.tubeline = tubeline;
 
 self.library = library;
 

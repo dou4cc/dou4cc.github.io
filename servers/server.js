@@ -82,10 +82,10 @@ http.createServer(async (request, response) => {
 		const content =
 			pathname === pathname1
 			? await util.promisify(fs.readFile)(filename)
-			: '<script>location.replace(encodeURI(unescape("' + escape(pathname1 + url.slice(pathname.length)) + '"))+location.hash)</script>';
+			: '<script>(a=location).replace("' + encodeURI(pathname1 + url.slice(pathname.length)) + '"+a.hash)</script>';
 		response.writeHead(404, {"Content-Type": "text/html"});
 		response.end(content);
-		return log(filename);
+		return pathname === pathname1 && log(filename);
 	}catch(error){}
 	response.writeHead(404, {"Content-Type": "application/octet-stream"});
 	response.end();
