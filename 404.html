@@ -54,7 +54,7 @@
 					if(top !== self) throw null;
 					Reflect;
 					onload = null;
-					[...document.childNodes].forEach(node => node instanceof DocumentType || node.remove());
+					Array.from(document.childNodes).forEach(node => node instanceof DocumentType || node.remove());
 					const meta = document.createElement("meta");
 					meta.setAttribute("charset", "utf-8");
 					const head = document.createElement("head");
