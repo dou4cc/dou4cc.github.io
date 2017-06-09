@@ -74,10 +74,10 @@ const local_db = library.local_db = (() => {
 		list = null;
 	};
 	const db = cache(path => ({
-		path: cache((...path1) => {
+		path: (...path1) => {
 			format(path1);
 			return db(tickline(path1 => tickline(path => path.concat(path1))(path))(clone_list(path1)));
-		}),
+		},
 		put: (...path1) => {
 			path = tickline()(path);
 			if(!is_hell(path)) return put(path.concat(path1));
@@ -414,25 +414,26 @@ const log_db = library.log_db = (db, level, scale = 10) => {
 		});
 		cancels.add(cancel);
 	}));
-	const id2bs = (id, ...rest) => new Array(level).fill().map(() => id - (id = Math.floor(id / scale)) * scale).concat(id).reverse().concat(rest);
+	const id2bs = (id, ...rest) => Array(level).fill().map(() => id - (id = Math.floor(id / scale)) * scale).concat(id).reverse().concat(rest);
 	const cancels = new Set;
 	const b0s = new Set;
 	let line = -Infinity;
 	run();
 	return {
 		stop,
-		cut: id => {
+		restart: id => {
 			if(!cancels.size) run();
 			let t = Math.floor(id / scale ** level) - 1;
 			if(!(t >= line)) return;
 			db.put(t, null);
 			t = id2bs(id);
-			t.slice(1).forEach((b, i) => new Array(b).fill().forEach((_, j) => db.put(t[0], ...t.slice(1, i + 1), j, null)));
+			t.reduce((_, b, i) => Array(b).fill().forEach((_, j) => db.put(t[0], ...t.slice(1, i), j, null)));
 		},
 		path: (...path) => path.length ? db.path(...id2bs(...path)) : db,
 		put: (...path) => path.length ? db.put(...id2bs(...path)) : db.put(),
 		on: listener => {
 			const f = (db, bs) => {
+				if(dot.get(...bs)) return;
 				const cancel = db.on((b, db) => {
 					if(b == null){
 						if(b !== null) return;
@@ -443,6 +444,7 @@ const log_db = library.log_db = (db, level, scale = 10) => {
 					f(db, bs.concat(b));
 				});
 				cancels.add(cancel);
+				dot.set(...bs, true);
 			};
 			const cancel = db.on(() => {
 				cancel();
@@ -450,6 +452,7 @@ const log_db = library.log_db = (db, level, scale = 10) => {
 				listener();
 			});
 			const cancels = new Set([cancel]);
+			const dot = multi_key_map();
 			f(db, []);
 			return () => cancels.forEach(f => f());
 		},
