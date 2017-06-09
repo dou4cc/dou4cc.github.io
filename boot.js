@@ -460,10 +460,10 @@ const log_db = library.log_db = (db, level, scale = 10) => {
 };
 
 const tube = library.tube = (() => {
-	const dp = new WeakMap;
-	return source => dp.get(source) || (() => {
+	let t;
+	return cache(source => t || (() => {
 		const states = multi_key_map();
-		const tube = (...condition) => {
+		t = (...condition) => {
 			const sync = () => {
 				state = states.get(...condition);
 				if(state) return state.handle_num += 1;
@@ -576,10 +576,10 @@ const tube = library.tube = (() => {
 				});
 			};
 		};
-		dp.set(tube, tube);
-		dp.set(source, tube);
-		return tube;
-	})();
+		const tube0 = tube(t);
+		t = null;
+		return tube0;
+	})());
 })();
 
 const tubeline = library.tubeline = (() => {
