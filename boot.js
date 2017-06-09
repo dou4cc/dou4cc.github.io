@@ -427,8 +427,8 @@ const log_db = library.log_db = (db, level, scale = 10) => {
 			t = id2bs(id);
 			t.slice(1).forEach((b, i) => new Array(b).fill().forEach((_, j) => db.put(t[0], ...t.slice(1, i + 1), j, null)));
 		},
-		path: (...path) => path.length ? db.path(...id2bs(path)) : db,
-		put: (...path) => path.length ? db.put(...id2bs(path)) : db.put(),
+		path: (...path) => path.length ? db.path(...id2bs(...path)) : db,
+		put: (...path) => path.length ? db.put(...id2bs(...path)) : db.put(),
 		
 	};
 };
