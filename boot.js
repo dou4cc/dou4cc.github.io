@@ -396,17 +396,13 @@ const local_db = library.local_db = (() => {
 })();
 
 const log_db = library.log_db = (db, level, scale = 10) => {
-	const close = () => {
+	const stop = () => {
 		cancels.forEach(f => f());
 		cancels.clear();
 	};
-	const id2bs = (id, ...rest) => new Array(level).fill().map(() => id - (id = Math.floor(id / scale)) * scale).concat(id).reverse().concat(rest);
-	const cancels = new Set;
-	const b0s = new Set;
-	let line = -Infinity;
-	cancels.add(db.on((b0, db) => {
+	const run = () => cancels.add(db.on((b0, db) => {
 		const check = b0 => b0 < line && db.put(null);
-		if(b0 == null) return b0 === null && close();
+		if(b0 == null) return b0 === null && stop();
 		check(b0);
 		b0s.add(b0);
 		const cancel = db.on(b1 => {
@@ -418,18 +414,36 @@ const log_db = library.log_db = (db, level, scale = 10) => {
 		});
 		cancels.add(cancel);
 	}));
+	const id2bs = (id, ...rest) => new Array(level).fill().map(() => id - (id = Math.floor(id / scale)) * scale).concat(id).reverse().concat(rest);
+	const cancels = new Set;
+	const b0s = new Set;
+	let line = -Infinity;
+	run();
 	return {
-		close,
+		stop,
 		cut: id => {
+			if(!cancels.size) run();
 			let t = Math.floor(id / scale ** level) - 1;
-			if(t < line) return;
+			if(!(t >= line)) return;
 			db.put(t, null);
 			t = id2bs(id);
 			t.slice(1).forEach((b, i) => new Array(b).fill().forEach((_, j) => db.put(t[0], ...t.slice(1, i + 1), j, null)));
 		},
 		path: (...path) => path.length ? db.path(...id2bs(...path)) : db,
 		put: (...path) => path.length ? db.put(...id2bs(...path)) : db.put(),
-		
+		on: listener => {
+			const f = (db, bs) => {
+				const cancel = db.on((bx, db) => {
+					if(bx == null) return bx === null && cancel();
+					if(bs.length === level) return listener(bs.concat(bx).reduce((s, b) => s * scale + b), db);
+					f(db, bs.concat(bx));
+				});
+				cancels.add(cancel);
+			};
+			const cancels = new Set([db.on(() => listener())]);
+			f(db, []);
+			return () => cancels.forEach(f => f());
+		},
 	};
 };
 
