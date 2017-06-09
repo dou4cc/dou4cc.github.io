@@ -438,7 +438,7 @@ const log_db = library.log_db = (db, level, scale = 10) => {
 					if(b == null){
 						if(b !== null) return;
 						cancel();
-						cancels.delete(cancel);
+						return cancels.delete(cancel);
 					}
 					if(bs.length === level) return listener(bs.concat(b).reduce((s, b) => s * scale + b), db);
 					f(db, bs.concat(b));
