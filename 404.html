@@ -147,22 +147,44 @@
 							const genfn2tick = genfn => function(){
 								return gen2tick(genfn.apply(this, arguments))();
 							};
-							const prom2hell = promise => dp.get(promise) || (() => {
+							const same_list = (a, b) => a && a.length === b.length && a.every((a, i) => a === b[i] || Object.is(a, b[i]));
+							const cache = f => {
+								let args;
+								let result;
+								const results = new WeakMap;
+								return (...args1) => {
+									if(same_list(args, args1)) return result;
+									if(args1.length === 1){
+										let result1 = results.get(args1[0]);
+										if(result1) return result1[0];
+										result1 = f(args1[0]);
+										try{
+											results.set(args1[0], [result1]);
+											return result1;
+										}catch(error){}
+										result = result1;
+									}else{
+										result = f(...args1);
+									}
+									args = args1;
+									return result;
+								};
+							};
+							const prom2hell = cache(promise => {
 								const [hell0, resolve] = hell();
 								Promise.resolve(promise).then(
 									result => resolve([null, result]),
 									error => resolve([error]),
 								);
-								dp.set(promise, hell0);
 								return hell0;
-							})();
+							});
 							const hells = new WeakSet;
 							const dp = new WeakMap;
 
-							({run, hell, is_hell, tickline, gen2tick, genfn2tick, prom2hell});
+							({run, hell, is_hell, tickline, gen2tick, genfn2tick, same_list, cache, prom2hell});
 						\`;
 						const library = self.eval('"use strict";' + library_source);
-						const {run, hell, is_hell, tickline, gen2tick, genfn2tick, prom2hell} = library;
+						const {run, hell, is_hell, tickline, gen2tick, genfn2tick, same_list, cache, prom2hell} = library;
 
 						const blocker = event => crash && event.stopImmediatePropagation();
 						let crash = false;

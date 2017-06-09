@@ -1,4 +1,4 @@
-﻿const {run, hell, is_hell, tickline, gen2tick, genfn2tick, prom2hell} = library;
+const {run, hell, is_hell, tickline, gen2tick, genfn2tick, same_list, cache, prom2hell} = library;
 library = Object.create(library);
 const cancels = new Set;
 let canceled = false;
@@ -9,19 +9,6 @@ const format_url = library.format_url = url => {
 	const iframe = document.createElement("iframe");
 	iframe.src = url;
 	return iframe.src;
-};
-
-const same_list = library.same_list = (a, b) => a && a.length === b.length && a.every((a, i) => a === b[i] || Object.is(a, b[i]));
-
-const cache = library.cache = f => {
-	let args;
-	let result;
-	return (...args1) => {
-		if(same_list(args, args1)) return result;
-		result = f(...args1);
-		args = args1;
-		return result;
-	};
 };
 
 const clone = library.clone = source => {
@@ -86,74 +73,77 @@ const local_db = library.local_db = (() => {
 		worker.postMessage(list);
 		list = null;
 	};
-	const on = (list, listener) => {
-		const f = (i, name) => {
-			if(cancel === null || canceled) return;
-			const f1 = () => {
-				if(cancel === null) return cn.result.close();
-				const store = cn.result.transaction(["store"], "readonly").objectStore("store");
-				store.transaction.addEventListener("complete", () => cn.result.close());
-				store.get("end").addEventListener("success", ({target: {result}}) => {
-					if(cancel === null) return;
-					if(result){
-						if(i === length) return run(() => () => listener(null));
-						if(i === length - 1 && !indexedDB.cmp(list[i], "end")) run(() => listener);
-						return;
-					}
-					if(i < length) return store.get(list[i]).addEventListener("success", ({target: {result}}) => {
-						if(!result || cancel === null) return;
-						if(i === length - 1 && !indexedDB.cmp(list[i], result.key)) run(() => listener);
-						if(result.value) f(i + 1, result.value);
-					});
-					store.openKeyCursor(null, "prev").addEventListener("success", ({target: {result}}) => {
-						if(!result || cancel === null) return;
-						result.continue();
-						run(() => () => listener(unformat(result.key)));
-					});
-				});
-			};
-			const cn = indexedDB.open(name);
-			cn.addEventListener("success", f1);
-			cn.addEventListener("upgradeneeded", () => {
-				cn.removeEventListener("success", f1);
-				cn.addEventListener("success", () => cn.result.close());
-				cn.result.createObjectStore("store", {keyPath: "key"});
-				if(i) indexedDB.deleteDatabase(name);
-			});
-		};
-		let length;
-		let cancel;
-		genfn2tick(function*(){
-			list = format(yield list);
-			if(cancel === null) return;
-			({length} = list);
-			cancel = hub.on(genfn2tick(function*(list1){
-				if(list1.length < length || list.some((a, i) => indexedDB.cmp(a, list1[i]))) return;
-				if(list1.length === length) return run(() => listener);
-				const a = yield clone(unformat(list1[length]));
-				if(cancel) run(() => () => listener(a));
-			}));
-			yield cancel;
-			f(0, name);
-		})();
-		return () => {
-			if(cancel) tickline(f => f())(cancel);
-			cancel = null;
-		};
-	};
-	const db = path => ({
-		path: (...path1) => {
+	const db = cache(path => ({
+		path: cache((...path1) => {
 			format(path1);
 			return db(tickline(path1 => tickline(path => path.concat(path1))(path))(clone_list(path1)));
-		},
+		}),
 		put: (...path1) => {
 			path = tickline()(path);
 			if(!is_hell(path)) return put(path.concat(path1));
 			if(path1.length) return db(path).path(...path1).put();
 			tickline(path => put(path))(path);
 		},
-		on: listener => on(path, listener),
-	});
+		on: listener => {
+			const f = (i, name) => {
+				if(cancel === null || canceled) return;
+				const f1 = () => {
+					if(cancel === null) return cn.result.close();
+					const store = cn.result.transaction(["store"], "readonly").objectStore("store");
+					store.transaction.addEventListener("complete", () => cn.result.close());
+					store.get("end").addEventListener("success", ({target: {result}}) => {
+						if(cancel === null) return;
+						if(result){
+							if(i === length) return run(() => () => listener(null, db(path).path(null)));
+							if(i === length - 1 && !indexedDB.cmp(list[i], "end")) run(() => listener);
+							return;
+						}
+						if(i < length) return store.get(list[i]).addEventListener("success", ({target: {result}}) => {
+							if(!result || cancel === null) return;
+							if(i === length - 1 && !indexedDB.cmp(list[i], result.key)) run(() => listener);
+							if(result.value) f(i + 1, result.value);
+						});
+						store.openKeyCursor(null, "prev").addEventListener("success", ({target: {result}}) => {
+							if(!result || cancel === null) return;
+							result.continue();
+							const a = unformat(result.key);
+							run(() => () => listener(a, db(path).path(a)));
+						});
+					});
+				};
+				const cn = indexedDB.open(name);
+				cn.addEventListener("success", f1);
+				cn.addEventListener("upgradeneeded", () => {
+					cn.removeEventListener("success", f1);
+					cn.addEventListener("success", () => cn.result.close());
+					cn.result.createObjectStore("store", {keyPath: "key"});
+					if(i) indexedDB.deleteDatabase(name);
+				});
+			};
+			let length;
+			let cancel;
+			let list;
+			genfn2tick(function*(){
+				list = format(yield path);
+				if(cancel === null) return;
+				({length} = list);
+				cancel = hub.on(genfn2tick(function*(list1){
+					if(list1.length < length || list.some((a, i) => indexedDB.cmp(a, list1[i]))) return;
+					if(list1.length === length) return run(() => listener);
+					let a = unformat(list1[length]);
+					const db0 = db(path.concat([a]));
+					a = yield clone(a);
+					if(cancel) run(() => () => listener(a, db0));
+				}));
+				yield cancel;
+				f(0, name);
+			})();
+			return () => {
+				if(cancel) tickline(f => f())(cancel);
+				cancel = null;
+			};
+		},
+	}));
 	const name = ".";
 	const hub_source = `({tickline}, port) => ({
 		send: list => tickline(port => port.postMessage(list))(port),
@@ -410,15 +400,16 @@ const log_db = library.log_db = (db, level, scale = 10) => {
 		cancels.forEach(f => f());
 		cancels.clear();
 	};
+	const id2bs = (id, ...rest) => new Array(level).fill().map(() => id - (id = Math.floor(id / scale)) * scale).concat(id).reverse().concat(rest);
 	const cancels = new Set;
 	const b0s = new Set;
 	let line = -Infinity;
-	cancels.add(db.on(b0 => {
-		const check = b0 => b0 < line && db.put(b0, null);
+	cancels.add(db.on((b0, db) => {
+		const check = b0 => b0 < line && db.put(null);
 		if(b0 == null) return b0 === null && close();
 		check(b0);
 		b0s.add(b0);
-		const cancel = db.path(b0).on(b1 => {
+		const cancel = db.on(b1 => {
 			if(b1 !== null) return;
 			cancel();
 			b0s.delete(b0);
@@ -430,10 +421,15 @@ const log_db = library.log_db = (db, level, scale = 10) => {
 	return {
 		close,
 		cut: id => {
-			db.put(Math.floor(id / scale ** level) - 1, null);
-			const bs = new Array(level).fill().map(() => id - (id = Math.floor(id / scale)) * scale).reverse();
-			bs.forEach((b, i) => new Array(b).fill().forEach((_, j) => db.put(id, ...bs.slice(0, i), j, null)));
+			let t = Math.floor(id / scale ** level) - 1;
+			if(t < line) return;
+			db.put(t, null);
+			t = id2bs(id);
+			t.slice(1).forEach((b, i) => new Array(b).fill().forEach((_, j) => db.put(t[0], ...t.slice(1, i + 1), j, null)));
 		},
+		path: (...path) => path.length ? db.path(...id2bs(path)) : db,
+		put: (...path) => path.length ? db.put(...id2bs(path)) : db.put(),
+		
 	};
 };
 
