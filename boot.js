@@ -433,14 +433,23 @@ const log_db = library.log_db = (db, level, scale = 10) => {
 		put: (...path) => path.length ? db.put(...id2bs(...path)) : db.put(),
 		on: listener => {
 			const f = (db, bs) => {
-				const cancel = db.on((bx, db) => {
-					if(bx == null) return bx === null && cancel();
-					if(bs.length === level) return listener(bs.concat(bx).reduce((s, b) => s * scale + b), db);
-					f(db, bs.concat(bx));
+				const cancel = db.on((b, db) => {
+					if(b == null){
+						if(b !== null) return;
+						cancel();
+						cancels.delete(cancel);
+					}
+					if(bs.length === level) return listener(bs.concat(b).reduce((s, b) => s * scale + b), db);
+					f(db, bs.concat(b));
 				});
 				cancels.add(cancel);
 			};
-			const cancels = new Set([db.on(() => listener())]);
+			const cancel = db.on(() => {
+				cancel();
+				cancels.delete(cancel);
+				listener();
+			});
+			const cancels = new Set([cancel]);
 			f(db, []);
 			return () => cancels.forEach(f => f());
 		},
