@@ -461,7 +461,8 @@ const log_db = library.log_db = (db, level, scale = 10) => {
 
 const tube = library.tube = (() => {
 	let t;
-	return cache(source => t || (() => {
+	return cache(source => {
+		if(t) return t;
 		const states = multi_key_map();
 		t = (...condition) => {
 			const sync = () => {
@@ -579,7 +580,7 @@ const tube = library.tube = (() => {
 		const tube0 = tube(t);
 		t = null;
 		return tube0;
-	})());
+	});
 })();
 
 const tubeline = library.tubeline = (() => {
