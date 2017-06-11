@@ -1,6 +1,6 @@
-const {run, hell, is_hell, tickline, gen2tick, genfn2tick, same_list, cache, prom2hell} = library;
+﻿const {run, hell, is_hell, tickline, gen2tick, genfn2tick, same_list, cache, prom2hell} = library;
 library = Object.create(library);
-const cancels = new Set;
+const cancels = new Set([() => canceled = true]);
 let canceled = false;
 
 const cmp = ([a], [b]) => a - b;
@@ -659,9 +659,88 @@ const tubeline = library.tubeline = (() => {
 	};
 })();
 
+const ajax = library.ajax = (() => {
+	const m2p = mlist => {
+		let n = 0;
+		const plist = [];
+		mlist.sort(cmp).forEach(([p, b]) => {
+			const n0 = n;
+			n += b - .5;
+			if(n0 !== 0 && n !== 0) return;
+			if(plist[0] === p) return plist.shift();
+			plist.unshift(p);
+		});
+		return plist.reverse();
+	};
+	const p2m = (b, plist) => plist.map(p => [p, b = !b]);
+	const gmt2date = gmt => gmt ? +new Date(gmt) : -Infinity;
+
+	const assign = tube(url => {
+		const request = edition => {
+			let state = states.get(url);
+			if(!state || edition && (edition !== state.edition || !edition.plist1().length)) return;
+			const keys = ["ETag", "Last-Modified"];
+			counts.set(uri, counts.get(url) + 1 || 1);
+			({edition} = state);
+			const cn = {p: (edition && edition.plist1()[0] + 1 || state.plist[0] + 1 || 1) - 1};
+			const headers = () => {
+				const headers = [
+					["Cache-Control", "max-age=0"],
+					["Range", "bytes=" + cn.p + "-"],
+				];
+				if(edition && edition.plist1().length === 0) headers.push([
+					["If-None-Match", "If-Modified-Since"][keys.indexOf(edition.tag[0])],
+					edition.tag[1],
+				]);
+				return headers;
+			};
+			let stamp = performance.now();
+			let timer = setTimeout(request, 3e3);
+			state.roll(0);
+			if("body" in Response.prototype){
+				const init = {headers: new Headers};
+				headers().forEach(header => init.headers.set(...header));
+				const [, response] = yield prom2hell(fetch(url, init));
+			}
+		};
+		const db = log_db(local_db.path("ajax", 0, url), 8);
+		const cancels = new Set;
+		const state = {
+			plist: [],
+			gmt: "",
+			pool: new Set,
+			
+		};
+		states.set(url, state);
+		return listener => {
+			if(listener) return;
+			db.stop();
+			state.plist = [];
+			states.delete(url);
+			cancels.forEach(f => f());
+		};
+	});
+	const ajax = tube((url, ...list) => {
+		let p = 0;
+		list = list.map(d => p += d);
+		const [hell0, resolve] = hell();
+		const cancel = assign(url)(arrange => resolve(arrange(...list)));
+		return listener => {
+			if(listener){
+				const cancel = tickline(f => f(listener))(hell0);
+				return () => tickline(f => f())(cancel);
+			}
+			tickline(f => f())(hell0);
+			cancel();
+		};
+	});
+	const states = new Map;
+	const counts = multi_key_map();
+	return (url, ...rest) => ajax(format_url(url), ...rest);
+})();
+
 self.library = library;
 
 return genfn2tick(function*(){
-	canceled = true;
 	for(let cancel of Array.from(cancels).reverse()) yield cancel();
 });
