@@ -703,7 +703,9 @@ const ajax = library.ajax = (() => {
 				const [, response] = yield prom2hell(fetch(url, init));
 			}
 		};
-		const db = log_db(local_db.path("ajax", 0, url), 8);
+		const db = local_db.path("ajax", 0, ...url, "");
+		const status_db = log_db(db.path("statuses"), 8);
+		const record_db = log_db(db.path("records"), 8);
 		const cancels = new Set;
 		const state = {
 			plist: [],
@@ -714,7 +716,8 @@ const ajax = library.ajax = (() => {
 		states.set(url, state);
 		return listener => {
 			if(listener) return;
-			db.stop();
+			status_db.stop();
+			record_db.stop();
 			state.plist = [];
 			states.delete(url);
 			cancels.forEach(f => f());
