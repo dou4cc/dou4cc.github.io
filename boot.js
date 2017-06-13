@@ -676,48 +676,55 @@ const ajax = library.ajax = (() => {
 	const gmt2date = gmt => gmt ? +new Date(gmt) : -Infinity;
 
 	const assign = tube(url => {
-		const request = edition => {
-			let state = states.get(url);
-			if(!state || edition && (edition !== state.edition || !edition.plist1().length)) return;
+		const request = genfn2tick(function*(task){
 			const keys = ["ETag", "Last-Modified"];
-			counts.set(uri, counts.get(url) + 1 || 1);
-			({edition} = state);
-			const cn = {p: (edition && edition.plist1()[0] + 1 || state.plist[0] + 1 || 1) - 1};
-			const headers = () => {
-				const headers = [
+			let state = states.get(url);
+			if(!state || task < state.age || typeof task === "object" && (task !== state.edition || !task.plist1().length)) return;
+			let headers;
+			const queue = [() => {
+				headers = [
 					["Cache-Control", "max-age=0"],
 					["Range", "bytes=" + cn.p + "-"],
 				];
-				if(edition && edition.plist1().length === 0) headers.push([
+				if(edition && !edition.plist1().length) headers.push([
 					["If-None-Match", "If-Modified-Since"][keys.indexOf(edition.tag[0])],
 					edition.tag[1],
 				]);
-				return headers;
-			};
+			}];
+			if("body" in Response.prototype){
+				queue.push(genfn2tick(function*(){
+					const init = {headers: new Headers};
+					headers.forEach(header => init.headers.set(...header));
+					const [, response] = yield prom2hell(fetch(url, init));
+					if(!response) return;
+				}));
+			}else{
+				ReadableStream;
+			}
+			let {edition} = state;
+			const cn = {p: (edition && edition.plist1()[0] + 1 || state.plist[0] + 1 || 1) - 1};
+			state.roll(0);
 			let stamp = performance.now();
 			let timer = setTimeout(request, 3e3);
-			state.roll(0);
-			if("body" in Response.prototype){
-				const init = {headers: new Headers};
-				headers().forEach(header => init.headers.set(...header));
-				const [, response] = yield prom2hell(fetch(url, init));
-			}
-		};
+			counts.set(url, counts.get(url) + 1 || 1);
+			queue.push(() => {
+				clearTimeout(timer);
+				counts.set(url, counts.get(url) - 1 || undefined);
+			}, () => request(task));
+			let t;
+			while(t = queue.shift()) yield t();
+		});
 		const db = local_db.path("ajax", 0, ...url, "");
-		const status_db = log_db(db.path("statuses"), 8);
-		const record_db = log_db(db.path("records"), 8);
-		const cancels = new Set;
+		const records = log_db(db.path("records"), 8);
+		const statuses = log_db(db.path("statuses"), 8);
+		const cancels = new Set([records.stop, statuses.stop]);
 		const state = {
 			plist: [],
-			gmt: "",
-			pool: new Set,
 			
 		};
 		states.set(url, state);
 		return listener => {
 			if(listener) return;
-			status_db.stop();
-			record_db.stop();
 			state.plist = [];
 			states.delete(url);
 			cancels.forEach(f => f());
