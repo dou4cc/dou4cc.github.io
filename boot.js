@@ -676,7 +676,7 @@ const ajax = library.ajax = (() => {
 	const gmt2date = gmt => gmt ? +new Date(gmt) : -Infinity;
 
 	const assign = tube(url => {
-		const request = genfn2tick(function*(task){
+		const request = genfn2tick(function*(task = state.age = age += 1){
 			const keys = ["ETag", "Last-Modified"];
 			let state = states.get(url);
 			if(!state || task < state.age || typeof task === "object" && (task !== state.edition || !task.plist1().length)) return;
@@ -691,12 +691,22 @@ const ajax = library.ajax = (() => {
 					edition.tag[1],
 				]);
 			}];
+			let abort;
+			let status;
 			if("body" in Response.prototype){
 				queue.push(genfn2tick(function*(){
 					const init = {headers: new Headers};
 					headers.forEach(header => init.headers.set(...header));
 					const [, response] = yield prom2hell(fetch(url, init));
 					if(!response) return;
+					({status} = response);
+					const reader = response.body.getReader();
+					abort = () => reader.cancel().catch(() => {});
+					headers = key => response.headers.get(key);
+					task = genfn2tick(function*(push){
+						while(t = ((yield prom2hell(reader.read()))[1] || {}).value) push(t);
+						push();
+					});
 				}));
 			}else{
 				ReadableStream;
@@ -707,6 +717,13 @@ const ajax = library.ajax = (() => {
 			let stamp = performance.now();
 			let timer = setTimeout(request, 3e3);
 			counts.set(url, counts.get(url) + 1 || 1);
+			queue.push(genfn2tick(function*(){
+				queue.splice(-1, 1, abort);
+				state = states.get(url);
+				if(!state) return;
+				const gmt = headers("Date");
+				
+			}));
 			queue.push(() => {
 				clearTimeout(timer);
 				counts.set(url, counts.get(url) - 1 || undefined);
@@ -714,13 +731,20 @@ const ajax = library.ajax = (() => {
 			let t;
 			while(t = queue.shift()) yield t();
 		});
+		let timer;
 		const db = local_db.path("ajax", 0, ...url, "");
 		const records = log_db(db.path("records"), 8);
 		const statuses = log_db(db.path("statuses"), 8);
 		const cancels = new Set([records.stop, statuses.stop]);
 		const state = {
 			plist: [],
-			
+			roll: offset => {
+				clearTimeout(timer);
+				let x = (state.date - date0) / 1e3;
+				if(Number.isNaN(x)) return;
+				x = (Math.max(0, (Math.log(x / 10 + 1.4) - Math.log(1.5)) ** 1.2 * 16) || 0) + (x / 50) ** 0.8;
+				timer = setTimeout(request, x * 1e3 - offset);
+			},
 		};
 		states.set(url, state);
 		return listener => {
@@ -744,6 +768,7 @@ const ajax = library.ajax = (() => {
 			cancel();
 		};
 	});
+	let age = 0;
 	const states = new Map;
 	const counts = multi_key_map();
 	return (url, ...rest) => ajax(format_url(url), ...rest);
