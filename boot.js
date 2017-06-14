@@ -674,9 +674,24 @@ const ajax = library.ajax = (() => {
 	};
 	const p2m = (b, plist) => plist.map(p => [p, b = !b]);
 	const gmt2date = gmt => gmt ? +new Date(gmt) : -Infinity;
+	const gmt2id = gmt => Math.floor(gmt2date(gmt) / 1e3);
 
 	const assign = tube(url => {
 		const request = genfn2tick(function*(task = state.age = age += 1){
+			const p = () => {
+				clearTimeout(timer);
+				const list = edition.plist1();
+				if(!list.length) return;
+				for(let i = 2; i < list.length; i += 2) if(list[i - 1] < cn.p && list[i] > cn.p && list[i] - cn.p > 800){
+					for(let {p, end} of state.pool){
+						if([p, end].some(a => a === undefined)) continue;
+						if(p <= list[i] && p - cn.p > 2e3 && end >= cn.end) return;
+					}
+					request(edition);
+					break;
+				}
+				return timer = setTimeout(request, (-stamp + (stamp = performance.now())) * 2, edition);
+			};
 			const keys = ["ETag", "Last-Modified"];
 			let state = states.get(url);
 			if(!state || task < state.age || typeof task === "object" && (task !== state.edition || !task.plist1().length)) return;
@@ -718,11 +733,29 @@ const ajax = library.ajax = (() => {
 			let timer = setTimeout(request, 3e3);
 			counts.set(url, counts.get(url) + 1 || 1);
 			queue.push(genfn2tick(function*(){
+				const update = () => state.update(gmt, stamp, edition);
+				const put = (record0, ...rest) => record(edition, [gmt].concat(record0), ...rest);
 				queue.splice(-1, 1, abort);
 				state = states.get(url);
 				if(!state) return;
 				const gmt = headers("Date");
-				
+				if(status === 304 || (edition = null, status === 404)) return queue.push(update);
+				if(status === 206) for(t of keys){
+					const value = headers(t);
+					if(value === null) continue;
+					edition = state.get_edition([t, value]);
+					t = headers("Content-Range").match(/^\s*bytes\s+(\d+)\s*-(\d+)\s*\/\s*(\d+)\s*$/i);
+					put(["size", +t[3]]);
+					cn.p = +t[1];
+					cn.end = +t[2];
+					t = headers("Last-Modified");
+					if(t !== null) put(["mtime", gmt2date(t)]);
+					t = headers("Content-Type");
+					if(t !== null) t.match(/^([^;]*).*?(?:;\s*charset\s*=([^;]*))?/i).slice(1).forEach((a, i) => a === undefined || put([["type", "charset"][i], a.trim()]));
+					update();
+					if(state.edition !== edition || !p()) return;
+					t = false;
+				}
 			}));
 			queue.push(() => {
 				clearTimeout(timer);
