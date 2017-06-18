@@ -727,7 +727,10 @@ const ajax = library.ajax = (() => {
 				ReadableStream;
 			}
 			let {edition} = state;
-			const cn = {p: (edition && edition.plist1()[0] + 1 || state.plist[0] + 1 || 1) - 1};
+			const cn = {
+				p: (edition && edition.plist1()[0] + 1 || state.plist[0] + 1 || 1) - 1,
+				abort: () => (t = queue.shift()) && tickline(cn.abort)(t()),
+			};
 			state.roll(0);
 			let stamp = performance.now();
 			let timer = setTimeout(request, 3e3);
@@ -755,6 +758,22 @@ const ajax = library.ajax = (() => {
 					update();
 					if(state.edition !== edition || !p()) return;
 					t = false;
+					state.pool.add(cn);
+					queue.push(() => {
+						t = true;
+						state.pool.delete(cn);
+					});
+					task(buffer => {
+						if(t) return;
+						if(!buffer){
+							queue.push(() => counts.get(url) || request(edition));
+							return abort();
+						}
+						put(["piece", cn.p, (cn.p += buffer.length) - 1], buffer);
+						if(!p()) abort();
+					});
+					[task, abort] = hell();
+					return task;
 				}
 			}));
 			queue.push(() => {
@@ -762,7 +781,7 @@ const ajax = library.ajax = (() => {
 				counts.set(url, counts.get(url) - 1 || undefined);
 			}, () => request(task));
 			let t;
-			while(t = queue.shift()) yield t();
+			cn.abort();
 		});
 		let timer;
 		const db = local_db.path("ajax", 0, ...url, "");
