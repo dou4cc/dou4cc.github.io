@@ -677,6 +677,11 @@ const ajax = library.ajax = (() => {
 	const gmt2id = gmt => Math.floor(gmt2date(gmt) / 1e3);
 
 	const assign = tube(url => {
+		const record = (gmt, edition, record, ...rest) => {
+			if(edition === state.edition) records.put(gmt2id(gmt), [edition.tag, gmt].concat(record), ...rest);
+			const state = states.get(url);
+			if(!state) return;
+		};
 		const request = genfn2tick(function*(task = state.age = age += 1){
 			const p = () => {
 				clearTimeout(timer);
@@ -737,7 +742,7 @@ const ajax = library.ajax = (() => {
 			counts.set(url, counts.get(url) + 1 || 1);
 			queue.push(genfn2tick(function*(){
 				const update = () => state.update(gmt, stamp, edition);
-				const put = (record0, ...rest) => record(edition, [gmt].concat(record0), ...rest);
+				const put = (record0, ...rest) => record(gmt, edition, record0, ...rest);
 				queue.splice(-1, 1, abort);
 				state = states.get(url);
 				if(!state) return;
@@ -788,6 +793,7 @@ const ajax = library.ajax = (() => {
 		const records = log_db(db.path("records"), 8);
 		const statuses = log_db(db.path("statuses"), 8);
 		const cancels = new Set([records.stop, statuses.stop]);
+		const dot = multi_key_map();
 		const state = {
 			plist: [],
 			roll: offset => {
@@ -797,6 +803,23 @@ const ajax = library.ajax = (() => {
 				x = (Math.max(0, (Math.log(x / 10 + 1.4) - Math.log(1.5)) ** 1.2 * 16) || 0) + (x / 50) ** 0.8;
 				timer = setTimeout(request, x * 1e3 - offset);
 			},
+			get_edition: edition => dot.get(...edition) || (() => {
+				const f = cache(size => {
+					let t = p2m(true, m2p(p2m(true, edition.plist0).concat(p2m(true, state.plist)))).concat(p2m(false, edition.plist0));
+					if(size === undefined) return m2p(t);
+					t = t.concat(p2m(true, [0, size - 1]));
+					return m2p(t.concat(p2m(false, m2p(t))));
+				});
+				edition = {
+					tag: edition,
+					pieces: [],
+					plist0: [],
+					plist1: () => f(edition.size, ...edition.plist0, NaN, ...state.plist),
+				};
+				dot.set(...edition.tag, edition);
+				return dot;
+			})(),
+			update: () => {},
 		};
 		states.set(url, state);
 		return listener => {
