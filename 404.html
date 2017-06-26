@@ -243,11 +243,14 @@
 							update();
 						}else{
 							boot = {};
+							document.title = "Loading";
 						}
 
 						const check = () => {
 							xhr.open("GET", "/boot.js");
+							xhr.responseType = "blob";
 							xhr.setRequestHeader("Cache-Control", "max-age=0");
+							xhr.setRequestHeader("Range", "bytes=0-");
 							if(boot.tag){
 								const [, value] = [t] = boot.tag;
 								t = new Map([
@@ -265,17 +268,22 @@
 						let t;
 						let hell0;
 						const xhr = new XMLHttpRequest;
-						xhr.addEventListener("loadend", ({target: {status}}) => {
-							if(status >= 200 && status < 300){
-								t = {source: xhr.responseText};
+						xhr.addEventListener("loadend", genfn2tick(function*({target: {status}}){
+							if(status === 416 || status >= 200 && status < 300 && +String(xhr.getResponseHeader("Content-Length")) === (xhr.response || {}).size){
+								t = {source: ""};
+								if(status !== 416){
+									const [hell0, resolve] = hell();
+									const reader = new FileReader;
+									reader.addEventListener("load", resolve);
+									reader.readAsText(xhr.response);
+									t.source = (yield hell0).target.result;
+								}
 								for(let key of ["ETag", "Last-Modified"]){
 									const value = xhr.getResponseHeader(key);
 									if(value === null) continue;
 									t.tag = [key, value];
 									break;
 								}
-							}else if(status === 404){
-								t = {source: 'document.title = ""'};
 							}else if(status !== 304){
 								return requestAnimationFrame(check);
 							}
@@ -287,7 +295,7 @@
 							}
 							t = null;
 							hell0(() => requestAnimationFrame(check));
-						});
+						}));
 						xhr.addEventListener("progress", () => new Date(xhr.getResponseHeader("Date") || NaN) <= new Date(boot.date) && check());
 						check();
 					}).catch(error => setTimeout(() => {
