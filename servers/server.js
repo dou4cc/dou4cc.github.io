@@ -58,10 +58,14 @@ http.createServer(async (request, response) => {
 		const options = {};
 		if(range && (!("if-match" in headers) || headers["if-match"] === tag)){
 			options.end = Math.min(range[2] || Infinity, stat.size - 1);
-			options.start = Math.min(range[1], options.end);
-			response.setHeader("Content-Range", "bytes " + options.start + "-" + options.end + "/" + stat.size);
-			response.setHeader("Content-Length", options.end - options.start + 1);
-			status = 206;
+			if(options.end < 0){
+				status = 416;
+			}else{
+				options.start = Math.min(range[1], options.end);
+				response.setHeader("Content-Range", "bytes " + options.start + "-" + options.end + "/" + stat.size);
+				response.setHeader("Content-Length", options.end - options.start + 1);
+				status = 206;
+			}
 		}else{
 			response.setHeader("Accept-Range", "bytes");
 			response.setHeader("Content-Length", stat.size);
