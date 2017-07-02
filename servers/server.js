@@ -86,8 +86,11 @@ http.createServer(async (request, response) => {
 		const content =
 			pathname === pathname1
 			? await util.promisify(fs.readFile)(filename)
-			: '\u{feff}<body onload=\'(a=location).replace("' + encodeURI(pathname1 + url.slice(pathname.length)) + '"+a.hash)\'>';
-		response.writeHead(404, {"Content-Type": "text/html"});
+			: Buffer('\u{feff}<body onload=\'(a=location).replace("' + encodeURI(pathname1 + url.slice(pathname.length)) + '"+a.hash)\'>');
+		response.writeHead(404, {
+			"Content-Length": content.length,
+			"Content-Type": "text/html",
+		});
 		response.end(content);
 		return pathname === pathname1 && log(filename);
 	}catch(error){}
