@@ -196,6 +196,7 @@
 								if((localStorage || {}).setItem) localStorage.setItem(setup, JSON.stringify({source: \`
 									const {hell, tickline} = library;
 
+									document.documentElement.lang = "en";
 									const pre = document.createElement("pre");
 									const button = document.createElement("button");
 									document.title = "Crash";
@@ -214,6 +215,7 @@
 									return () => tickline(() => {
 										pre.remove();
 										button.remove();
+										document.documentElement.removeAttribute("lang");
 									})(hell0);
 								\`}));
 								history.go(0);
