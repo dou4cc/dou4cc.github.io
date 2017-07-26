@@ -5,8 +5,8 @@ let canceled = false;
 
 const cmp = ([a], [b]) => a - b;
 
-const format_url = library.format_url = url => {
-	const iframe = document.createElement("iframe");
+const format_url = library.format_url = (url, window = self) => {
+	const iframe = window.document.createElement("iframe");
 	iframe.src = url;
 	return iframe.src;
 };
