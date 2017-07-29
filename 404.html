@@ -298,7 +298,7 @@
 							t = null;
 							hell0(() => requestAnimationFrame(check));
 						}));
-						xhr.addEventListener("progress", () => (new Date(xhr.getResponseHeader("Date") || NaN) <= new Date(boot.date) || xhr.status >= 200 && xhr.status < 300 && xhr.getResponseHeader("Content-Length") === null || xhr.status >= 400 && xhr.status !== 416) && check());
+						xhr.addEventListener("progress", () => (new Date(xhr.getResponseHeader("Date") || NaN) <= new Date(boot.date) || xhr.status >= 200 && (xhr.status < 300 ? xhr.getResponseHeader("Content-Length") === null : xhr.status !== 304 && xhr.status !== 416)) && check());
 						check();
 					}).catch(error => setTimeout(() => {
 						throw error;

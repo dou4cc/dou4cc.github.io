@@ -46,7 +46,7 @@ http.createServer(async (request, response) => {
 		const stat = await util.promisify(fs.stat)(filename);
 		if(!stat.isFile()) throw null;
 		const tag = [(+stat.ctime).toString(36), stat.size.toString(36)].join(".");
-		response.on("end", () => fs.close(fd));
+		response.on("finish", () => fs.close(fd, () => {}));
 		if(headers["if-none-match"] === tag){
 			response.writeHead(304);
 			return response.end();
