@@ -659,7 +659,7 @@ const tubeline = library.tubeline = (() => {
 	};
 })();
 
-const ajax = library.ajax = (() => {
+const ajax = library.ajax = cache(window => {
 	const m2p = mlist => {
 		let n = 0;
 		const plist = [];
@@ -715,9 +715,9 @@ const ajax = library.ajax = (() => {
 			let status;
 			if("body" in Response.prototype){
 				queue.push(genfn2tick(function*(){
-					const init = {headers: new Headers};
+					const init = {headers: new window.Headers};
 					headers.forEach(header => init.headers.set(...header));
-					const [, response] = yield prom2hell(fetch(url, init));
+					const [, response] = yield prom2hell(window.fetch(url, init));
 					if(!response) return;
 					({status} = response);
 					const reader = response.body.getReader();
@@ -729,7 +729,7 @@ const ajax = library.ajax = (() => {
 					});
 				}));
 			}else{
-				ReadableStream;
+				window.ReadableStream;
 			}
 			let {edition} = state;
 			const cn = {
@@ -846,8 +846,8 @@ const ajax = library.ajax = (() => {
 	let age = 0;
 	const states = new Map;
 	const counts = multi_key_map();
-	return (url, ...rest) => ajax(format_url(url), ...rest);
-})();
+	return (url, ...rest) => ajax(format_url(url, window), ...rest);
+});
 
 self.library = library;
 
