@@ -94,7 +94,10 @@ http.createServer(async (request, response) => {
 		response.end(content);
 		return pathname === pathname1 && log(filename);
 	}catch(error){}
-	response.writeHead(404, {"Content-Type": "application/octet-stream"});
+	response.writeHead(404, {
+		"Content-Length": 0,
+		"Content-Type": "application/octet-stream",
+	});
 	response.end();
 }).listen(port, ...+port < 1024 ? [] : ["127.0.0.1"]);
 log("Listening on", +port);
