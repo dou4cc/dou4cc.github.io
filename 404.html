@@ -223,6 +223,10 @@
 							event.prevent_reload = () => clearTimeout(timer);
 						});
 
+						const test = cache(code => {
+							Function('"use strict";' + code);
+						});
+
 						const update = genfn2tick(function*(){
 							if(source === ({source} = boot) || lock) return;
 							lock = true;
