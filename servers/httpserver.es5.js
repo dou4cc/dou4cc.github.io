@@ -130,14 +130,16 @@ if(Cluster.isMaster){
 				FS.readFile(page404, function(error, buffer){
 					if(error)
 						throw error;
-					var zip=Zlib.deflateSync(buffer, zlibOption);
-					if(zip.length+27<stats.size){
-						response.writeHead(404, {'Content-Encoding':'deflate', 'Content-Type':'text/html'});
-						response.end(zip);
-					}else{
-						response.writeHead(404, {'Content-Type':'text/html'});
-						response.end(buffer);
+					if(headers['accept-encoding']&&headers['accept-encoding'].split(/\s*,\s*/g).indexOf('deflate')>=0){
+						var zip=Zlib.deflateSync(buffer, zlibOption);
+						if(zip.length+27<stats.size){
+							response.writeHead(404, {'Content-Encoding':'deflate', 'Content-Type':'text/html'});
+							response.end(zip);
+							return;
+						}
 					}
+					response.writeHead(404, {'Content-Type':'text/html'});
+					response.end(buffer);
 				});
 			}else{
 				response.writeHead(404, {'Content-Length':stats.size, 'Content-Type':'text/html'});

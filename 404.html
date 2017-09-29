@@ -15,13 +15,13 @@
 <body>
 	<table><tr><td>
 		<div id="not-supported">
-			请用<a href="https://www.goo%67le.cn/intl/zh-CN/chr%6Fme/browser/index.html">Chr<!---->ome</a>（安装和更新需翻<!---->墙）浏览本站。<br>
+			推荐使用<a href="https://www.goo%67le.cn/intl/zh-CN/chr%6Fme/browser/index.html">Chr<!---->ome</a>（安装和更新可能需要翻<!---->墙）。<br>
 			<br>
-			Windows XP用户可以尝试使用Firefox 52：<br>
-			- <a href="https://download-installer.cdn.mozilla.net/pub/firefox/releases/52.3.0esr/win32/zh-CN/Firefox%20Setup%2052.3.0esr.exe">Firefox 52.3.0esr win32</a><br>
-			- <a href="https://download-installer.cdn.mozilla.net/pub/firefox/releases/52.3.0esr/win64/zh-CN/Firefox%20Setup%2052.3.0esr.exe">Firefox 52.3.0esr win64</a><br>
+			Windows XP用户可以尝试Firefox 52：<br>
+			- <a href="https://download-installer.cdn.mozilla.net/pub/firefox/releases/52.4.0esr/win32/zh-CN/Firefox%20Setup%2052.4.0esr.exe">Firefox 52.4.0esr win32</a><br>
+			- <a href="https://download-installer.cdn.mozilla.net/pub/firefox/releases/52.4.0esr/win64/zh-CN/Firefox%20Setup%2052.4.0esr.exe">Firefox 52.4.0esr win64</a><br>
 			<br>
-			（2017/08/10）</div>
+			（2017/09/29）</div>
 		<div id="not-found" style="display: none">
 		   	404 Not Found</div>
 	</td></tr></table>
@@ -186,7 +186,7 @@
 						const {run, hell, is_hell, tickline, gen2tick, genfn2tick, same_list, cache, prom2hell} = library;
 
 						const blocker = event => crash && event.stopImmediatePropagation();
-						let crash = false;
+						let crash;
 						addEventListener("unload", blocker);
 						addEventListener("beforeunload", blocker);
 						addEventListener("error", event => {
@@ -225,20 +225,20 @@
 
 						const test = cache(code => {
 							Function('"use strict";' + code);
+							return code;
 						});
 
 						const update = genfn2tick(function*(){
 							if(source === ({source} = boot) || lock) return;
 							lock = true;
 							yield (cancel || (() => {}))();
-							Function('"use strict";' + source);
 							document.title = "Loading";
-							cancel = self.eval('"use strict"; (library, library_source) => {' + source + "}")(library, library_source);
+							cancel = self.eval('"use strict"; (library, library_source) => {' + test(source) + "}")(library, library_source);
 							lock = false;
 						});
 						let source;
 						let cancel;
-						let lock = false;
+						let lock;
 						let boot = localStorage.getItem(setup);
 						addEventListener("storage", () => {
 							boot = JSON.parse(localStorage.getItem(setup));
@@ -254,9 +254,9 @@
 
 						const check = () => {
 							xhr.open("GET", "/boot.js");
-							xhr.responseType = "blob";
 							xhr.setRequestHeader("Cache-Control", "max-age=0");
 							xhr.setRequestHeader("Range", "bytes=0-");
+							t = null;
 							if(boot.tag){
 								const [, value] = [t] = boot.tag;
 								t = new Map([
@@ -273,17 +273,19 @@
 						};
 						let t;
 						let hell0;
+						let source1;
+						let source2;
 						const xhr = new XMLHttpRequest;
-						xhr.addEventListener("loadend", genfn2tick(function*({target: {status}}){
-							if(status === 416 || status >= 200 && status < 300 && +String(xhr.getResponseHeader("Content-Length")) === (xhr.response || {}).size){
-								t = {source: ""};
-								if(status !== 416){
-									const [hell0, resolve] = hell();
-									const reader = new FileReader;
-									reader.addEventListener("load", resolve);
-									reader.readAsText(xhr.response);
-									t.source = (yield hell0).target.result;
+						xhr.addEventListener("loadend", genfn2tick(function*({target: {status, responseText: source}}){
+							if(status === 416 || status >= 200 && status < 300){
+								if(status < 300 && source !== source2){
+									try{
+										if(source.trim()) source2 = test(source);
+									}catch(error){}
+									if(xhr.getResponseHeader("Content-Length") === null) return source1 !== (source1 = source) && check();
+									source1 = null;
 								}
+								t = {source};
 								for(let key of ["ETag", "Last-Modified"]){
 									const value = xhr.getResponseHeader(key);
 									if(value === null) continue;
@@ -302,7 +304,7 @@
 							t = null;
 							hell0(() => requestAnimationFrame(check));
 						}));
-						xhr.addEventListener("progress", () => (new Date(xhr.getResponseHeader("Date") || NaN) <= new Date(boot.date) || xhr.status >= 200 && (xhr.status < 300 ? xhr.getResponseHeader("Content-Length") === null : xhr.status !== 304 && xhr.status !== 416)) && check());
+						xhr.addEventListener("progress", ({target: {status}}) => (new Date(xhr.getResponseHeader("Date") || NaN) <= new Date(boot.date) || status >= 300 && status !== 304 && status !== 416) && check());
 						check();
 					}).catch(error => setTimeout(() => {
 						throw error;
