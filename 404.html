@@ -21,7 +21,7 @@
 			- <a href="https://download-installer.cdn.mozilla.net/pub/firefox/releases/52.4.0esr/win32/zh-CN/Firefox%20Setup%2052.4.0esr.exe">Firefox 52.4.0esr win32</a><br>
 			- <a href="https://download-installer.cdn.mozilla.net/pub/firefox/releases/52.4.0esr/win64/zh-CN/Firefox%20Setup%2052.4.0esr.exe">Firefox 52.4.0esr win64</a><br>
 			<br>
-			（2017/09/29）</div>
+			（2017/09/28）</div>
 		<div id="not-found" style="display: none">
 		   	404 Not Found</div>
 	</td></tr></table>
@@ -179,11 +179,22 @@
 								return hell0;
 							});
 							const hells = new WeakSet;
+							let resolve0;
+							const log = {
+								add: (...args) => {
+									log.list.push(...args);
+									const [, resolve] = [log.hell] = hell();
+									resolve0();
+									resolve0 = resolve;
+								},
+								hell: ([, resolve0] = hell())[0],
+								list: [],
+							};
 
-							({run, hell, is_hell, tickline, gen2tick, genfn2tick, same_list, cache, prom2hell});
+							({run, hell, is_hell, tickline, gen2tick, genfn2tick, same_list, cache, prom2hell, log});
 						\`;
 						const library = self.eval('"use strict";' + library_source);
-						const {run, hell, is_hell, tickline, gen2tick, genfn2tick, same_list, cache, prom2hell} = library;
+						const {run, hell, is_hell, tickline, gen2tick, genfn2tick, same_list, cache, prom2hell, log} = library;
 
 						const blocker = event => crash && event.stopImmediatePropagation();
 						let crash;
@@ -305,6 +316,20 @@
 							hell0(() => requestAnimationFrame(check));
 						}));
 						xhr.addEventListener("progress", ({target: {status}}) => (new Date(xhr.getResponseHeader("Date") || NaN) <= new Date(boot.date) || status >= 300 && status !== 304 && status !== 416) && check());
+						xhr.addEventListener("readystatechange", ({timeStamp}) => {
+							const head = ["setup-checker", xhr.readystate, timeStamp];
+							switch(xhr.readystate){
+							case 1:
+								log.add(head);
+								break;
+							case 2:
+								log.add(head.concat(xhr.getResponseHeader("Date"), xhr.getResponseHeader("Content-Length")));
+								break;
+							case 4:
+								log.add(head.concat(xhr.status, new Blob([xhr.responseText]).size));
+								break;
+							}
+						});
 						check();
 					}).catch(error => setTimeout(() => {
 						throw error;
