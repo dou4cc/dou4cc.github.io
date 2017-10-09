@@ -287,10 +287,11 @@
 						};
 						let t;
 						let hell0;
-						let response0;
-						let response1;
+						let response0 = 0;
+						let response1 = 0;
 						const xhr = new XMLHttpRequest;
 						xhr.addEventListener("loadend", genfn2tick(function*({target: {status, response}}){
+							response = response || "";
 							if(status === 416 || status >= 200 && status < 300){
 								const reader = new FileReader;
 								reader.addEventListener("load", ([t] = hell())[1]);
@@ -300,7 +301,7 @@
 										if(response && test((yield t).target.result).trim()) response1 = response;
 									}catch(error){}
 									if(!xhr.getResponseHeader("Content-Length")) return indexedDB.cmp(response0, response0 = response) && check();
-									response0 = null;
+									response0 = 0;
 								}
 								t = {source: (yield t).target.result};
 								for(let key of ["ETag", "Last-Modified"]){
