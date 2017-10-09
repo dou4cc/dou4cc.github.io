@@ -324,8 +324,8 @@
 						}));
 						xhr.addEventListener("progress", ({target: {status}}) => (new Date(xhr.getResponseHeader("Date") || NaN) <= new Date(boot.date) || status >= 300 && status !== 304 && status !== 416) && check());
 						xhr.addEventListener("readystatechange", ({timeStamp}) => {
-							const head = ["setup-checker", xhr.readystate, timeStamp];
-							switch(xhr.readystate){
+							const head = ["setup-checker", xhr.readyState, timeStamp];
+							switch(xhr.readyState){
 							case xhr.OPENED:
 								log.add(head);
 								break;
