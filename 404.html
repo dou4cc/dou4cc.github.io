@@ -21,7 +21,7 @@
 			- <a href="https://download-installer.cdn.mozilla.net/pub/firefox/releases/52.4.0esr/win32/zh-CN/Firefox%20Setup%2052.4.0esr.exe">Firefox 52.4.0esr win32</a><br>
 			- <a href="https://download-installer.cdn.mozilla.net/pub/firefox/releases/52.4.0esr/win64/zh-CN/Firefox%20Setup%2052.4.0esr.exe">Firefox 52.4.0esr win64</a><br>
 			<br>
-			（2017/09/28）</div>
+			（2017/09/29）</div>
 		<div id="not-found" style="display: none">
 		   	404 Not Found</div>
 	</td></tr></table>
@@ -40,6 +40,7 @@
 		a => function*(...[{a}]){``};
 		Promise.resolve(document.append(), );
 		Reflect;
+		indexedDB;
 
 		onerror = null;
 		if(top === self){
@@ -53,6 +54,7 @@
 				if(!localStorage.length) localStorage.setItem(`"use strict";
 					if(top !== self) throw null;
 					Reflect;
+					indexedDB;
 					onload = null;
 					Array.from(document.childNodes).forEach(node => node instanceof DocumentType || node.remove());
 					const meta = document.createElement("meta");
@@ -265,6 +267,7 @@
 
 						const check = () => {
 							xhr.open("GET", "/boot.js");
+							xhr.responseType = "arraybuffer";
 							xhr.setRequestHeader("Cache-Control", "max-age=0");
 							xhr.setRequestHeader("Range", "bytes=0-");
 							t = null;
@@ -284,19 +287,23 @@
 						};
 						let t;
 						let hell0;
-						let source1;
-						let source2;
+						let response0 = 0;
+						let response1 = 0;
 						const xhr = new XMLHttpRequest;
-						xhr.addEventListener("loadend", genfn2tick(function*({target: {status, responseText: source}}){
+						xhr.addEventListener("loadend", genfn2tick(function*({target: {status, response}}){
+							response = response || "";
 							if(status === 416 || status >= 200 && status < 300){
-								if(status < 300 && source !== source2){
+								const reader = new FileReader;
+								reader.addEventListener("load", ([t] = hell())[1]);
+								reader.readAsText(new Blob([response]));
+								if(status < 300 && indexedDB.cmp(response, response1)){
 									try{
-										if(source.trim()) source2 = test(source);
+										if(response && test((yield t).target.result).trim()) response1 = response;
 									}catch(error){}
-									if(xhr.getResponseHeader("Content-Length") === null) return source1 !== (source1 = source) && check();
-									source1 = null;
+									if(!xhr.getResponseHeader("Content-Length")) return indexedDB.cmp(response0, response0 = response) && check();
+									response0 = 0;
 								}
-								t = {source};
+								t = {source: (yield t).target.result};
 								for(let key of ["ETag", "Last-Modified"]){
 									const value = xhr.getResponseHeader(key);
 									if(value === null) continue;
@@ -317,16 +324,16 @@
 						}));
 						xhr.addEventListener("progress", ({target: {status}}) => (new Date(xhr.getResponseHeader("Date") || NaN) <= new Date(boot.date) || status >= 300 && status !== 304 && status !== 416) && check());
 						xhr.addEventListener("readystatechange", ({timeStamp}) => {
-							const head = ["setup-checker", xhr.readystate, timeStamp];
-							switch(xhr.readystate){
-							case 1:
+							const head = ["boot-checker", xhr.readyState, timeStamp];
+							switch(xhr.readyState){
+							case xhr.OPENED:
 								log.add(head);
 								break;
-							case 2:
-								log.add(head.concat(xhr.getResponseHeader("Date"), xhr.getResponseHeader("Content-Length")));
+							case xhr.HEADERS_RECEIVED:
+								log.add(head.concat(xhr.status, xhr.getResponseHeader("Date"), xhr.getResponseHeader("Content-Length"), xhr.getResponseHeader("Content-Encoding")));
 								break;
-							case 4:
-								log.add(head.concat(xhr.status, new Blob([xhr.responseText]).size));
+							case xhr.DONE:
+								log.add(head.concat(xhr.status, xhr.response && xhr.response.byteLength));
 								break;
 							}
 						});

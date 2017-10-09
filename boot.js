@@ -1,4 +1,4 @@
-﻿const {run, hell, is_hell, tickline, gen2tick, genfn2tick, same_list, cache, prom2hell} = library;
+﻿const {run, hell, is_hell, tickline, gen2tick, genfn2tick, same_list, cache, prom2hell, log} = library;
 library = Object.create(library);
 const cancels = new Set([() => canceled = true]);
 let canceled = false;
