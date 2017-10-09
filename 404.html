@@ -330,7 +330,7 @@
 								log.add(head);
 								break;
 							case xhr.HEADERS_RECEIVED:
-								log.add(head.concat(xhr.getResponseHeader("Date"), xhr.getResponseHeader("Content-Length")));
+								log.add(head.concat(xhr.status, xhr.getResponseHeader("Date"), xhr.getResponseHeader("Content-Length")));
 								break;
 							case xhr.DONE:
 								log.add(head.concat(xhr.status, xhr.response && xhr.response.byteLength));
