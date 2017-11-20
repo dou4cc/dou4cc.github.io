@@ -148,7 +148,7 @@ const local_db = library.local_db = (() => {
 	const hub_source = `({tickline}, port) => ({
 		send: list => tickline(port => port.postMessage(list))(port),
 		on: listener => tickline(port => {
-			const onmessage = ({data}) => data instanceof Array && listener(data);
+			const onmessage = ({data}) => Array.isArray(data) && listener(data);
 			port.addEventListener("message", onmessage);
 			return () => port.removeEventListener("message", onmessage);
 		})(port),
@@ -161,7 +161,7 @@ const local_db = library.local_db = (() => {
 				addEventListener("connect", event => event.ports.forEach(port => {
 					ports.add(port);
 					port.addEventListener("message", ({data}) => {
-						if(data instanceof Array) return ports.forEach(port => port.postMessage(data));
+						if(Array.isArray(data)) return ports.forEach(port => port.postMessage(data));
 						if(data !== "disconnect") return;
 						port.close();
 						ports.delete(port);
